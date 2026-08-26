@@ -810,7 +810,7 @@ fun LoginScreen(
                                 onClick = {
                                     if (regEmail.contains("@") && regEmail.contains(".")) {
                                         isEmailOtpSent = true
-                                        Toast.makeText(context, "$regEmail adresine 6 haneli e-posta doğrulama kodu gönderildi (Demo: 849201)", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "$regEmail adresine 6 haneli e-posta doğrulama kodu gönderildi.", Toast.LENGTH_LONG).show()
                                     } else {
                                         Toast.makeText(context, "Lütfen geçerli bir e-posta adresi girin.", Toast.LENGTH_SHORT).show()
                                     }
@@ -830,7 +830,7 @@ fun LoginScreen(
                                     value = regEmailOtp,
                                     onValueChange = { if (it.length <= 6) regEmailOtp = it.filter { ch -> ch.isDigit() } },
                                     label = { Text("6 Haneli E-Posta Kodu *") },
-                                    placeholder = { Text("849201") },
+                                    placeholder = { Text("000000") },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     shape = RoundedCornerShape(12.dp),
@@ -889,7 +889,7 @@ fun LoginScreen(
                         OutlinedButton(
                             onClick = {
                                 isPhoneOtpSent = true
-                                Toast.makeText(context, "$regPhone numarasına SMS onay kodu gönderildi (Demo: 123456)", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "$regPhone numarasına SMS onay kodu gönderildi.", Toast.LENGTH_LONG).show()
                             },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -906,7 +906,7 @@ fun LoginScreen(
                                 value = regPhoneOtp,
                                 onValueChange = { if (it.length <= 6) regPhoneOtp = it.filter { ch -> ch.isDigit() } },
                                 label = { Text("SMS Kodu") },
-                                placeholder = { Text("123456") },
+                                placeholder = { Text("000000") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 shape = RoundedCornerShape(12.dp),

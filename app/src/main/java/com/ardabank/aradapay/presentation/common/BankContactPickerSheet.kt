@@ -35,26 +35,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.BottomSheetDefaults
@@ -160,11 +163,9 @@ fun BankContactPickerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .statusBarsPadding()
-                .navigationBarsPadding()
                 .imePadding()
                 .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             // 1. Top App Bar Header
             Row(
@@ -225,101 +226,119 @@ fun BankContactPickerScreen(
                 }
             }
 
-                // 2. Universal Inline Participant Selection & Search Row
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            // 2. Universal Inline Participant Selection & Search Row
+            Column(modifier = Modifier.fillMaxWidth()) {
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 54.dp)
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Seninle ve:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color(0xFF0F172A)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Selected Participant Pills & Inline Search (Horizontal Scroll)
+                    val selectedParticipants = remember(currentSelected.size, combinedMembers) {
+                        combinedMembers.filter { currentSelected.contains(it.id) }.distinctBy { it.id }
+                    }
 
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 54.dp)
-                            .padding(vertical = 10.dp, horizontal = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .weight(1f)
+                            .horizontalScroll(rememberScrollState()),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "Seninle ve: ",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color(0xFF0F172A)
-                        )
-
-                        // Selected Participant Pills (Horizontal Capsule Design)
-                        if (currentSelected.isNotEmpty()) {
-                            val selectedParticipants = combinedMembers.filter { currentSelected.contains(it.id) }.distinctBy { it.id }
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(end = 8.dp)
+                        selectedParticipants.forEach { p ->
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = PrimaryEmeraldContainer,
+                                border = BorderStroke(1.dp, PrimaryEmerald),
+                                modifier = Modifier.bounceClick { currentSelected.remove(p.id) }
                             ) {
-                                items(selectedParticipants, key = { "pill_chip_${it.id}" }) { p ->
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = PrimaryEmeraldContainer,
-                                        border = BorderStroke(1.dp, PrimaryEmerald),
-                                        modifier = Modifier.bounceClick { currentSelected.remove(p.id) }
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = PrimaryEmerald,
+                                        modifier = Modifier.size(22.dp)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = PrimaryEmerald,
-                                                modifier = Modifier.size(22.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Text(
-                                                        text = if (p.avatar.length <= 2) p.avatar else p.name.take(2).uppercase(),
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color.White
-                                                    )
-                                                }
-                                            }
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                        Box(contentAlignment = Alignment.Center) {
                                             Text(
-                                                text = p.name.split(" ").first(),
-                                                fontSize = 13.sp,
+                                                text = if (p.avatar.length <= 2) p.avatar else p.name.take(2).uppercase(),
+                                                fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = PrimaryEmerald
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                softWrap = false
                                             )
                                         }
                                     }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = p.name.split(" ").first(),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryEmerald,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Kaldır",
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier.size(14.dp)
+                                    )
                                 }
                             }
                         }
 
-                        // Seamless Inline Text Input
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 2.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    text = if (currentSelected.isEmpty()) "İsim, telefon veya #tag gir..." else "Kişi ekle...",
-                                    color = Color(0xFF94A3B8),
-                                    fontSize = 14.sp
-                                )
-                            }
-                            BasicTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                singleLine = true,
-                                textStyle = TextStyle(
-                                    color = Color(0xFF0F172A),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                cursorBrush = SolidColor(PrimaryEmerald),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = Color(0xFF0F172A),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            cursorBrush = SolidColor(PrimaryEmerald),
+                            decorationBox = { innerTextField ->
+                                Box(
+                                    contentAlignment = Alignment.CenterStart,
+                                    modifier = Modifier.defaultMinSize(minWidth = 80.dp)
+                                ) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text(
+                                            text = if (currentSelected.isEmpty()) "Kişi ara..." else "Kişi ekle...",
+                                            color = Color(0xFF94A3B8),
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            },
+                            modifier = Modifier.widthIn(min = 90.dp)
+                        )
                     }
-
-                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
                 }
+
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            }
 
                 // 5. UNBOXED Contact List (100% Flat Rows with Inset Dividers)
                 LazyColumn(
@@ -450,7 +469,7 @@ fun BankContactPickerScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Surface(
-                                        shape = CircleShape,
+                                        shape = RoundedCornerShape(14.dp),
                                         color = Color(0xFFF1F5F9),
                                         modifier = Modifier.size(42.dp)
                                     ) {
@@ -646,7 +665,7 @@ fun SmartInviteChannelSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        shape = CircleShape,
+                        shape = RoundedCornerShape(12.dp),
                         color = Color(0xFFE0F2FE),
                         modifier = Modifier.size(38.dp)
                     ) {
@@ -686,7 +705,7 @@ fun SmartInviteChannelSheet(
 
             // 1. WhatsApp Option
             InviteOptionCard(
-                icon = Icons.Default.Chat,
+                icon = Icons.AutoMirrored.Filled.Chat,
                 iconColor = Color(0xFF25D366),
                 containerColor = Color(0xFFF0FDF4),
                 title = "WhatsApp ile Gönder",
@@ -716,7 +735,7 @@ fun SmartInviteChannelSheet(
 
             // 2. SMS Option
             InviteOptionCard(
-                icon = Icons.Default.Message,
+                icon = Icons.AutoMirrored.Filled.Message,
                 iconColor = Color(0xFF0284C7),
                 containerColor = Color(0xFFF0F9FF),
                 title = "SMS ile Gönder",
@@ -743,7 +762,7 @@ fun SmartInviteChannelSheet(
 
             // 3. Telegram Option
             InviteOptionCard(
-                icon = Icons.Default.Send,
+                icon = Icons.AutoMirrored.Filled.Send,
                 iconColor = Color(0xFF0088CC),
                 containerColor = Color(0xFFF0F9FF),
                 title = "Telegram ile Paylaş",

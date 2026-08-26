@@ -332,7 +332,7 @@ fun RegisterFlowScreen(
                                     onClick = {
                                         if (phone.length == 10) {
                                             isOtpSent = true
-                                            Toast.makeText(context, "+90 $phone numarasına 6 haneli SMS onay kodu gönderildi (Demo: 123456)", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(context, "+90 $phone numarasına 6 haneli SMS onay kodu gönderildi.", Toast.LENGTH_LONG).show()
                                         } else {
                                             Toast.makeText(context, "Lütfen 10 haneli telefon numaranızı girin (5XX...)", Toast.LENGTH_SHORT).show()
                                         }

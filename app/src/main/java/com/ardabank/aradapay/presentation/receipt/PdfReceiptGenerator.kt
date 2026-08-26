@@ -294,4 +294,188 @@ object PdfReceiptGenerator {
             Toast.makeText(context, "PDF paylaşılırken hata oluştu: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
         }
     }
+
+    /**
+     * Generates a comprehensive Group Settlement & Expense Report PDF.
+     */
+    fun generateGroupReportPdf(
+        context: Context,
+        group: com.ardabank.aradapay.domain.model.Group,
+        expenses: List<com.ardabank.aradapay.domain.model.GroupExpenseItem>
+    ): File {
+        val pdfDocument = PdfDocument()
+        val pageWidth = 595
+        val pageHeight = 842
+        val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
+        val page = pdfDocument.startPage(pageInfo)
+        val canvas: Canvas = page.canvas
+        val paint = Paint().apply { isAntiAlias = true }
+
+        // Background
+        canvas.drawColor(Color.WHITE)
+
+        // Top Accent
+        paint.color = Color.parseColor("#008542")
+        canvas.drawRect(0f, 0f, pageWidth.toFloat(), 12f, paint)
+
+        // Header
+        paint.color = Color.parseColor("#0F172A")
+        paint.textSize = 20f
+        paint.isFakeBoldText = true
+        canvas.drawText("AradaPay", 40f, 50f, paint)
+
+        paint.textSize = 10f
+        paint.isFakeBoldText = false
+        paint.color = Color.parseColor("#64748B")
+        canvas.drawText("Grup Hesap & Fitleşme Raporu", 40f, 65f, paint)
+
+        // Right Header
+        paint.textAlign = Paint.Align.RIGHT
+        paint.color = Color.parseColor("#008542")
+        paint.textSize = 14f
+        paint.isFakeBoldText = true
+        canvas.drawText(group.name.uppercase(), (pageWidth - 40).toFloat(), 50f, paint)
+
+        paint.color = Color.parseColor("#64748B")
+        paint.textSize = 9f
+        paint.isFakeBoldText = false
+        val reportDate = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+        canvas.drawText("Tarih: $reportDate", (pageWidth - 40).toFloat(), 65f, paint)
+        paint.textAlign = Paint.Align.LEFT
+
+        // Divider
+        paint.color = Color.parseColor("#E2E8F0")
+        canvas.drawLine(40f, 80f, (pageWidth - 40).toFloat(), 80f, paint)
+
+        // Summary Box
+        val summaryRect = RectF(40f, 95f, (pageWidth - 40).toFloat(), 165f)
+        paint.color = Color.parseColor("#F8FAFC")
+        canvas.drawRoundRect(summaryRect, 8f, 8f, paint)
+
+        paint.color = Color.parseColor("#64748B")
+        paint.textSize = 10f
+        paint.isFakeBoldText = true
+        canvas.drawText("TOPLAM GRUP HARCAMASI", 60f, 120f, paint)
+
+        paint.color = Color.parseColor("#0F172A")
+        paint.textSize = 22f
+        canvas.drawText("${String.format("%.2f", group.totalExpenses)} TL", 60f, 148f, paint)
+
+        paint.textAlign = Paint.Align.RIGHT
+        paint.color = Color.parseColor("#64748B")
+        paint.textSize = 10f
+        canvas.drawText("KATILIMCI SAYISI: ${group.members.size}", (pageWidth - 60).toFloat(), 120f, paint)
+        canvas.drawText("DURUM: ${if (group.isArchived) "FİTLEŞİLDİ & ARŞİV" else "AKTİF"}", (pageWidth - 60).toFloat(), 148f, paint)
+        paint.textAlign = Paint.Align.LEFT
+
+        // Üyeler & Bakiyeler Bölümü
+        paint.color = Color.parseColor("#0F172A")
+        paint.textSize = 13f
+        paint.isFakeBoldText = true
+        canvas.drawText("Grup Katılımcıları", 40f, 195f, paint)
+
+        var y = 220f
+        group.members.forEach { member ->
+            val isMe = member.id == "me" || member.id == "1"
+            paint.textSize = 11f
+            paint.isFakeBoldText = false
+            paint.color = Color.parseColor("#0F172A")
+            canvas.drawText("• ${member.name}", 50f, y, paint)
+
+            paint.textAlign = Paint.Align.RIGHT
+            if (isMe) {
+                val isPositive = member.balanceInGroup >= 0
+                paint.color = if (isPositive) Color.parseColor("#008542") else Color.parseColor("#EF4444")
+                paint.isFakeBoldText = true
+                val balText = if (isPositive) "+${String.format("%.2f", member.balanceInGroup)} TL (Sen)" else "${String.format("%.2f", member.balanceInGroup)} TL (Sen)"
+                canvas.drawText(balText, (pageWidth - 50).toFloat(), y, paint)
+            } else {
+                paint.color = Color.parseColor("#64748B")
+                paint.isFakeBoldText = false
+                canvas.drawText("Katılımcı", (pageWidth - 50).toFloat(), y, paint)
+            }
+            paint.textAlign = Paint.Align.LEFT
+
+            y += 20f
+        }
+
+        // Harcamalar Bölümü
+        y += 15f
+        paint.color = Color.parseColor("#0F172A")
+        paint.textSize = 13f
+        paint.isFakeBoldText = true
+        canvas.drawText("Grup Harcamaları (${expenses.size})", 40f, y, paint)
+        y += 25f
+
+        expenses.take(15).forEach { exp ->
+            paint.textSize = 10f
+            paint.isFakeBoldText = true
+            paint.color = Color.parseColor("#0F172A")
+            canvas.drawText(exp.title, 50f, y, paint)
+
+            paint.isFakeBoldText = false
+            paint.color = Color.parseColor("#64748B")
+            paint.textSize = 9f
+            canvas.drawText("Ödeyen: ${exp.payerName} • ${exp.date}", 50f, y + 12f, paint)
+
+            paint.textAlign = Paint.Align.RIGHT
+            paint.textSize = 11f
+            paint.isFakeBoldText = true
+            paint.color = Color.parseColor("#0F172A")
+            canvas.drawText("${String.format("%.2f", exp.totalAmount)} TL", (pageWidth - 50).toFloat(), y + 6f, paint)
+            paint.textAlign = Paint.Align.LEFT
+
+            y += 28f
+        }
+
+        // Footer
+        paint.color = Color.parseColor("#94A3B8")
+        paint.textSize = 8f
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText("AradaPay Akıllı Bölüşüm & FAST Fitleşme Sistemi • www.aradapay.com", (pageWidth / 2).toFloat(), 810f, paint)
+
+        pdfDocument.finishPage(page)
+
+        val outputDir = File(context.cacheDir, "group_reports").apply { mkdirs() }
+        val outputFile = File(outputDir, "AradaPay_Grup_${group.id}_Raporu.pdf")
+        val fos = FileOutputStream(outputFile)
+        pdfDocument.writeTo(fos)
+        fos.flush()
+        fos.close()
+        pdfDocument.close()
+
+        return outputFile
+    }
+
+    /**
+     * Shares the generated Group Report PDF.
+     */
+    fun shareGroupReportPdf(
+        context: Context,
+        group: com.ardabank.aradapay.domain.model.Group,
+        expenses: List<com.ardabank.aradapay.domain.model.GroupExpenseItem>
+    ) {
+        try {
+            val pdfFile = generateGroupReportPdf(context, group, expenses)
+            val uri: Uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                pdfFile
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "${group.name} - AradaPay Hesap Raporu")
+                putExtra(Intent.EXTRA_TEXT, "${group.name} grubunun AradaPay harcama ve fitleşme raporu ektedir.\nToplam Harcama: ${String.format("%.2f", group.totalExpenses)} TL")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = Intent.createChooser(shareIntent, "Grup Raporunu Paylaş")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Rapor paylaşılırken hata oluştu: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        }
+    }
 }

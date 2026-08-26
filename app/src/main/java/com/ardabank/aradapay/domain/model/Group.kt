@@ -30,5 +30,6 @@ data class Group(
     val createdBy: String = "me",
     val createdAt: String = "",
     val userBalance: Double = 0.0, // +: grupta alacaklısın, -: grupta borçlusun
-    val totalExpenses: Double = 0.0
+    val totalExpenses: Double = 0.0,
+    val isArchived: Boolean = false
 )

@@ -1,6 +1,10 @@
 package com.ardabank.aradapay.presentation.profile
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,15 +33,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,10 +67,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ardabank.aradapay.presentation.common.UserAvatar
 import com.ardabank.aradapay.presentation.components.bounceClick
-import com.ardabank.aradapay.presentation.theme.LightBackground
+import com.ardabank.aradapay.presentation.theme.AccentRose
 import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
+import com.ardabank.aradapay.util.ImageStorageHelper
 
 data class AvatarOption(val id: String, val emoji: String, val bgColor: Color)
 
@@ -71,15 +81,34 @@ fun EditProfileScreen(
     currentName: String = "Mehmet Dilovan",
     currentIban: String = "TR64 0006 2000 0000 1122 3344 55",
     currentAvatarEmoji: String = "MD",
+    currentAvatarUrl: String = "",
     onBackClick: () -> Unit = {},
-    onSaveProfile: (newName: String, newIban: String, newAvatar: String) -> Unit = { _, _, _ -> }
+    onSaveProfile: (newName: String, newIban: String, newAvatarEmoji: String, newAvatarUrl: String) -> Unit = { _, _, _, _ -> }
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
     var nameInput by remember { mutableStateOf(currentName) }
     var ibanInput by remember { mutableStateOf(currentIban) }
-    var selectedAvatar by remember { mutableStateOf(currentAvatarEmoji) }
+    var selectedAvatarEmoji by remember { mutableStateOf(currentAvatarEmoji) }
+    var selectedAvatarUrl by remember { mutableStateOf(currentAvatarUrl) }
+
+    // Photo Picker Launcher (Modern Android Photo Picker)
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val savedPath = ImageStorageHelper.saveProfileAvatar(context, uri)
+            if (savedPath != null) {
+                selectedAvatarUrl = savedPath
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                Toast.makeText(context, "Profil fotoğrafı seçildi", Toast.LENGTH_SHORT).show()
+            } else {
+                // Fallback to direct URI string if copy failed
+                selectedAvatarUrl = uri.toString()
+            }
+        }
+    }
 
     val avatarPresets = listOf(
         AvatarOption("1", "MD", Color(0xFF00875A)),
@@ -146,50 +175,144 @@ fun EditProfileScreen(
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 2. HERO: MONOGRAM PREVIEW
-            Row(
+            // 2. HERO: AVATAR PREVIEW & UPLOAD TRIGGER
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(vertical = 24.dp, horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = Color(0xFFF1F5F9),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (selectedAvatar.isNotEmpty()) selectedAvatar else nameInput.take(2).uppercase(),
-                            color = Color(0xFF0F172A),
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp
+                Box(
+                    contentAlignment = Alignment.BottomEnd,
+                    modifier = Modifier.bounceClick {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
+                    }
+                ) {
+                    UserAvatar(
+                        userName = nameInput,
+                        avatarUrl = selectedAvatarUrl,
+                        avatarEmoji = selectedAvatarEmoji,
+                        size = 88.dp,
+                        shape = CircleShape,
+                        border = BorderStroke(3.dp, PrimaryEmeraldContainer),
+                        backgroundColor = Color(0xFFF1F5F9),
+                        textColor = Color(0xFF0F172A),
+                        fontSizeSp = 28
+                    )
+
+                    // Camera Icon Overlay Badge
+                    Surface(
+                        shape = CircleShape,
+                        color = PrimaryEmerald,
+                        border = BorderStroke(2.dp, Color.White),
+                        modifier = Modifier.size(30.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Fotoğraf Yükle",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                Column {
-                    Text(
-                        text = if (nameInput.isNotBlank()) nameInput else "İsimsiz Kullanıcı",
-                        color = Color(0xFF0F172A),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Aktif Profil Görünümü",
-                        color = Color(0xFF64748B),
-                        fontSize = 13.sp
-                    )
+                Text(
+                    text = if (nameInput.isNotBlank()) nameInput else "İsimsiz Kullanıcı",
+                    color = Color(0xFF0F172A),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = if (selectedAvatarUrl.isNotBlank()) "Özel Profil Fotoğrafı Aktif" else "Monogram Profil Aktif",
+                    color = Color(0xFF64748B),
+                    fontSize = 13.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Avatar Buttons Row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilledTonalButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = PrimaryEmeraldContainer,
+                            contentColor = PrimaryEmerald
+                        ),
+                        modifier = Modifier.bounceClick {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddPhotoAlternate,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (selectedAvatarUrl.isNotBlank()) "Fotoğrafı Değiştir" else "Fotoğraf Yükle",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    if (selectedAvatarUrl.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                selectedAvatarUrl = ""
+                                Toast.makeText(context, "Fotoğraf kaldırıldı", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = AccentRose
+                            ),
+                            modifier = Modifier.bounceClick {
+                                selectedAvatarUrl = ""
+                                Toast.makeText(context, "Fotoğraf kaldırıldı", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Kaldır",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
                 }
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
             // 3. SECTION 1: MONOGRAM AVATAR SEÇİMİ
             Text(
-                text = "MONOGRAM AVATAR SEÇİMİ",
+                text = "VEYA MONOGRAM SEÇİN",
                 color = Color(0xFF64748B),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -206,7 +329,7 @@ fun EditProfileScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp)
             ) {
                 items(avatarPresets) { option ->
-                    val isSelected = selectedAvatar == option.emoji
+                    val isSelected = selectedAvatarUrl.isBlank() && selectedAvatarEmoji == option.emoji
                     Surface(
                         shape = CircleShape,
                         color = if (isSelected) option.bgColor else Color(0xFFF1F5F9),
@@ -215,7 +338,8 @@ fun EditProfileScreen(
                             .size(46.dp)
                             .bounceClick {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                selectedAvatar = option.emoji
+                                selectedAvatarEmoji = option.emoji
+                                selectedAvatarUrl = "" // Switch to monogram mode
                             }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -375,7 +499,7 @@ fun EditProfileScreen(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (isProfileValid) {
-                        onSaveProfile(nameInput.trim(), ibanInput.trim(), selectedAvatar)
+                        onSaveProfile(nameInput.trim(), ibanInput.trim(), selectedAvatarEmoji, selectedAvatarUrl)
                         Toast.makeText(context, "Profil Güncellendi", Toast.LENGTH_SHORT).show()
                         onBackClick()
                     } else {
@@ -395,7 +519,7 @@ fun EditProfileScreen(
                     .height(52.dp)
                     .bounceClick {
                         if (isProfileValid) {
-                            onSaveProfile(nameInput.trim(), ibanInput.trim(), selectedAvatar)
+                            onSaveProfile(nameInput.trim(), ibanInput.trim(), selectedAvatarEmoji, selectedAvatarUrl)
                             Toast.makeText(context, "Profil Güncellendi", Toast.LENGTH_SHORT).show()
                             onBackClick()
                         }
@@ -411,4 +535,3 @@ fun EditProfileScreen(
         }
     }
 }
-

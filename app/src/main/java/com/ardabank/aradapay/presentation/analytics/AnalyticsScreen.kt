@@ -1,16 +1,20 @@
 package com.ardabank.aradapay.presentation.analytics
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -22,20 +26,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.AutoGraph
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -48,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,21 +68,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ardabank.aradapay.presentation.common.IOSSegmentedControl
 import com.ardabank.aradapay.presentation.common.applePressEffect
+import com.ardabank.aradapay.presentation.components.bounceClick
+import com.ardabank.aradapay.presentation.receipt.AradaPayReceipt
+import com.ardabank.aradapay.presentation.receipt.ReceiptParticipant
+import com.ardabank.aradapay.presentation.receipt.ReceiptType
 import com.ardabank.aradapay.presentation.theme.AccentRose
 import com.ardabank.aradapay.presentation.theme.AccentRoseContainer
 import com.ardabank.aradapay.presentation.theme.LightBackground
 import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
-import com.ardabank.aradapay.presentation.theme.SurfaceContainerLow
 import com.ardabank.aradapay.presentation.theme.SurfaceWhite
 import com.ardabank.aradapay.presentation.theme.TextPrimary
 import com.ardabank.aradapay.presentation.theme.TextSecondary
-import com.ardabank.aradapay.presentation.theme.TextTertiary
 
 data class FriendAnalyticsItem(
     val id: String,
@@ -94,72 +105,193 @@ data class CategoryExpenseStat(
     val color: Color
 )
 
+data class AnalyticsSavingsItem(
+    val id: String,
+    val title: String,
+    val date: String,
+    val participantsSummary: String,
+    val totalSettledAmount: Double,
+    val savedFastFee: Double,
+    val preventedTransferCount: Int,
+    val method: String,
+    val receipt: AradaPayReceipt
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
     onBackClick: () -> Unit = {},
-    onFriendClick: (friendId: String) -> Unit = {}
+    onFriendClick: (friendId: String) -> Unit = {},
+    onNavigateToSettleUp: () -> Unit = {}
 ) {
     var selectedTimePeriod by remember { mutableStateOf("Bu Ay") }
     val timePeriods = listOf("Bu Ay" to "Bu Ay", "Son 3 Ay" to "Son 3 Ay", "2026 Yılı" to "2026", "Tümü" to "Tümü")
 
+    var selectedReceiptForModal by remember { mutableStateOf<AradaPayReceipt?>(null) }
+
     val friendVolumeList = remember {
-        listOf(
-            FriendAnalyticsItem(
-                id = "1",
-                name = "Ahmet Yılmaz",
-                tag = "@ahmet#7821",
-                avatar = "AY",
-                totalVolume = 1450.0,
-                netStatus = "Hesap Kapalı",
-                isPositive = true
-            ),
-            FriendAnalyticsItem(
-                id = "6",
-                name = "Selin Aydın",
-                tag = "@selin#2839",
-                avatar = "SA",
-                totalVolume = 920.0,
-                netStatus = "Hesap Kapalı",
-                isPositive = true
-            ),
-            FriendAnalyticsItem(
-                id = "4",
-                name = "Elif Şahin",
-                tag = "@elif#4420",
-                avatar = "EŞ",
-                totalVolume = 680.0,
-                netStatus = "+120,00 ₺ Alacak",
-                isPositive = true
-            ),
-            FriendAnalyticsItem(
-                id = "5",
-                name = "Burak Öztürk",
-                tag = "@burak#6108",
-                avatar = "BÖ",
-                totalVolume = 450.0,
-                netStatus = "-230,00 ₺ Borç",
-                isPositive = false
-            ),
-            FriendAnalyticsItem(
-                id = "3",
-                name = "Mert Demir",
-                tag = "@mert#9015",
-                avatar = "MD",
-                totalVolume = 300.0,
-                netStatus = "-220,00 ₺ Borç",
-                isPositive = false
-            )
-        )
+        emptyList<FriendAnalyticsItem>()
     }
 
     val categoryStats = remember {
-        listOf(
-            CategoryExpenseStat("Yeme & İçme", 3450.0, 44, Icons.Default.Fastfood, PrimaryEmerald),
-            CategoryExpenseStat("Market & Alışveriş", 2100.0, 27, Icons.Default.ShoppingCart, Color(0xFF007AFF)),
-            CategoryExpenseStat("Ulaşım & Yakıt", 1200.0, 15, Icons.Default.LocalGasStation, Color(0xFFFF9500)),
-            CategoryExpenseStat("Sosyal & Etkinlik", 1100.0, 14, Icons.Default.Movie, Color(0xFFAF52DE))
-        )
+        emptyList<CategoryExpenseStat>()
+    }
+
+    val savingsList = remember {
+        emptyList<AnalyticsSavingsItem>()
+    }
+
+    // Modal Receipt Screen (Wallet view)
+    if (selectedReceiptForModal != null) {
+        val receipt = selectedReceiptForModal!!
+        BackHandler { selectedReceiptForModal = null }
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.White
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilledTonalIconButton(
+                        onClick = { selectedReceiptForModal = null },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
+                        modifier = Modifier.size(40.dp).bounceClick()
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Geri",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Fitleşme Dekontu",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = PrimaryEmeraldContainer,
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                        contentDescription = null,
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = PrimaryEmeraldContainer
+                            ) {
+                                Text(
+                                    text = "BAŞARILI",
+                                    color = PrimaryEmerald,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+
+                        Column {
+                            Text(
+                                text = receipt.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Ref: ${receipt.referenceNo}",
+                                color = TextSecondary,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Text(
+                            text = "${String.format(java.util.Locale.US, "%.2f", receipt.totalAmount)} ₺",
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextPrimary,
+                            letterSpacing = (-0.5).sp
+                        )
+
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Tarih & Saat", color = TextSecondary, fontSize = 13.sp)
+                            Text("${receipt.date} • ${receipt.time}", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Tasarruf Edilen FAST", color = TextSecondary, fontSize = 13.sp)
+                            Text("+${String.format(java.util.Locale.US, "%.2f", receipt.savingsAmount)} ₺", color = PrimaryEmerald, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+
+                        if (!receipt.note.isNullOrBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFF8FAFC),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = receipt.note,
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return
     }
 
     Scaffold(
@@ -187,12 +319,8 @@ fun AnalyticsScreen(
                 FilledTonalIconButton(
                     onClick = onBackClick,
                     shape = RoundedCornerShape(12.dp),
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = Color(0xFFF1F5F9)
-                    ),
-                    modifier = Modifier
-                        .size(40.dp)
-                        .applePressEffect(0.92f)
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
+                    modifier = Modifier.size(40.dp).bounceClick()
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -203,7 +331,7 @@ fun AnalyticsScreen(
                 }
 
                 Text(
-                    text = "Harcama Analitiği",
+                    text = "Finansal Analitik",
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleLarge
@@ -213,8 +341,8 @@ fun AnalyticsScreen(
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 2. DÖNEM SEÇİMİ
-            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+            // 2. DÖNEM SEÇİMİ (Bu Ay, Son 3 Ay, 2026, Tümü)
+            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
                 IOSSegmentedControl(
                     items = timePeriods,
                     selectedItem = selectedTimePeriod,
@@ -223,7 +351,9 @@ fun AnalyticsScreen(
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 3. APPLE FITNESS / HEALTH TARZI DÖNGÜSEL HALKA & HERO KARTI
+            // =========================================================================
+            // 3. TOPLAM İŞLEM HACMİ & KONSANTRİK HALKALAR
+            // =========================================================================
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -287,7 +417,7 @@ fun AnalyticsScreen(
                     )
                 }
 
-                // iOS Health Style Segmented Capsule Bar
+                // Segmented Capsule Bar
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(
                         modifier = Modifier
@@ -307,7 +437,7 @@ fun AnalyticsScreen(
                     }
                 }
 
-                // Inset 3 Sütunlu Finansal Metrikler
+                // 3 Sütunlu Finansal Metrikler
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = Color(0xFFF8FAFC),
@@ -341,10 +471,228 @@ fun AnalyticsScreen(
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 4. KATEGORİ DAĞILIMI
+            // =========================================================================
+            // 4. AKILLI TASARRUF & MAHSUPLAŞMA KAZANIMI (Doğrudan Analitiğin İçinde)
+            // =========================================================================
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Savings,
+                            contentDescription = null,
+                            tint = PrimaryEmerald,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "AKILLI TASARRUF & MAHSUPLAŞMA",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PrimaryEmeraldContainer
+                    ) {
+                        Text(
+                            text = "14 Transfer Önlendi",
+                            color = PrimaryEmerald,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "+185,00 ₺",
+                            color = PrimaryEmerald,
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "FAST ücreti & gereksiz transfer tasarrufu",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = PrimaryEmeraldContainer,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Savings,
+                                contentDescription = null,
+                                tint = PrimaryEmerald,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+
+                // 3 Sütunlu Finansal Metrikler
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFF8FAFC),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("Engellenen FAST", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("14 Adet", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Netleştirilen Hacim", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("8.450,00 ₺", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("İşlem Hızı", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Anlık (0 Sn)", color = PrimaryEmerald, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+            // =========================================================================
+            // 5. GERÇEKLEŞEN FİTLEŞMELER LİSTESİ
+            // =========================================================================
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                            contentDescription = null,
+                            tint = PrimaryEmerald,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "GERÇEKLEŞEN FİTLEŞMELER",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+
+                    Text(
+                        text = "${savingsList.size} Kayıt",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                savingsList.forEachIndexed { _, item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bounceClick { selectedReceiptForModal = item.receipt }
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFF1F5F9),
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.SyncAlt,
+                                        contentDescription = null,
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column {
+                                Text(
+                                    text = item.title,
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "${item.date} • ${item.participantsSummary}",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "+${String.format(java.util.Locale.US, "%.2f", item.savedFastFee)} ₺",
+                                color = PrimaryEmerald,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${item.preventedTransferCount} FAST Tasarrufu",
+                                color = TextSecondary,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                }
+            }
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+            // =========================================================================
+            // 7. KATEGORİ DAĞILIMI
+            // =========================================================================
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -369,90 +717,84 @@ fun AnalyticsScreen(
                 }
                 HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    categoryStats.forEachIndexed { _, cat ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 14.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                categoryStats.forEachIndexed { _, cat ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = cat.color.copy(alpha = 0.15f),
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = cat.icon,
-                                                contentDescription = null,
-                                                tint = cat.color,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
-                                        Text(
-                                            text = cat.categoryName,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary,
-                                            fontSize = 14.sp
-                                        )
-                                        Text(
-                                            text = "%${cat.percentage} oran",
-                                            color = TextSecondary,
-                                            fontSize = 11.sp
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = cat.color.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = cat.icon,
+                                            contentDescription = null,
+                                            tint = cat.color,
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
 
-                                Text(
-                                    text = "${String.format(java.util.Locale.US, "%.2f", cat.amount)} ₺",
-                                    color = TextPrimary,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = cat.categoryName,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary,
+                                        fontSize = 14.sp
+                                    )
+                                    Text(
+                                        text = "%${cat.percentage} oran",
+                                        color = TextSecondary,
+                                        fontSize = 11.sp
+                                    )
+                                }
                             }
 
-                            // Kategori İlerleme Çubuğu (Rounded Capsule)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(Color(0xFFF1F5F9))
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(cat.percentage / 100f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(cat.color)
-                                )
-                            }
+                            Text(
+                                text = "${String.format(java.util.Locale.US, "%.2f", cat.amount)} ₺",
+                                color = TextPrimary,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
-                        HorizontalDivider(
-                            color = Color(0xFFF1F5F9),
-                            thickness = 1.dp
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color(0xFFF1F5F9))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(cat.percentage / 100f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(cat.color)
+                            )
+                        }
                     }
+
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
                 }
             }
 
-            // 5. KİŞİ BAZLI HARCAMA HACMİ
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            // =========================================================================
+            // 8. KİŞİ BAZLI HARCAMA HACMİ
+            // =========================================================================
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -477,74 +819,71 @@ fun AnalyticsScreen(
                 }
                 HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    friendVolumeList.forEachIndexed { _, item ->
+                friendVolumeList.forEachIndexed { _, item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bounceClick { onFriendClick(item.id) }
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .applePressEffect(0.98f) { onFriendClick(item.id) }
-                                .padding(horizontal = 20.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFF1F5F9),
+                                modifier = Modifier.size(40.dp)
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFFF1F5F9),
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = item.avatar,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary,
-                                            fontSize = 13.sp
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column {
+                                Box(contentAlignment = Alignment.Center) {
                                     Text(
-                                        text = item.name,
+                                        text = item.avatar,
                                         fontWeight = FontWeight.Bold,
                                         color = TextPrimary,
-                                        fontSize = 14.sp
-                                    )
-                                    Text(
-                                        text = "${String.format(java.util.Locale.US, "%.0f", item.totalVolume)} ₺ Ortak Hacim",
-                                        color = TextSecondary,
-                                        fontSize = 11.sp
+                                        fontSize = 13.sp
                                     )
                                 }
                             }
 
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (item.netStatus == "Hesap Kapalı") Color(0xFFF1F5F9) else if (item.isPositive) PrimaryEmeraldContainer else AccentRoseContainer
-                            ) {
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column {
                                 Text(
-                                    text = item.netStatus,
-                                    color = if (item.netStatus == "Hesap Kapalı") TextSecondary else if (item.isPositive) PrimaryEmerald else AccentRose,
-                                    fontSize = 11.sp,
+                                    text = item.name,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    color = TextPrimary,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "${String.format(java.util.Locale.US, "%.0f", item.totalVolume)} ₺ Ortak Hacim",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
                                 )
                             }
                         }
-                        HorizontalDivider(
-                            color = Color(0xFFF1F5F9),
-                            thickness = 1.dp
-                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (item.netStatus == "Hesap Kapalı") Color(0xFFF1F5F9) else if (item.isPositive) PrimaryEmeraldContainer else AccentRoseContainer
+                        ) {
+                            Text(
+                                text = item.netStatus,
+                                color = if (item.netStatus == "Hesap Kapalı") TextSecondary else if (item.isPositive) PrimaryEmerald else AccentRose,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
                 }
             }
 
-            // 6. AKILLI ANALİTİK İPUCU (Flat)
+            // =========================================================================
+            // 9. AKILLI ANALİTİK İPUCU
+            // =========================================================================
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -582,9 +921,45 @@ fun AnalyticsScreen(
                 }
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // =========================================================================
+            // 10. HEMEN FİTLEŞ EYLEM BUTONU
+            // =========================================================================
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = PrimaryEmerald,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .padding(horizontal = 20.dp)
+                    .bounceClick { onNavigateToSettleUp() }
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SyncAlt,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Hemen Borç Sıfırla & Fitleş",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 15.sp
+                    )
+                }
+            }
         }
     }
 }
+
 
 /**
  * Custom Apple Fitness-style Concentric / Segmented Activity Rings Visualizer
@@ -636,4 +1011,3 @@ fun IOSActivityRingsVisualizer(
         }
     }
 }
-

@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "aradapay-app",
-    "storage_bucket": "aradapay-app.appspot.com"
+    "project_number": "908604335031",
+    "project_id": "ardabank-app-2026",
+    "storage_bucket": "ardabank-app-2026.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:a1b2c3d4e5f6g7h8",
+        "mobilesdk_app_id": "1:908604335031:android:98e3f0c1729cd6dcfebe32",
         "android_client_info": {
           "package_name": "com.ardabank.aradapay"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "908604335031-0pd3pls2r9f2i4j671bd3q5v7b0ma2mv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyForAradaPayDevTesting123"
+          "current_key": "AIzaSyDdOvn-gmjkih9ZlAMFBEEemLa_rQlMTec"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "908604335031-0pd3pls2r9f2i4j671bd3q5v7b0ma2mv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

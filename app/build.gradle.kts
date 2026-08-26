@@ -23,9 +23,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("aradapay-release-key.jks")
+            storePassword = "AradaPay2026SecureKey!"
+            keyAlias = "aradapay"
+            keyPassword = "AradaPay2026SecureKey!"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

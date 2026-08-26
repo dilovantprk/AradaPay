@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -46,6 +47,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import android.content.Intent
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -95,6 +104,7 @@ fun GroupDetailScreen(
     var showMembersManagementModal by remember { mutableStateOf(false) }
     var showSimplifyDebtsModal by remember { mutableStateOf(false) }
     var showAddMemberModal by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
     var activeReceiptForModal by remember { mutableStateOf<AradaPayReceipt?>(null) }
 
     val groups by groupRepository.groups.collectAsState()
@@ -103,6 +113,34 @@ fun GroupDetailScreen(
     val group = groups.find { it.id == groupId } ?: groups.firstOrNull() ?: return
     val groupExpenses = groupExpensesMap[group.id] ?: emptyList()
     val groupNetBalance = group.userBalance
+
+    fun shareGroupWhatsAppSummary() {
+        val steps = groupRepository.getSimplifyDebtsSuggestions(group.id)
+        val mySteps = steps.filter { it.fromUserId == "me" || it.toUserId == "me" || it.fromUserId == "1" || it.toUserId == "1" }
+        val sb = StringBuilder()
+        sb.append("🏖️ ${group.name} - AradaPay Hesap Özeti\n")
+        sb.append("Toplam Harcama: ${String.format(java.util.Locale.US, "%.2f", group.totalExpenses)} ₺\n\n")
+        val myMember = group.members.find { it.id == "me" || it.id == "1" }
+        if (myMember != null) {
+            val sign = if (myMember.balanceInGroup >= 0) "+" else ""
+            val status = if (myMember.balanceInGroup >= 0) "Alacaklısın" else "Borçlusun"
+            sb.append("📊 Senin Durumun: $sign${String.format(java.util.Locale.US, "%.2f", myMember.balanceInGroup)} ₺ ($status)\n")
+        }
+        if (mySteps.isNotEmpty()) {
+            sb.append("\n⚡ Senin FAST Transferlerin:\n")
+            mySteps.forEach { s ->
+                sb.append("👉 ${s.fromUserName} -> ${s.toUserName}: ${String.format(java.util.Locale.US, "%.2f", s.amount)} ₺\n")
+            }
+        }
+        sb.append("\nAradaPay ile fitleşildi ✨")
+
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            putExtra(Intent.EXTRA_TEXT, sb.toString())
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, "${group.name} Özetini Paylaş")
+        context.startActivity(shareIntent)
+    }
 
     val candidateFriendsToAdd = listOf(
         "4" to "Elif Şahin",
@@ -187,38 +225,103 @@ fun GroupDetailScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A),
-                    maxLines = 1
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp)
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // WhatsApp & Text Share
                     FilledTonalIconButton(
-                        onClick = { showMembersManagementModal = true },
+                        onClick = { shareGroupWhatsAppSummary() },
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = Color(0xFFF1F5F9)
                         ),
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Group,
-                            contentDescription = "Üyeleri Yönet",
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Özeti Paylaş",
                             tint = Color(0xFF0F172A),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
-                    FilledTonalIconButton(
-                        onClick = { showSimplifyDebtsModal = true },
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = Color(0xFFF1F5F9)
-                        ),
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ElectricBolt,
-                            contentDescription = "Borç Sadeleştirme",
-                            tint = PrimaryEmerald,
-                            modifier = Modifier.size(18.dp)
-                        )
+                    // More Options Dropdown
+                    Box {
+                        FilledTonalIconButton(
+                            onClick = { showMoreMenu = true },
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = Color(0xFFF1F5F9)
+                            ),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Daha Fazla",
+                                tint = Color(0xFF0F172A),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showMoreMenu,
+                            onDismissRequest = { showMoreMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("⚡ Borçları Sadeleştir", fontWeight = FontWeight.SemiBold) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    showSimplifyDebtsModal = true
+                                },
+                                leadingIcon = { Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = PrimaryEmerald) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("📄 PDF Raporu Paylaş", fontWeight = FontWeight.SemiBold) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    com.ardabank.aradapay.presentation.receipt.PdfReceiptGenerator.shareGroupReportPdf(context, group, groupExpenses)
+                                },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = Color(0xFF0F172A)) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("👥 Katılımcıları Yönet", fontWeight = FontWeight.SemiBold) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    showMembersManagementModal = true
+                                },
+                                leadingIcon = { Icon(Icons.Default.Group, contentDescription = null, tint = Color(0xFF0F172A)) }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (group.isArchived) "Arşivden Çıkar" else "Grubu Kapat & Arşivle",
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (group.isArchived) PrimaryEmerald else AccentRose
+                                    )
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    if (group.isArchived) {
+                                        groupRepository.unarchiveGroup(group.id)
+                                        Toast.makeText(context, "Grup aktif duruma getirildi", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        groupRepository.archiveGroup(group.id)
+                                        Toast.makeText(context, "Grup arşivlendi", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        if (group.isArchived) Icons.Default.CheckCircle else Icons.Default.Archive,
+                                        contentDescription = null,
+                                        tint = if (group.isArchived) PrimaryEmerald else AccentRose
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -416,9 +519,9 @@ fun GroupDetailScreen(
                             .height(46.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ElectricBolt,
+                            imageVector = Icons.Default.Payment,
                             contentDescription = null,
-                            tint = PrimaryEmerald,
+                            tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -642,32 +745,22 @@ fun GroupDetailScreen(
                             color = Color(0xFF0F172A)
                         )
 
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = PrimaryEmeraldContainer,
-                            modifier = Modifier.bounceClick {
+                        FilledTonalIconButton(
+                            onClick = {
                                 showMembersManagementModal = false
                                 showAddMemberModal = true
-                            }
+                            },
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = PrimaryEmeraldContainer
+                            ),
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PersonAdd,
-                                    contentDescription = null,
-                                    tint = PrimaryEmerald,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = "Katılımcı Ekle",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryEmerald
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = "Katılımcı Ekle",
+                                tint = PrimaryEmerald,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                     HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
@@ -720,35 +813,45 @@ fun GroupDetailScreen(
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            val statusLabel = when {
-                                member.balanceInGroup > 0 -> "alacaklı"
-                                member.balanceInGroup < 0 -> "borçlu"
-                                else -> "fitleşildi"
-                            }
-                            val balanceColor = when {
-                                member.balanceInGroup > 0 -> PrimaryEmerald
-                                member.balanceInGroup < 0 -> AccentRose
-                                else -> Color(0xFF94A3B8)
-                            }
-                            val balanceText = when {
-                                member.balanceInGroup > 0 -> "+${String.format(java.util.Locale.US, "%.2f", member.balanceInGroup)} ₺"
-                                member.balanceInGroup < 0 -> "-${String.format(java.util.Locale.US, "%.2f", abs(member.balanceInGroup))} ₺"
-                                else -> "0,00 ₺"
-                            }
+                            val isMe = member.id == "me" || member.id == "1"
+                            if (isMe) {
+                                val statusLabel = when {
+                                    member.balanceInGroup > 0 -> "alacaklı"
+                                    member.balanceInGroup < 0 -> "borçlu"
+                                    else -> "fitleşildi"
+                                }
+                                val balanceColor = when {
+                                    member.balanceInGroup > 0 -> PrimaryEmerald
+                                    member.balanceInGroup < 0 -> AccentRose
+                                    else -> Color(0xFF94A3B8)
+                                }
+                                val balanceText = when {
+                                    member.balanceInGroup > 0 -> "+${String.format(java.util.Locale.US, "%.2f", member.balanceInGroup)} ₺"
+                                    member.balanceInGroup < 0 -> "-${String.format(java.util.Locale.US, "%.2f", abs(member.balanceInGroup))} ₺"
+                                    else -> "0,00 ₺"
+                                }
 
-                            Text(
-                                text = statusLabel,
-                                color = balanceColor,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(modifier = Modifier.height(1.dp))
-                            Text(
-                                text = balanceText,
-                                color = balanceColor,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
+                                Text(
+                                    text = statusLabel,
+                                    color = balanceColor,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(1.dp))
+                                Text(
+                                    text = balanceText,
+                                    color = balanceColor,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            } else {
+                                Text(
+                                    text = "Katılımcı",
+                                    color = Color(0xFF64748B),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                     HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
@@ -843,19 +946,23 @@ fun GroupDetailScreen(
                     }
                 }
 
+                val myTransferSteps = remember(suggestedSteps) {
+                    suggestedSteps.filter { it.fromUserId == "me" || it.toUserId == "me" || it.fromUserId == "1" || it.toUserId == "1" }
+                }
+
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = if (suggestedSteps.isNotEmpty()) "Sadeleştirilmiş ${suggestedSteps.size} Doğrudan Transfer" else "Grupta sadeleştirilecek borç kalmadı",
+                        text = if (myTransferSteps.isNotEmpty()) "Sana Ait Sadeleştirilmiş ${myTransferSteps.size} FAST Transferi" else "Senin adına yapılması gereken bir transfer bulunmuyor",
                         color = Color(0xFF64748B),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
 
-                    suggestedSteps.forEachIndexed { index, step ->
+                    myTransferSteps.forEachIndexed { index, step ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -877,7 +984,7 @@ fun GroupDetailScreen(
                             )
                         }
 
-                        if (index < suggestedSteps.lastIndex) {
+                        if (index < myTransferSteps.lastIndex) {
                             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 0.8.dp)
                         }
                     }

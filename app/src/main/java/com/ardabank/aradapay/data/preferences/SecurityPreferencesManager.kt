@@ -26,10 +26,25 @@ class SecurityPreferencesManager @Inject constructor(
         val IS_DATA_LOCKED = booleanPreferencesKey("is_data_locked")
         val HIDE_PHONE_IN_CONTACTS = booleanPreferencesKey("hide_phone_in_contacts")
         val USER_NAME = stringPreferencesKey("user_name")
+        val USER_IBAN = stringPreferencesKey("user_iban")
+        val AVATAR_URL = stringPreferencesKey("avatar_url")
+        val AVATAR_EMOJI = stringPreferencesKey("avatar_emoji")
     }
 
     val userNameFlow: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[Keys.USER_NAME] ?: "Mehmet Dilovan"
+    }
+
+    val userIbanFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[Keys.USER_IBAN] ?: "TR64 0006 2000 0000 1122 3344 55"
+    }
+
+    val avatarUrlFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[Keys.AVATAR_URL] ?: ""
+    }
+
+    val avatarEmojiFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[Keys.AVATAR_EMOJI] ?: "MD"
     }
 
     val pinHashFlow: Flow<String?> = context.dataStore.data.map { prefs ->
@@ -80,6 +95,24 @@ class SecurityPreferencesManager @Inject constructor(
     suspend fun setUserName(name: String) {
         context.dataStore.edit { prefs ->
             prefs[Keys.USER_NAME] = name
+        }
+    }
+
+    suspend fun setUserIban(iban: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.USER_IBAN] = iban
+        }
+    }
+
+    suspend fun setAvatarUrl(url: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.AVATAR_URL] = url
+        }
+    }
+
+    suspend fun setAvatarEmoji(emoji: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.AVATAR_EMOJI] = emoji
         }
     }
 }

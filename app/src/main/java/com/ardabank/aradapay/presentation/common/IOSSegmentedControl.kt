@@ -32,7 +32,11 @@ fun <T> IOSSegmentedControl(
     selectedItem: T,
     onItemSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = SurfaceDark
+    backgroundColor: Color = Color(0xFFF1F5F9),
+    selectedBackgroundColor: Color = Color.White,
+    selectedTextColor: Color = Color(0xFF0F172A),
+    unselectedTextColor: Color = Color(0xFF64748B),
+    borderColor: Color = Color.Transparent
 ) {
     val shape = RoundedCornerShape(12.dp)
 
@@ -41,15 +45,15 @@ fun <T> IOSSegmentedControl(
             .fillMaxWidth()
             .clip(shape)
             .background(backgroundColor)
-            .border(1.dp, SurfaceBorder, shape)
+            .border(1.dp, borderColor, shape)
             .padding(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         items.forEach { (item, label) ->
             val isSelected = item == selectedItem
-            val targetBgColor = if (isSelected) SurfaceElevated else Color.Transparent
+            val targetBgColor = if (isSelected) selectedBackgroundColor else Color.Transparent
             val bgColor by animateColorAsState(targetValue = targetBgColor, label = "segBg")
-            val targetTextColor = if (isSelected) TextPrimary else TextSecondary
+            val targetTextColor = if (isSelected) selectedTextColor else unselectedTextColor
             val textColor by animateColorAsState(targetValue = targetTextColor, label = "segText")
 
             Box(

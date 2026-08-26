@@ -15,201 +15,9 @@ import kotlin.math.abs
 @Singleton
 class GroupRepository @Inject constructor() {
 
-    private val initialGroups = listOf(
-        Group(
-            id = "grp_1",
-            name = "Kadıköy Evi",
-            emoji = "",
-            category = "Ev & Yaşam",
-            members = listOf(
-                GroupMember("me", "Sen (Mehmet)", "MD", "@dilovan#1453", 350.0),
-                GroupMember("1", "Ahmet Yılmaz", "AY", "Ahmet#7821", 100.0),
-                GroupMember("2", "Zeynep Kaya", "ZK", "Zeynep#3412", -200.0),
-                GroupMember("3", "Mert Demir", "MD", "Mert#9015", -250.0)
-            ),
-            createdBy = "me",
-            createdAt = "2026-08-01",
-            userBalance = 350.0,
-            totalExpenses = 5400.0
-        ),
-        Group(
-            id = "grp_2",
-            name = "Bodrum Tatili 2026",
-            emoji = "",
-            category = "Seyahat",
-            members = listOf(
-                GroupMember("me", "Sen (Mehmet)", "MD", "@dilovan#1453", -120.0),
-                GroupMember("5", "Burak Öztürk", "BÖ", "Burak#6108", 400.0),
-                GroupMember("4", "Elif Şahin", "EŞ", "Elif#4420", -180.0),
-                GroupMember("6", "Selin Aydın", "SA", "Selin#2839", -100.0)
-            ),
-            createdBy = "5",
-            createdAt = "2026-08-10",
-            userBalance = -120.0,
-            totalExpenses = 8500.0
-        ),
-        Group(
-            id = "grp_3",
-            name = "Ofis Öğle Yemekleri",
-            emoji = "",
-            category = "Yemek",
-            members = listOf(
-                GroupMember("me", "Sen (Mehmet)", "MD", "@dilovan#1453", 0.0),
-                GroupMember("1", "Ahmet Yılmaz", "AY", "Ahmet#7821", 0.0),
-                GroupMember("8", "Deniz Çelik", "DÇ", "Deniz#5522", 0.0)
-            ),
-            createdBy = "1",
-            createdAt = "2026-08-15",
-            userBalance = 0.0,
-            totalExpenses = 1200.0
-        ),
-        Group(
-            id = "grp_4",
-            name = "Hafta Sonu Kaçamağı",
-            emoji = "",
-            category = "Etkinlik",
-            members = listOf(
-                GroupMember("me", "Sen (Mehmet)", "MD", "@dilovan#1453", 250.0),
-                GroupMember("3", "Mert Demir", "MD", "Mert#9015", -150.0),
-                GroupMember("2", "Zeynep Kaya", "ZK", "Zeynep#3412", -100.0)
-            ),
-            createdBy = "me",
-            createdAt = "2026-08-18",
-            userBalance = 250.0,
-            totalExpenses = 1600.0
-        )
-    )
+    private val initialGroups = emptyList<Group>()
 
-    private val initialExpenses = mapOf(
-        "grp_1" to listOf(
-            GroupExpenseItem(
-                id = "ge_1",
-                groupId = "grp_1",
-                title = "Kira & Aidat Ödemesi",
-                totalAmount = 4000.0,
-                payerId = "me",
-                payerName = "Sen ödedin",
-                yourShare = 3000.0,
-                date = "Bugün, 11:30",
-                category = ExpenseCategory.HOUSING,
-                isSettled = false
-            ),
-            GroupExpenseItem(
-                id = "ge_2",
-                groupId = "grp_1",
-                title = "Migros Ortak Mutfak",
-                totalAmount = 600.0,
-                payerId = "2",
-                payerName = "Zeynep ödedi",
-                yourShare = -150.0,
-                date = "Dün, 19:40",
-                category = ExpenseCategory.GROCERIES,
-                isSettled = false
-            ),
-            GroupExpenseItem(
-                id = "ge_3",
-                groupId = "grp_1",
-                title = "Elektrik & İnternet Faturası",
-                totalAmount = 800.0,
-                payerId = "1",
-                payerName = "Ahmet ödedi",
-                yourShare = -200.0,
-                date = "19 Ağu, 14:15",
-                category = ExpenseCategory.UTILITIES,
-                isSettled = false
-            ),
-            GroupExpenseItem(
-                id = "ge_4",
-                groupId = "grp_1",
-                title = "Akşam Yemeği & Pizza",
-                totalAmount = 500.0,
-                payerId = "me",
-                payerName = "Sen ödedin",
-                yourShare = 375.0,
-                date = "17 Ağu, 20:00",
-                category = ExpenseCategory.DINING,
-                isSettled = false
-            )
-        ),
-        "grp_2" to listOf(
-            GroupExpenseItem(
-                id = "ge_201",
-                groupId = "grp_2",
-                title = "Bodrum Otel & Konaklama",
-                totalAmount = 6000.0,
-                payerId = "5",
-                payerName = "Burak ödedi",
-                yourShare = -1500.0,
-                date = "15 Ağu, 10:00",
-                category = ExpenseCategory.TRAVEL,
-                isSettled = false
-            ),
-            GroupExpenseItem(
-                id = "ge_202",
-                groupId = "grp_2",
-                title = "Sahil Restoran & Balık",
-                totalAmount = 2500.0,
-                payerId = "me",
-                payerName = "Sen ödedin",
-                yourShare = 1875.0,
-                date = "16 Ağu, 21:00",
-                category = ExpenseCategory.DINING,
-                isSettled = false
-            )
-        ),
-        "grp_3" to listOf(
-            GroupExpenseItem(
-                id = "ge_301",
-                groupId = "grp_3",
-                title = "Pizza & İçecekler",
-                totalAmount = 600.0,
-                payerId = "1",
-                payerName = "Ahmet ödedi",
-                yourShare = -200.0,
-                date = "Dün, 12:30",
-                category = ExpenseCategory.DINING,
-                isSettled = true
-            ),
-            GroupExpenseItem(
-                id = "ge_302",
-                groupId = "grp_3",
-                title = "Burger & Tatlı",
-                totalAmount = 600.0,
-                payerId = "me",
-                payerName = "Sen ödedin",
-                yourShare = 400.0,
-                date = "Bugün, 13:00",
-                category = ExpenseCategory.DINING,
-                isSettled = true
-            )
-        ),
-        "grp_4" to listOf(
-            GroupExpenseItem(
-                id = "ge_401",
-                groupId = "grp_4",
-                title = "Yol & Benzin Payı",
-                totalAmount = 800.0,
-                payerId = "me",
-                payerName = "Sen ödedin",
-                yourShare = 533.33,
-                date = "18 Ağu, 09:00",
-                category = ExpenseCategory.TRAVEL,
-                isSettled = false
-            ),
-            GroupExpenseItem(
-                id = "ge_402",
-                groupId = "grp_4",
-                title = "Mangal & Piknik Malzemeleri",
-                totalAmount = 800.0,
-                payerId = "3",
-                payerName = "Mert ödedi",
-                yourShare = -266.66,
-                date = "18 Ağu, 14:00",
-                category = ExpenseCategory.GROCERIES,
-                isSettled = false
-            )
-        )
-    )
+    private val initialExpenses = emptyMap<String, List<GroupExpenseItem>>()
 
     private val _groups = MutableStateFlow<List<Group>>(initialGroups)
     val groups: StateFlow<List<Group>> = _groups.asStateFlow()
@@ -444,5 +252,27 @@ class GroupRepository @Inject constructor() {
         }
 
         return steps
+    }
+
+    fun archiveGroup(groupId: String): Boolean {
+        val current = _groups.value.toMutableList()
+        val index = current.indexOfFirst { it.id == groupId }
+        if (index != -1) {
+            current[index] = current[index].copy(isArchived = true)
+            _groups.value = current
+            return true
+        }
+        return false
+    }
+
+    fun unarchiveGroup(groupId: String): Boolean {
+        val current = _groups.value.toMutableList()
+        val index = current.indexOfFirst { it.id == groupId }
+        if (index != -1) {
+            current[index] = current[index].copy(isArchived = false)
+            _groups.value = current
+            return true
+        }
+        return false
     }
 }

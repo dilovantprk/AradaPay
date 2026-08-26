@@ -146,152 +146,28 @@ fun ActivityScreen(
 
     // FinTech Transaction Data (Standard Banking Format)
     val activityList = remember {
-        mutableStateListOf(
-            ActivityActionItem(
-                id = "act_nudge_1",
-                title = "Kahve & Tatlı",
-                subtitle = "Zeynep Kaya • Ödeme hatırlatması",
-                actorName = "Zeynep Kaya",
-                actorInitials = "ZK",
-                dateGroup = "BUGÜN",
-                time = "18:15",
-                amount = 60.0,
-                isPositiveFinancial = false,
-                kind = ActivityItemKind.INCOMING_NUDGE,
-                icon = Icons.Default.NotificationsActive,
-                bgTint = Color(0xFFF1F5F9),
-                iconTint = Color(0xFF475569),
-                otherPartyName = "Zeynep Kaya",
-                iban = "TR64 0006 2000 0000 2233 4455 66"
-            ),
-            ActivityActionItem(
-                id = "act_friend_1",
-                title = "Caner Erkin",
-                subtitle = "@caner#1903 • Arkadaşlık isteği",
-                actorName = "Caner Erkin",
-                actorInitials = "CE",
-                dateGroup = "BUGÜN",
-                time = "17:40",
-                amount = 0.0,
-                isPositiveFinancial = null,
-                kind = ActivityItemKind.FRIEND_REQUEST,
-                icon = Icons.Default.PersonAdd,
-                bgTint = Color(0xFFF1F5F9),
-                iconTint = Color(0xFF475569),
-                otherPartyName = "Caner Erkin"
-            ),
-            ActivityActionItem(
-                id = "act_exp_1",
-                title = "Migros Market",
-                subtitle = "4 kişi eşit pay • Sen ödedin",
-                actorName = "Sen",
-                actorInitials = "Sen",
-                dateGroup = "BUGÜN",
-                time = "16:20",
-                amount = 254.0,
-                isPositiveFinancial = true,
-                kind = ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK,
-                icon = Icons.Default.ShoppingCart,
-                bgTint = PrimaryEmeraldContainer,
-                iconTint = PrimaryEmerald,
-                otherPartyName = "Ahmet Yılmaz, Zeynep Kaya",
-                participants = listOf("Mehmet Dilovan (Sen)", "Ahmet Yılmaz", "Zeynep Kaya", "Mert Demir")
-            ),
-            ActivityActionItem(
-                id = "act_approval_1",
-                title = "Shell Yakıt",
-                subtitle = "Burak Öztürk girdi • Onayını bekliyor",
-                actorName = "Burak Öztürk",
-                actorInitials = "BÖ",
-                dateGroup = "BUGÜN",
-                time = "14:10",
-                amount = 175.0,
-                isPositiveFinancial = false,
-                kind = ActivityItemKind.INCOMING_APPROVAL,
-                icon = Icons.Default.LocalGasStation,
-                bgTint = Color(0xFFF1F5F9),
-                iconTint = Color(0xFF475569),
-                otherPartyName = "Burak Öztürk",
-                participants = listOf("Burak Öztürk (Ödeyen)", "Mehmet Dilovan (Sen)"),
-                iban = "TR64 0006 2000 0000 5566 7788 99"
-            ),
-
-            ActivityActionItem(
-                id = "act_group_1",
-                title = "Kaş Tatili 2026",
-                subtitle = "Yeni Grup Kuruldu • 4 Katılımcı",
-                actorName = "Sen",
-                actorInitials = "Sen",
-                dateGroup = "DÜN",
-                time = "21:15",
-                amount = 0.0,
-                isPositiveFinancial = null,
-                kind = ActivityItemKind.GROUP_CREATED,
-                icon = Icons.Default.Group,
-                bgTint = Color(0xFFF1F5F9),
-                iconTint = Color(0xFF0F172A),
-                otherPartyName = "Grup Üyeleri"
-            ),
-            ActivityActionItem(
-                id = "act_exp_2",
-                title = "Akşam Yemeği",
-                subtitle = "Ahmet Yılmaz ödedi • 2 kişi bölüşüldü",
-                actorName = "Ahmet Yılmaz",
-                actorInitials = "AY",
-                dateGroup = "DÜN",
-                time = "19:40",
-                amount = 100.0,
-                isPositiveFinancial = false,
-                kind = ActivityItemKind.EXPENSE_ADDED_YOU_OWE,
-                icon = Icons.Default.Restaurant,
-                bgTint = Color(0xFFF1F5F9),
-                iconTint = Color(0xFF475569),
-                otherPartyName = "Ahmet Yılmaz",
-                participants = listOf("Ahmet Yılmaz (Ödeyen)", "Mehmet Dilovan (Sen)")
-            ),
-            ActivityActionItem(
-                id = "act_settle_1",
-                title = "FAST Fitleşme",
-                subtitle = "Elif Şahin • Transfer tamamlandı",
-                actorName = "Elif Şahin",
-                actorInitials = "EŞ",
-                dateGroup = "DÜN",
-                time = "16:05",
-                amount = 180.0,
-                isPositiveFinancial = true,
-                kind = ActivityItemKind.SETTLEMENT_COMPLETED,
-                icon = Icons.Default.Payment,
-                bgTint = PrimaryEmeraldContainer,
-                iconTint = PrimaryEmerald,
-                otherPartyName = "Elif Şahin"
-            ),
-            ActivityActionItem(
-                id = "act_cross_1",
-                title = "Akıllı Çapraz Fitleşme",
-                subtitle = "Ahmet ➔ Burak ➔ Sen (0 Komisyon)",
-                actorName = "AradaPay",
-                actorInitials = "AP",
-                dateGroup = "BU HAFTA",
-                time = "22 Ağu",
-                amount = 150.0,
-                isPositiveFinancial = true,
-                kind = ActivityItemKind.SMART_CROSS_SETTLEMENT,
-                icon = Icons.Default.AccountTree,
-                bgTint = PrimaryEmeraldContainer,
-                iconTint = PrimaryEmerald,
-                otherPartyName = "Ahmet Yılmaz, Burak Öztürk",
-                participants = listOf("Ahmet Yılmaz", "Burak Öztürk", "Mehmet Dilovan (Sen)")
-            )
-        )
+        mutableStateListOf<ActivityActionItem>()
     }
 
+    var selectedFilter by remember { mutableStateOf(ActivityFilterOption.ALL) }
+
     // Filter Logic
-    val filteredList = remember(activityList.toList(), searchQuery) {
+    val filteredList = remember(activityList.toList(), searchQuery, selectedFilter) {
         activityList.filter { item ->
-            searchQuery.isBlank() ||
+            val matchesSearch = searchQuery.isBlank() ||
                     item.title.contains(searchQuery, ignoreCase = true) ||
                     item.subtitle.contains(searchQuery, ignoreCase = true) ||
                     item.actorName.contains(searchQuery, ignoreCase = true)
+
+            val matchesFilter = when (selectedFilter) {
+                ActivityFilterOption.ALL -> true
+                ActivityFilterOption.RECEIVABLES -> item.isPositiveFinancial == true
+                ActivityFilterOption.PAYABLES -> item.isPositiveFinancial == false
+                ActivityFilterOption.SETTLEMENTS -> item.kind == ActivityItemKind.SETTLEMENT_COMPLETED || item.kind == ActivityItemKind.SMART_CROSS_SETTLEMENT
+                ActivityFilterOption.REQUESTS -> item.kind == ActivityItemKind.INCOMING_APPROVAL || item.kind == ActivityItemKind.INCOMING_NUDGE || item.kind == ActivityItemKind.FRIEND_REQUEST
+            }
+
+            matchesSearch && matchesFilter
         }
     }
 
@@ -437,6 +313,35 @@ fun ActivityScreen(
 
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
+            // Filtre Çipleri
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(ActivityFilterOption.values()) { opt ->
+                    val isSelected = selectedFilter == opt
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF8FAFC),
+                        border = if (isSelected) BorderStroke(1.dp, PrimaryEmerald) else BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.bounceClick { selectedFilter = opt }
+                    ) {
+                        Text(
+                            text = opt.title,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) PrimaryEmerald else Color(0xFF64748B),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
             // =========================================================================
             // 2. ACTIVITY FEED LIST (Flat Stream)
             // =========================================================================
@@ -502,7 +407,13 @@ fun ActivityScreen(
                             FinTechActivityRow(
                                 item = item,
                                 isLocked = isLocked,
-                                onItemClick = { selectedItemForDetail = item }
+                                onItemClick = {
+                                    if (item.kind == ActivityItemKind.INCOMING_NUDGE) {
+                                        onNavigateToSettleUp()
+                                    } else {
+                                        selectedItemForDetail = item
+                                    }
+                                }
                             )
                             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
                         }
@@ -659,7 +570,7 @@ fun ActivityScreen(
                             onClick = {
                                 item.isPendingActionHandled = true
                                 selectedItemForDetail = null
-                                Toast.makeText(context, "${item.actorName} kişisine ${String.format(java.util.Locale.US, "%.2f", item.amount)} ₺ FAST ile ödendi", Toast.LENGTH_SHORT).show()
+                                onNavigateToSettleUp()
                             },
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),

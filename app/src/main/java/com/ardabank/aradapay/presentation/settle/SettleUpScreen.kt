@@ -15,8 +15,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -83,6 +85,8 @@ enum class SettlementItemType {
     CREDIT    // Alacak / Mahsup
 }
 
+private fun Double.ifZero(defaultValue: Double): Double = if (this <= 0.01) defaultValue else this
+
 data class PendingDebtItem(
     val id: String,
     val title: String,
@@ -91,7 +95,9 @@ data class PendingDebtItem(
     val fullExpenseAmount: Double,
     val yourShare: Double,
     val type: SettlementItemType = SettlementItemType.DEBT,
-    val note: String
+    val note: String,
+    val groupId: String? = null,
+    val groupName: String? = null
 )
 
 data class DebtRecipient(
@@ -111,6 +117,18 @@ data class DebtRecipient(
 
     val netOwedAmount: Double
         get() = (totalDebt - totalCredit).coerceAtLeast(0.0)
+
+    fun getGroupOnlyDebt(targetGroupId: String): Double {
+        val gDebts = pendingItems.filter { it.groupId == targetGroupId && it.type == SettlementItemType.DEBT }.sumOf { it.yourShare }
+        val gCredits = pendingItems.filter { it.groupId == targetGroupId && it.type == SettlementItemType.CREDIT }.sumOf { it.yourShare }
+        return (gDebts - gCredits).coerceAtLeast(0.0)
+    }
+
+    fun getExternalDebt(targetGroupId: String): Double {
+        val extDebts = pendingItems.filter { it.groupId != targetGroupId && it.type == SettlementItemType.DEBT }.sumOf { it.yourShare }
+        val extCredits = pendingItems.filter { it.groupId != targetGroupId && it.type == SettlementItemType.CREDIT }.sumOf { it.yourShare }
+        return (extDebts - extCredits).coerceAtLeast(0.0)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,6 +136,8 @@ data class DebtRecipient(
 fun SettleUpScreen(
     creditorUser: User? = null,
     owedAmount: Double = 120.0,
+    initialGroupName: String? = null,
+    initialGroupId: String? = null,
     onConfirmSettlement: (amount: Double, note: String) -> Unit = { _, _ -> },
     onCancel: () -> Unit = {}
 ) {
@@ -142,7 +162,9 @@ fun SettleUpScreen(
                         fullExpenseAmount = 240.0,
                         yourShare = 120.0,
                         type = SettlementItemType.DEBT,
-                        note = "Mert ödedi • Akşam yemeği payı"
+                        note = "Mert ödedi • Akşam yemeği payı",
+                        groupId = "grp_1",
+                        groupName = "Kadıköy Evi"
                     )
                 )
             ),
@@ -162,7 +184,9 @@ fun SettleUpScreen(
                         fullExpenseAmount = 460.0,
                         yourShare = 230.0,
                         type = SettlementItemType.DEBT,
-                        note = "Burak ödedi • Sabiha Gökçen taksi"
+                        note = "Burak ödedi • Sabiha Gökçen taksi",
+                        groupId = "grp_2",
+                        groupName = "Bodrum Tatili 2026"
                     ),
                     PendingDebtItem(
                         id = "c2",
@@ -172,7 +196,21 @@ fun SettleUpScreen(
                         fullExpenseAmount = 300.0,
                         yourShare = 80.0,
                         type = SettlementItemType.CREDIT,
-                        note = "Sen ödedin • Mahsup edilecek alacağın"
+                        note = "Sen ödedin • Mahsup edilecek alacağın",
+                        groupId = "grp_2",
+                        groupName = "Bodrum Tatili 2026"
+                    ),
+                    PendingDebtItem(
+                        id = "d3_ext",
+                        title = "Bireysel Sinema Bileti",
+                        date = "15 Ağu 2026",
+                        category = "Eğlence",
+                        fullExpenseAmount = 180.0,
+                        yourShare = 90.0,
+                        type = SettlementItemType.DEBT,
+                        note = "Burak ödedi • Grup dışı bireysel borç",
+                        groupId = null,
+                        groupName = null
                     )
                 )
             ),
@@ -192,7 +230,9 @@ fun SettleUpScreen(
                         fullExpenseAmount = 400.0,
                         yourShare = 100.0,
                         type = SettlementItemType.DEBT,
-                        note = "Caner ödedi • Maç ücreti"
+                        note = "Caner ödedi • Maç ücreti",
+                        groupId = "grp_1",
+                        groupName = "Kadıköy Evi"
                     )
                 )
             ),
@@ -212,7 +252,65 @@ fun SettleUpScreen(
                         fullExpenseAmount = 200.0,
                         yourShare = 100.0,
                         type = SettlementItemType.DEBT,
-                        note = "Ahmet ödedi"
+                        note = "Ahmet ödedi",
+                        groupId = "grp_1",
+                        groupName = "Kadıköy Evi"
+                    ),
+                    PendingDebtItem(
+                        id = "d5_ext",
+                        title = "Bireysel Market Harcaması",
+                        date = "3 gün önce",
+                        category = "Market",
+                        fullExpenseAmount = 140.0,
+                        yourShare = 70.0,
+                        type = SettlementItemType.DEBT,
+                        note = "Ahmet ödedi • Grup dışı harcama",
+                        groupId = null,
+                        groupName = null
+                    )
+                )
+            ),
+            DebtRecipient(
+                id = "4",
+                name = "Elif Şahin",
+                tag = "Elif#4420",
+                avatar = "EŞ",
+                bankName = "İş Bankası",
+                iban = "TR64 0006 2000 0000 4455 6677 88",
+                pendingItems = listOf(
+                    PendingDebtItem(
+                        id = "d_elif",
+                        title = "Müze Giriş Biletleri",
+                        date = "16 Ağu 2026",
+                        category = "Kültür",
+                        fullExpenseAmount = 360.0,
+                        yourShare = 90.0,
+                        type = SettlementItemType.DEBT,
+                        note = "Elif ödedi • Bodrum Kalesi payı",
+                        groupId = "grp_2",
+                        groupName = "Bodrum Tatili 2026"
+                    )
+                )
+            ),
+            DebtRecipient(
+                id = "6",
+                name = "Selin Aydın",
+                tag = "Selin#2839",
+                avatar = "SA",
+                bankName = "Garanti BBVA",
+                iban = "TR64 0006 2000 0000 6677 8899 00",
+                pendingItems = listOf(
+                    PendingDebtItem(
+                        id = "d_selin",
+                        title = "Beach & Şezlong Ücreti",
+                        date = "18 Ağu 2026",
+                        category = "Eğlence",
+                        fullExpenseAmount = 400.0,
+                        yourShare = 100.0,
+                        type = SettlementItemType.DEBT,
+                        note = "Selin ödedi • Plaj payı",
+                        groupId = "grp_2",
+                        groupName = "Bodrum Tatili 2026"
                     )
                 )
             ),
@@ -232,20 +330,28 @@ fun SettleUpScreen(
                         fullExpenseAmount = 120.0,
                         yourShare = 60.0,
                         type = SettlementItemType.DEBT,
-                        note = "Zeynep ödedi"
+                        note = "Zeynep ödedi",
+                        groupId = "grp_1",
+                        groupName = "Kadıköy Evi"
                     )
                 )
             )
         )
     }
 
-    // Ödeme ekranında sadece net borcun olduğu kişiler listelenir
-    val eligibleDebtRecipients = remember(allRecipients.toList()) {
-        allRecipients.filter { it.netOwedAmount > 0 }
+    // Ödeme ekranında grup içinden gelindiyse SADECE o grubun üyeleri listelenir
+    val eligibleDebtRecipients = remember(allRecipients.toList(), initialGroupId) {
+        if (initialGroupId != null) {
+            allRecipients.filter { recipient ->
+                recipient.pendingItems.any { it.groupId == initialGroupId }
+            }
+        } else {
+            allRecipients.filter { it.netOwedAmount > 0 }
+        }
     }
 
     // Tek kişi seçimi (Single selection)
-    var selectedRecipient by remember {
+    var selectedRecipient by remember(eligibleDebtRecipients) {
         mutableStateOf<DebtRecipient?>(
             if (creditorUser != null) {
                 DebtRecipient(
@@ -264,7 +370,9 @@ fun SettleUpScreen(
                             fullExpenseAmount = owedAmount * 2,
                             yourShare = owedAmount,
                             type = SettlementItemType.DEBT,
-                            note = "Ödenmemiş borç bakiyesi"
+                            note = "Ödenmemiş borç bakiyesi",
+                            groupId = initialGroupId,
+                            groupName = initialGroupName
                         )
                     )
                 )
@@ -274,12 +382,40 @@ fun SettleUpScreen(
         )
     }
 
-    val netPayableAmount = remember(selectedRecipient) {
-        selectedRecipient?.netOwedAmount ?: 0.0
+    var includeExternalDebts by remember { mutableStateOf(false) }
+
+    val groupOnlyDebt = remember(selectedRecipient, initialGroupId) {
+        if (selectedRecipient != null && initialGroupId != null) {
+            selectedRecipient!!.getGroupOnlyDebt(initialGroupId)
+        } else if (selectedRecipient != null) {
+            selectedRecipient!!.netOwedAmount
+        } else {
+            0.0
+        }
     }
 
-    var amountText by remember(selectedRecipient) {
-        mutableStateOf(if (selectedRecipient != null) String.format(java.util.Locale.US, "%.2f", selectedRecipient!!.netOwedAmount) else "0,00")
+    val externalDebt = remember(selectedRecipient, initialGroupId) {
+        if (selectedRecipient != null && initialGroupId != null) {
+            selectedRecipient!!.getExternalDebt(initialGroupId)
+        } else {
+            0.0
+        }
+    }
+
+    val netPayableAmount = remember(selectedRecipient, initialGroupId, includeExternalDebts) {
+        if (selectedRecipient != null && initialGroupId != null) {
+            if (includeExternalDebts) {
+                selectedRecipient!!.netOwedAmount
+            } else {
+                groupOnlyDebt.ifZero(selectedRecipient!!.netOwedAmount)
+            }
+        } else {
+            selectedRecipient?.netOwedAmount ?: 0.0
+        }
+    }
+
+    var amountText by remember(selectedRecipient, netPayableAmount) {
+        mutableStateOf(String.format(java.util.Locale.US, "%.2f", netPayableAmount))
     }
     var note by remember { mutableStateOf("") }
     var isRecipientDropdownOpen by remember { mutableStateOf(false) }
@@ -391,7 +527,7 @@ fun SettleUpScreen(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Surface(
-                                    shape = CircleShape,
+                                    shape = RoundedCornerShape(6.dp),
                                     color = PrimaryEmerald,
                                     modifier = Modifier.size(22.dp)
                                 ) {
@@ -490,8 +626,14 @@ fun SettleUpScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 6.dp)
                     ) {
+                        val listHeader = if (!initialGroupName.isNullOrBlank()) {
+                            "${initialGroupName.uppercase()} KATILIMCILARI (${eligibleDebtRecipients.size})"
+                        } else {
+                            "BORCUN OLAN KİŞİLER (${eligibleDebtRecipients.size})"
+                        }
+
                         Text(
-                            text = "BORCUN OLAN KİŞİLER (${eligibleDebtRecipients.size})",
+                            text = listHeader,
                             color = Color(0xFF64748B),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -507,7 +649,7 @@ fun SettleUpScreen(
 
                         if (matchingDebts.isEmpty()) {
                             Text(
-                                text = "Ödenecek borcunuz olan kimse bulunmuyor.",
+                                text = if (initialGroupId != null) "Bu grupta seçilebilecek başka üye bulunmuyor." else "Ödenecek borcunuz olan kimse bulunmuyor.",
                                 fontSize = 13.sp,
                                 color = Color(0xFF94A3B8),
                                 modifier = Modifier.padding(vertical = 12.dp)
@@ -597,7 +739,9 @@ fun SettleUpScreen(
                     }
                 }
             }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+            if (!isRecipientDropdownOpen) {
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
             // 3. HERO SETTLEMENT AMOUNT
             Column(
@@ -615,7 +759,6 @@ fun SettleUpScreen(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BasicTextField(
@@ -634,7 +777,7 @@ fun SettleUpScreen(
                         ),
                         cursorBrush = SolidColor(PrimaryEmerald),
                         decorationBox = { innerTextField ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(contentAlignment = Alignment.CenterStart) {
                                 if (amountText.isEmpty()) {
                                     Text(
                                         text = "0,00",
@@ -644,16 +787,18 @@ fun SettleUpScreen(
                                     )
                                 }
                                 innerTextField()
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "₺",
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryEmerald
-                                )
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .width(IntrinsicSize.Min)
+                            .defaultMinSize(minWidth = if (amountText.isEmpty()) 76.dp else 24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "₺",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryEmerald
                     )
                 }
 
@@ -699,89 +844,104 @@ fun SettleUpScreen(
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 4. FAST IBAN BİLGİSİ
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "ALICI FAST IBAN",
-                    color = Color(0xFF64748B),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFFF8FAFC),
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth()
+            // 4. GRUP DIŞI BORÇ DAHİL ETME (Düz, Kart İçi Kartsız Akış)
+            if (initialGroupId != null && externalDebt > 0) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (selectedRecipient != null) {
-                            Column {
-                                Text(
-                                    text = selectedRecipient!!.bankName,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryEmerald
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = selectedRecipient!!.iban,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF0F172A)
-                                )
-                            }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Grup dışı borçları dahil et",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = if (includeExternalDebts) {
+                                "+${String.format(java.util.Locale.US, "%.2f", externalDebt)} ₺ bireysel borç eklendi"
+                            } else {
+                                "${selectedRecipient?.name?.split(" ")?.first() ?: "Arkadaşının"} +${String.format(java.util.Locale.US, "%.2f", externalDebt)} ₺ bireysel borcu var"
+                            },
+                            fontSize = 12.sp,
+                            color = if (includeExternalDebts) PrimaryEmerald else Color(0xFF64748B)
+                        )
+                    }
 
-                            FilledTonalIconButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("IBAN", selectedRecipient!!.iban))
-                                    Toast.makeText(context, "IBAN panoya kopyalandı", Toast.LENGTH_SHORT).show()
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = Color(0xFFF1F5F9)
-                                ),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ContentCopy,
-                                    contentDescription = "Kopyala",
-                                    tint = Color(0xFF0F172A),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = "Lütfen yukarıdan fitleşilecek kişiyi seçiniz.",
-                                fontSize = 13.sp,
-                                color = Color(0xFF94A3B8),
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
-                        }
+                    androidx.compose.material3.Switch(
+                        checked = includeExternalDebts,
+                        onCheckedChange = { includeExternalDebts = it },
+                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = PrimaryEmerald,
+                            checkedBorderColor = PrimaryEmerald,
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = Color(0xFFCBD5E1),
+                            uncheckedBorderColor = Color(0xFF94A3B8)
+                        )
+                    )
+                }
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            }
+
+            // 5. FAST IBAN BİLGİSİ (Düz, Sade Satır)
+            if (selectedRecipient != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "ALICI IBAN (${selectedRecipient!!.bankName})",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = selectedRecipient!!.iban,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
+
+                    FilledTonalIconButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("IBAN", selectedRecipient!!.iban))
+                            Toast.makeText(context, "IBAN panoya kopyalandı", Toast.LENGTH_SHORT).show()
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Color(0xFFF1F5F9)
+                        ),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Kopyala",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
             }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 5. NOT ALANI
+            // 6. NOT ALANI
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = "AÇIKLAMA & NOT",
@@ -796,7 +956,7 @@ fun SettleUpScreen(
                     onValueChange = { note = it },
                     singleLine = true,
                     textStyle = TextStyle(
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF0F172A)
                     ),
@@ -818,16 +978,18 @@ fun SettleUpScreen(
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
 
         // BOTTOM FIXED ACTIONS (Side-by-side FinTech Action Bar)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+        if (!isRecipientDropdownOpen) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
             val isActionEnabled = selectedRecipient != null && amountValue > 0
 
             // 1. SECONDARY: ELDEN / NAKİT KAPAT
@@ -918,4 +1080,5 @@ fun SettleUpScreen(
             }
         }
     }
+}
 }

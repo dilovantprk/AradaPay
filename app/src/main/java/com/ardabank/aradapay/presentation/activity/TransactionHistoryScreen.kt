@@ -1,5 +1,6 @@
 package com.ardabank.aradapay.presentation.activity
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,11 +21,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,28 +82,31 @@ fun TransactionHistoryScreen(
     isLocked: Boolean = false,
     onBackClick: () -> Unit = {}
 ) {
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     var selectedFilterIndex by remember { mutableStateOf(0) }
     val filters = listOf("Tümü", "Harcamalar", "Tahsilatlar", "Abonelikler")
 
     var activeReceiptForModal by remember { mutableStateOf<AradaPayReceipt?>(null) }
 
     val completedTransactions = remember {
-        listOf(
-            StatementItem("1", "Starbucks Coffee", "BUGÜN", "14:30", "Yemek • 3 kişi bölüşüldü", 120.0, false, false, Icons.Default.Fastfood, "Mehmet Dilovan", listOf("Mehmet Dilovan (Sen)", "Ahmet Yılmaz", "Zeynep Kaya"), 120.0),
-            StatementItem("2", "Ahmet Yılmaz", "BUGÜN", "11:15", "Transfer • FAST ile Hesap Kapatıldı", 350.0, true, false, Icons.Default.Payment, "Ahmet Yılmaz", listOf("Ahmet Yılmaz", "Mehmet Dilovan (Sen)"), 350.0),
-            StatementItem("3", "Migros Sanal Market", "DÜN", "19:40", "Market • Ortak Ev Harcaması", 540.0, false, false, Icons.Default.ShoppingCart, "Mehmet Dilovan", listOf("Mehmet Dilovan (Sen)", "Caner Erkin", "Mert Demir"), 540.0),
-            StatementItem("4", "Netflix & Spotify", "DÜN", "09:00", "Abonelik • Aylık Paylaşım", 65.0, false, false, Icons.Default.Tv, "Caner Erkin", listOf("Caner Erkin (Ödeyen)", "Mehmet Dilovan (Sen)"), 65.0),
-            StatementItem("5", "Shell Akaryakıt", "BU HAFTA", "20 Ağu", "Ulaşım • Yol Masrafı", 280.0, false, false, Icons.Default.LocalGasStation, "Mehmet Dilovan", listOf("Mehmet Dilovan (Sen)", "Ahmet Yılmaz"), 280.0),
-            StatementItem("6", "Caner Erkin", "BU HAFTA", "18 Ağu", "Transfer • FAST ile Ödendi", 185.0, true, false, Icons.Default.Payment, "Caner Erkin", listOf("Caner Erkin", "Mehmet Dilovan (Sen)"), 185.0),
-            StatementItem("7", "Kahve Dünyası", "GEÇMİŞ", "15 Ağu", "Yemek • 2 kişi fitleşildi", 95.0, false, false, Icons.Default.Fastfood, "Mehmet Dilovan", listOf("Mehmet Dilovan (Sen)", "Zeynep Kaya"), 95.0)
-        )
+        emptyList<StatementItem>()
     }
 
-    val filteredList = when (selectedFilterIndex) {
-        1 -> completedTransactions.filter { !it.isIncoming && !it.categorySubtitle.contains("Abonelik") }
-        2 -> completedTransactions.filter { it.isIncoming }
-        3 -> completedTransactions.filter { it.categorySubtitle.contains("Abonelik") }
-        else -> completedTransactions
+    val filteredList = completedTransactions.filter { item ->
+        val matchesCategory = when (selectedFilterIndex) {
+            1 -> !item.isIncoming && !item.categorySubtitle.contains("Abonelik")
+            2 -> item.isIncoming
+            3 -> item.categorySubtitle.contains("Abonelik")
+            else -> true
+        }
+
+        val matchesSearch = searchQuery.isBlank() ||
+                item.title.contains(searchQuery, ignoreCase = true) ||
+                item.categorySubtitle.contains(searchQuery, ignoreCase = true) ||
+                item.payerName.contains(searchQuery, ignoreCase = true)
+
+        matchesCategory && matchesSearch
     }
 
     val groupedItems = filteredList.groupBy { it.dateGroup }
@@ -113,37 +122,125 @@ fun TransactionHistoryScreen(
     ) {
         // 1. TOP BAR
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FilledTonalIconButton(
-                    onClick = onBackClick,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = Color(0xFFF1F5F9)
-                    ),
-                    modifier = Modifier.size(40.dp).bounceClick(onClick = onBackClick)
+            if (isSearchActive) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Geri",
-                        tint = Color(0xFF0F172A),
-                        modifier = Modifier.size(20.dp)
-                    )
+                    FilledTonalIconButton(
+                        onClick = {
+                            isSearchActive = false
+                            searchQuery = ""
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
+                        modifier = Modifier.size(38.dp).bounceClick {
+                            isSearchActive = false
+                            searchQuery = ""
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Geri",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFF1F5F9),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    color = Color(0xFF0F172A),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                cursorBrush = SolidColor(PrimaryEmerald),
+                                decorationBox = { innerTextField ->
+                                    if (searchQuery.isEmpty()) {
+                                        Text("İşlemlerde ara...", color = Color(0xFF94A3B8), fontSize = 14.sp)
+                                    }
+                                    innerTextField()
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (searchQuery.isNotEmpty()) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Temizle",
+                                    tint = Color(0xFF64748B),
+                                    modifier = Modifier.size(16.dp).bounceClick { searchQuery = "" }
+                                )
+                            }
+                        }
+                    }
                 }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilledTonalIconButton(
+                        onClick = onBackClick,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Color(0xFFF1F5F9)
+                        ),
+                        modifier = Modifier.size(40.dp).bounceClick(onClick = onBackClick)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Geri",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
 
-                Text(
-                    text = "Geçmiş İşlemler",
-                    color = Color(0xFF0F172A),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
+                    Text(
+                        text = "Geçmiş İşlemler",
+                        color = Color(0xFF0F172A),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
 
-                Spacer(modifier = Modifier.size(40.dp))
+                    FilledTonalIconButton(
+                        onClick = { isSearchActive = true },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
+                        modifier = Modifier.size(40.dp).bounceClick { isSearchActive = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Ara",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
         }
@@ -167,7 +264,7 @@ fun TransactionHistoryScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     MaskedFinancialText(
-                        amount = 1100.0,
+                        amount = completedTransactions.filter { !it.isIncoming }.sumOf { it.amount },
                         isLocked = isLocked,
                         color = Color(0xFF0F172A),
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -198,7 +295,7 @@ fun TransactionHistoryScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     MaskedFinancialText(
-                        amount = 535.0,
+                        amount = completedTransactions.filter { it.isIncoming }.sumOf { it.amount },
                         isLocked = isLocked,
                         color = PrimaryEmerald,
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -215,22 +312,23 @@ fun TransactionHistoryScreen(
         item {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(filters) { index, filter ->
                     val isSelected = selectedFilterIndex == index
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF8FAFC),
+                        border = if (isSelected) BorderStroke(1.dp, PrimaryEmerald) else BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.bounceClick { selectedFilterIndex = index }
                     ) {
                         Text(
                             text = filter,
-                            color = if (isSelected) Color.White else Color(0xFF64748B),
-                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) PrimaryEmerald else Color(0xFF64748B),
+                            fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
                 }
@@ -239,18 +337,41 @@ fun TransactionHistoryScreen(
         }
 
         // 4. TRANSACTION ROWS
-        groupedItems.forEach { (dateGroup, items) ->
+        if (filteredList.isEmpty()) {
             item {
-                Text(
-                    text = dateGroup,
-                    color = Color(0xFF64748B),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
-                )
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 48.dp, start = 24.dp, end = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "İşlem Bulunamadı",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF0F172A)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Arama kriterlerinize uygun geçmiş işlem bulunmuyor.",
+                        color = Color(0xFF64748B),
+                        fontSize = 13.sp
+                    )
+                }
             }
+        } else {
+            groupedItems.forEach { (dateGroup, items) ->
+                item {
+                    Text(
+                        text = dateGroup,
+                        color = Color(0xFF64748B),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
+                    )
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                }
 
             itemsIndexed(items) { _, item ->
                 Row(
@@ -355,6 +476,7 @@ fun TransactionHistoryScreen(
             }
         }
     }
+}
 
     // Official AradaPay Receipt Modal Sheet
     AradaPayReceiptModalSheet(

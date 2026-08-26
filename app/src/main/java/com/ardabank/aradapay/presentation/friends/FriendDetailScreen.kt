@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -56,6 +58,7 @@ import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -188,7 +191,8 @@ fun FriendDetailScreen(
         "deniz" to FriendProfileData("Deniz Çelik", "Deniz#5522", "DÇ", "TR64 0006 2000 0000 8899 0011 22", 0.0, isCreditor = false, isBalanced = true)
     )
 
-    val friend = profileMap[friendId.lowercase()] ?: profileMap["1"]!!
+    val defaultFriend = FriendProfileData("Arkadaş", "user#0000", "A", "", 0.0, isCreditor = false, isBalanced = true)
+    val friend = profileMap[friendId.lowercase()] ?: defaultFriend
     var activeReceiptForModal by remember { mutableStateOf<AradaPayReceipt?>(null) }
     var showSettleUpModal by remember { mutableStateOf(false) }
     var showReminderModal by remember { mutableStateOf(false) }
@@ -204,137 +208,11 @@ fun FriendDetailScreen(
     }
 
     val itemizedExpenses = remember(friendId) {
-        val list = when {
-            friend.isBalanced -> {
-                listOf(
-                    ItemizedExpense(
-                        id = "settled_1",
-                        title = "Kadıköy Kahve & Sohbet",
-                        date = "18 Ağu, 15:30",
-                        categoryName = "Kafe",
-                        totalAmount = 240.0,
-                        payerInfo = "Sen ödedin (240,00 ₺)",
-                        yourInitialShare = 120.0,
-                        alreadyPaidAmount = 120.0,
-                        isIncoming = true,
-                        paymentLogs = mutableListOf(
-                            PartialPaymentLog("p_set_1", friend.fullName, 120.0, "FAST Transferi", "18 Ağu, 17:00")
-                        ),
-                        icon = Icons.Default.Fastfood
-                    ),
-                    ItemizedExpense(
-                        id = "settled_2",
-                        title = "Sinema Bileti & Mısır",
-                        date = "12 Ağu, 20:00",
-                        categoryName = "Eğlence",
-                        totalAmount = 300.0,
-                        payerInfo = "${friend.fullName} ödedi (300,00 ₺)",
-                        yourInitialShare = 150.0,
-                        alreadyPaidAmount = 150.0,
-                        isIncoming = false,
-                        paymentLogs = mutableListOf(
-                            PartialPaymentLog("p_set_2", "Sen", 150.0, "AradaPay ile Ödendi", "12 Ağu, 20:15")
-                        ),
-                        icon = Icons.Default.Payments
-                    )
-                )
-            }
-            !friend.isCreditor -> {
-                // BORÇLUSUN: Arkadaş ödedi, sen borçlusun (!isIncoming)
-                val oweAmount = friend.baseBalance
-                listOf(
-                    ItemizedExpense(
-                        id = "owe_1",
-                        title = when (friendId.lowercase()) {
-                            "3", "mert" -> "Sushi & Akşam Yemeği"
-                            "5", "burak" -> "Konser & Festival Bileti"
-                            "7", "caner" -> "Taksi & Yolculuk Masrafı"
-                            else -> "Ortak Akşam Yemeği"
-                        },
-                        date = "24 Ağu, 19:45",
-                        categoryName = when (friendId.lowercase()) {
-                            "5", "burak" -> "Eğlence"
-                            "7", "caner" -> "Ulaşım"
-                            else -> "Yeme & İçme"
-                        },
-                        totalAmount = oweAmount * 2,
-                        payerInfo = "${friend.fullName} ödedi (${String.format(java.util.Locale.US, "%.2f", oweAmount * 2)} ₺)",
-                        yourInitialShare = oweAmount,
-                        alreadyPaidAmount = 0.0,
-                        isIncoming = false, // sen borçlusun
-                        paymentLogs = mutableListOf(),
-                        icon = when (friendId.lowercase()) {
-                            "7", "caner" -> Icons.Default.LocalGasStation
-                            else -> Icons.Default.Fastfood
-                        }
-                    ),
-                    ItemizedExpense(
-                        id = "owe_2_settled",
-                        title = "Market & İçecek Alışverişi",
-                        date = "15 Ağu, 16:20",
-                        categoryName = "Market",
-                        totalAmount = 160.0,
-                        payerInfo = "${friend.fullName} ödedi (160,00 ₺)",
-                        yourInitialShare = 80.0,
-                        alreadyPaidAmount = 80.0,
-                        isIncoming = false,
-                        paymentLogs = mutableListOf(
-                            PartialPaymentLog("p_owe_1", "Sen", 80.0, "FAST Transferi", "15 Ağu, 18:00")
-                        ),
-                        icon = Icons.Default.ShoppingCart
-                    )
-                )
-            }
-            else -> {
-                // ALACAKLISIN: Sen ödedin, arkadaş sana borçlu (isIncoming)
-                val receiveAmount = friend.baseBalance
-                listOf(
-                    ItemizedExpense(
-                        id = "rec_1",
-                        title = when (friendId.lowercase()) {
-                            "kaan" -> "Migros Market Alışverişi"
-                            "1", "ahmet" -> "Airbnb Konaklama & Tatil"
-                            "2", "zeynep" -> "Doğum Günü Hediyesi & Pasta"
-                            "4", "elif" -> "Elektronik & Aksesuar"
-                            "6", "selin" -> "Öğle Yemeği & Kahve"
-                            else -> "Ortak Harcama"
-                        },
-                        date = "24 Ağu, 14:30",
-                        categoryName = when (friendId.lowercase()) {
-                            "1", "ahmet" -> "Konaklama"
-                            "4", "elif" -> "Alışveriş"
-                            else -> "Market"
-                        },
-                        totalAmount = receiveAmount * 2,
-                        payerInfo = "Sen ödedin (${String.format(java.util.Locale.US, "%.2f", receiveAmount * 2)} ₺)",
-                        yourInitialShare = receiveAmount,
-                        alreadyPaidAmount = 0.0,
-                        isIncoming = true, // sana borçlu
-                        paymentLogs = mutableListOf(),
-                        icon = Icons.Default.ShoppingCart
-                    ),
-                    ItemizedExpense(
-                        id = "rec_2_settled",
-                        title = "Starbucks Kahve & Tatlı",
-                        date = "16 Ağu, 18:20",
-                        categoryName = "Kafe",
-                        totalAmount = 260.0,
-                        payerInfo = "Sen ödedin (260,00 ₺)",
-                        yourInitialShare = 130.0,
-                        alreadyPaidAmount = 130.0,
-                        isIncoming = true,
-                        paymentLogs = mutableListOf(
-                            PartialPaymentLog("p_rec_1", friend.fullName, 130.0, "FAST Transferi", "17 Ağu, 10:15")
-                        ),
-                        icon = Icons.Default.Fastfood
-                    )
-                )
-            }
-        }
-        mutableStateListOf<ItemizedExpense>().apply { addAll(list) }
+        mutableStateListOf<ItemizedExpense>()
     }
 
     var selectedExpenseForDetail by remember { mutableStateOf<ItemizedExpense?>(null) }
+    var showSharedGroupsModal by remember { mutableStateOf(false) }
 
     val currentTotalReceivable = itemizedExpenses.filter { it.isIncoming }.sumOf { it.remainingShare }
     val currentTotalPayable = itemizedExpenses.filter { !it.isIncoming }.sumOf { it.remainingShare }
@@ -645,7 +523,7 @@ fun FriendDetailScreen(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    imageVector = if (netBalance > 0) Icons.Default.NotificationsActive else Icons.Default.Payments,
+                                    imageVector = if (netBalance > 0) Icons.Default.NotificationsActive else Icons.Default.Payment,
                                     contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(18.dp)
@@ -680,14 +558,25 @@ fun FriendDetailScreen(
                         color = Color(0xFF0F172A)
                     )
 
-                    val sharedGroups = groupRepository?.getSharedGroupsWithFriend(friendId, friend.fullName) ?: emptyList()
+                    val sharedGroups = remember(friendId, friend.fullName, groupRepository) {
+                        val fromRepo = groupRepository?.getSharedGroupsWithFriend(friendId, friend.fullName) ?: emptyList()
+                        if (fromRepo.isNotEmpty()) fromRepo
+                        else {
+                            listOfNotNull(
+                                groupRepository?.getGroupById("grp_1"),
+                                groupRepository?.getGroupById("grp_3")
+                            )
+                        }
+                    }
                     if (sharedGroups.isNotEmpty()) {
                         Text(
                             text = "${sharedGroups.size} Ortak Grup",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryEmerald,
-                            modifier = Modifier.clickable { onGroupClick(sharedGroups.first().id) }
+                            modifier = Modifier
+                                .bounceClick { showSharedGroupsModal = true }
+                                .padding(4.dp)
                         )
                     }
                 }
@@ -695,12 +584,35 @@ fun FriendDetailScreen(
             }
 
             // 5. TRANSACTION ROWS
-            itemsIndexed(itemizedExpenses) { index, expense ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { selectedExpenseForDetail = expense }
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+            if (itemizedExpenses.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 36.dp, horizontal = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Henüz Ortak Harcama Yok",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Bu kişiyle paylaşılan harcama veya işlem bulunmuyor.",
+                            fontSize = 13.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                }
+            } else {
+                itemsIndexed(itemizedExpenses) { index, expense ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedExpenseForDetail = expense }
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -756,8 +668,11 @@ fun FriendDetailScreen(
                         )
                     }
                 }
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                if (index < itemizedExpenses.size - 1) {
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                }
             }
+        }
 
             item {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -766,56 +681,190 @@ fun FriendDetailScreen(
     }
 
     // =========================================================================
-    // 1. REMINDER FULL-PAGE INTRINSIC SCREEN (Ödeme Hatırlatma)
+    // 0. ORTAK GRUPLAR ALTTAN AÇILIR MODAL SHEET
     // =========================================================================
-    if (showReminderModal) {
-        BackHandler { showReminderModal = false }
+    if (showSharedGroupsModal) {
+        val sharedGroups = remember(friendId, friend.fullName, groupRepository) {
+            groupRepository?.getSharedGroupsWithFriend(friendId, friend.fullName) ?: emptyList()
+        }
 
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = Color.White
-        ) { innerPadding ->
+        ModalBottomSheet(
+            onDismissRequest = { showSharedGroupsModal = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFCBD5E1)) }
+        ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .statusBarsPadding()
+                    .fillMaxWidth()
                     .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Column {
+                        Text(
+                            text = "Ortak Gruplar (${sharedGroups.size})",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${friend.fullName} ile dahil olduğun gruplar",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    FilledTonalIconButton(
+                        onClick = { showSharedGroupsModal = false },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
+                        modifier = Modifier.size(36.dp).bounceClick { showSharedGroupsModal = false }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Kapat",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(sharedGroups, key = { it.id }) { grp ->
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bounceClick {
+                                    showSharedGroupsModal = false
+                                    onGroupClick(grp.id)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = PrimaryEmeraldContainer,
+                                        modifier = Modifier.size(42.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = if (grp.emoji.isNotBlank()) grp.emoji else grp.name.take(2).uppercase(),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = PrimaryEmerald
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column {
+                                        Text(
+                                            text = grp.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "${grp.members.size} Üye • ${grp.category}",
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Grup Detayı",
+                                    tint = Color(0xFF94A3B8),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // 1. REMINDER MODAL SHEET (Ödeme Hatırlat & Dürt)
+    // =========================================================================
+    if (showReminderModal) {
+        ModalBottomSheet(
+            onDismissRequest = { showReminderModal = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFCBD5E1)) }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "${friend.fullName} Kişisine Hatırlat",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Bakiyeyi kapatmak için hatırlatma kanalı seçin",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
                     FilledTonalIconButton(
                         onClick = { showReminderModal = false },
                         shape = RoundedCornerShape(12.dp),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(36.dp).bounceClick { showReminderModal = false }
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Geri",
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Kapat",
                             tint = Color(0xFF0F172A),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "${friend.fullName} Kişisine Hatırlat",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
                 }
-
-                Text(
-                    text = "Bakiyeyi kapatmak için hatırlatma kanalı seçin",
-                    color = Color(0xFF64748B),
-                    style = MaterialTheme.typography.bodyMedium
-                )
 
                 HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
@@ -823,6 +872,7 @@ fun FriendDetailScreen(
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .bounceClick {
@@ -836,7 +886,7 @@ fun FriendDetailScreen(
                         }
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
@@ -854,6 +904,12 @@ fun FriendDetailScreen(
                             Spacer(modifier = Modifier.height(2.dp))
                             Text("Uygulama içi anlık bildirim ve ödeme dürtmesi gönder", fontSize = 12.sp, color = Color(0xFF64748B))
                         }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
 
@@ -861,6 +917,7 @@ fun FriendDetailScreen(
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .bounceClick {
@@ -874,7 +931,7 @@ fun FriendDetailScreen(
                         }
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
@@ -892,11 +949,16 @@ fun FriendDetailScreen(
                             Spacer(modifier = Modifier.height(2.dp))
                             Text("Hazır IBAN ve tutar mesaj taslağını ilet", fontSize = 12.sp, color = Color(0xFF64748B))
                         }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
         }
-        return
     }
 
     // =========================================================================

@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -366,388 +368,411 @@ fun AddFriendScreen(
             }
 
             // =========================================================================
-            // 3. SCROLLABLE INTRINSIC CONTENT (iOS Inset Grouped Sections)
+            // 3. SCROLLABLE FLAT LIST CONTENT (Birebir Fotoğraf 2 Minimalist Akış)
             // =========================================================================
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 // SECTION 1: ÖNERİLEN ARADAPAY ÜYELERİ
                 if (filteredCandidates.isNotEmpty()) {
                     item {
-                        Column {
-                            Text(
-                                text = "ARADAPAY'DE BULUNAN KİŞİLER (${filteredCandidates.size})",
-                                color = Color(0xFF64748B),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
-                                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-                            )
+                        Text(
+                            text = "ARADAPAY'DE BULUNAN KİŞİLER (${filteredCandidates.size})",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        )
+                    }
 
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Color.White,
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                modifier = Modifier.fillMaxWidth()
+                    itemsIndexed(filteredCandidates) { index, user ->
+                        val initials = user.fullName.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString("").ifBlank { "AR" }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { handleAddUser(user) }
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    filteredCandidates.forEachIndexed { index, user ->
-                                        val initials = user.fullName.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString("").ifBlank { "AR" }
-
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.weight(1f)
-                                            ) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(14.dp),
-                                                    color = Color(0xFFF1F5F9),
-                                                    modifier = Modifier.size(44.dp)
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Text(
-                                                            text = initials,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 15.sp,
-                                                            color = Color(0xFF0F172A)
-                                                        )
-                                                    }
-                                                }
-
-                                                Spacer(modifier = Modifier.width(12.dp))
-
-                                                Column {
-                                                    Text(
-                                                        text = user.fullName,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        fontSize = 15.sp,
-                                                        color = Color(0xFF0F172A)
-                                                    )
-                                                    Spacer(modifier = Modifier.height(1.dp))
-                                                    Text(
-                                                        text = "${user.tag ?: "@${user.username}"} • ArdaBank FAST",
-                                                        color = Color(0xFF64748B),
-                                                        fontSize = 12.sp
-                                                    )
-                                                }
-                                            }
-
-                                            Button(
-                                                onClick = { handleAddUser(user) },
-                                                shape = RoundedCornerShape(12.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                                modifier = Modifier.bounceClick { handleAddUser(user) }
-                                            ) {
-                                                Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text("Ekle", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                            }
-                                        }
-
-                                        if (index < filteredCandidates.lastIndex) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(start = 68.dp),
-                                                color = Color(0xFFF1F5F9),
-                                                thickness = 0.8.dp
-                                            )
-                                        }
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = initials,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            color = Color(0xFF0F172A)
+                                        )
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Column {
+                                    Text(
+                                        text = user.fullName,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = user.tag ?: "@${user.username}",
+                                        color = Color(0xFF64748B),
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+
+                            FilledTonalIconButton(
+                                onClick = { handleAddUser(user) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = PrimaryEmeraldContainer
+                                ),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = "Ekle",
+                                    tint = PrimaryEmerald,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 78.dp, end = 20.dp),
+                            color = Color(0xFFF8FAFC),
+                            thickness = 1.dp
+                        )
                     }
                 }
 
                 // SECTION 2: TELEFON REHBERİ ENTEGRASYONU
                 item {
-                    Column {
-                        Text(
-                            text = "TELEFON REHBERİ SENKRONİZASYONU",
-                            color = Color(0xFF64748B),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-                        )
+                    Text(
+                        text = "TELEFON REHBERİ SENKRONİZASYONU",
+                        color = Color(0xFF64748B),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                    )
+                }
 
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier.fillMaxWidth()
+                if (!isContactsPermissionGranted) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (!isContactsPermissionGranted) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(44.dp)
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                        Surface(
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = Color(0xFFF1F5F9),
-                                            modifier = Modifier.size(42.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(Icons.Default.ContactPhone, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(20.dp))
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column {
-                                            Text("Rehberdeki Arkadaşları Bul", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF0F172A))
-                                            Text("AradaPay kullananları otomatik eşleştir", fontSize = 12.sp, color = Color(0xFF64748B))
-                                        }
-                                    }
-
-                                    FilledTonalButton(
-                                        onClick = { contactsPermissionLauncher.launch(android.Manifest.permission.READ_CONTACTS) },
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryEmeraldContainer, contentColor = PrimaryEmerald),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        modifier = Modifier.bounceClick { contactsPermissionLauncher.launch(android.Manifest.permission.READ_CONTACTS) }
-                                    ) {
-                                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryEmerald)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Bağla", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = PrimaryEmerald)
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContactPhone,
+                                            contentDescription = null,
+                                            tint = Color(0xFF0F172A),
+                                            modifier = Modifier.size(20.dp)
+                                        )
                                     }
                                 }
-                            } else if (filteredPhoneContacts.isNotEmpty()) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    filteredPhoneContacts.take(8).forEachIndexed { index, contact ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(14.dp),
-                                                    color = if (contact.isAradaPayMember) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
-                                                    modifier = Modifier.size(44.dp)
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Text(
-                                                            text = contact.name.take(2).uppercase(),
-                                                            color = if (contact.isAradaPayMember) PrimaryEmerald else Color(0xFF0F172A),
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 14.sp
-                                                        )
-                                                    }
-                                                }
-                                                Spacer(modifier = Modifier.width(12.dp))
-                                                Column {
-                                                    Text(contact.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                                                    Text(contact.phone, fontSize = 12.sp, color = Color(0xFF64748B))
-                                                }
-                                            }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = "Rehberdeki Arkadaşları Bul",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "AradaPay kullananları otomatik eşleştir",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
 
-                                            if (contact.isAradaPayMember) {
-                                                Button(
-                                                    onClick = {
-                                                        val u = User(
-                                                            id = "phone_${System.currentTimeMillis()}",
-                                                            email = "${contact.name.lowercase().replace(" ", "")}@aradapay.com",
-                                                            username = contact.name.lowercase().replace(" ", ""),
-                                                            fullName = contact.name,
-                                                            iban = "TR64 0006 2000 0000 " + (1000..9999).random() + " " + (1000..9999).random() + " 22",
-                                                            tag = contact.memberTag ?: "@${contact.name.split(" ").first().lowercase()}"
-                                                        )
-                                                        handleAddUser(u)
-                                                    },
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                                    modifier = Modifier.bounceClick { }
-                                                ) {
-                                                    Text("Ekle", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                                }
-                                            } else {
-                                                FilledTonalButton(
-                                                    onClick = {
-                                                        val inviteMessage = "Selam ${contact.name}! AradaPay ile ortak hesaplarımızı, yemek ve fatura masraflarımızı kolayca bölüşüp FAST ile anında fitleşelim: https://aradapay.com/invite/dilovan"
-                                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                            type = "text/plain"
-                                                            putExtra(Intent.EXTRA_TEXT, inviteMessage)
-                                                        }
-                                                        context.startActivity(Intent.createChooser(shareIntent, "AradaPay'e Davet Et"))
-                                                    },
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color(0xFFF1F5F9)),
-                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                                    modifier = Modifier.bounceClick { }
-                                                ) {
-                                                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF0F172A))
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("Davet Et", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                                                }
-                                            }
-                                        }
-                                        if (index < filteredPhoneContacts.take(8).lastIndex) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(start = 68.dp),
-                                                color = Color(0xFFF1F5F9),
-                                                thickness = 0.8.dp
-                                            )
-                                        }
+                            FilledTonalButton(
+                                onClick = { contactsPermissionLauncher.launch(android.Manifest.permission.READ_CONTACTS) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = PrimaryEmeraldContainer,
+                                    contentColor = PrimaryEmerald
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.bounceClick { contactsPermissionLauncher.launch(android.Manifest.permission.READ_CONTACTS) }
+                            ) {
+                                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryEmerald)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Bağla", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = PrimaryEmerald)
+                            }
+                        }
+                        HorizontalDivider(color = Color(0xFFF8FAFC), thickness = 1.dp)
+                    }
+                } else if (filteredPhoneContacts.isNotEmpty()) {
+                    itemsIndexed(filteredPhoneContacts.take(15)) { index, contact ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (contact.isAradaPayMember) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = contact.name.take(2).uppercase(),
+                                            color = if (contact.isAradaPayMember) PrimaryEmerald else Color(0xFF0F172A),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
                                     }
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = contact.name,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = contact.phone,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
+
+                            if (contact.isAradaPayMember) {
+                                FilledTonalIconButton(
+                                    onClick = {
+                                        val u = User(
+                                            id = "phone_${System.currentTimeMillis()}",
+                                            email = "${contact.name.lowercase().replace(" ", "")}@aradapay.com",
+                                            username = contact.name.lowercase().replace(" ", ""),
+                                            fullName = contact.name,
+                                            iban = "TR64 0006 2000 0000 " + (1000..9999).random() + " " + (1000..9999).random() + " 22",
+                                            tag = contact.memberTag ?: "@${contact.name.split(" ").first().lowercase()}"
+                                        )
+                                        handleAddUser(u)
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = PrimaryEmeraldContainer
+                                    ),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PersonAdd,
+                                        contentDescription = "Ekle",
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            } else {
+                                FilledTonalIconButton(
+                                    onClick = {
+                                        val inviteMessage = "Selam ${contact.name}! AradaPay ile ortak hesaplarımızı, yemek ve fatura masraflarımızı kolayca bölüşüp FAST ile anında fitleşelim: https://aradapay.com/invite/dilovan"
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, inviteMessage)
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "AradaPay'e Davet Et"))
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = Color(0xFFF1F5F9)
+                                    ),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Share,
+                                        contentDescription = "Davet Et",
+                                        tint = Color(0xFF0F172A),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                             }
                         }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 78.dp, end = 20.dp),
+                            color = Color(0xFFF8FAFC),
+                            thickness = 1.dp
+                        )
                     }
                 }
 
                 // SECTION 3: SAYFA İÇİ İÇKİN MANUEL KİŞİ FORMU
                 item {
-                    Column {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
                         Text(
                             text = "MANUEL KİŞİ OLUŞTUR",
                             color = Color(0xFF64748B),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.8.sp,
-                            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
 
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier.fillMaxWidth()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showManualForm = !showManualForm }
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Column {
+                                Text(
+                                    text = "Özel Kişi Kaydı",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = "Rehberde olmayan birini IBAN ile kaydet",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF64748B)
+                                )
+                            }
+
+                            FilledTonalIconButton(
+                                onClick = { showManualForm = !showManualForm },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = Color(0xFFF1F5F9)
+                                ),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showManualForm) Icons.Default.Clear else Icons.Default.PersonAdd,
+                                    contentDescription = "Form",
+                                    tint = if (showManualForm) Color(0xFF64748B) else PrimaryEmerald,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        if (showManualForm) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    .padding(top = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Özel Kişi Kaydı",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 15.sp,
-                                        color = Color(0xFF0F172A)
-                                    )
+                                OutlinedTextField(
+                                    value = manualName,
+                                    onValueChange = { manualName = it },
+                                    label = { Text("İsim Soyisim *") },
+                                    placeholder = { Text("örn: Mehmet Can") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = PrimaryEmerald,
+                                        unfocusedBorderColor = Color(0xFFE2E8F0)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = if (showManualForm) Color(0xFFF1F5F9) else PrimaryEmeraldContainer,
-                                        modifier = Modifier.bounceClick { showManualForm = !showManualForm }
-                                    ) {
-                                        Text(
-                                            text = if (showManualForm) "Gizle" else "+ Formu Aç",
-                                            color = if (showManualForm) Color(0xFF64748B) else PrimaryEmerald,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                        )
-                                    }
-                                }
+                                OutlinedTextField(
+                                    value = manualTagOrPhone,
+                                    onValueChange = { manualTagOrPhone = it },
+                                    label = { Text("Telefon No veya @kullanıcıadı (Opsiyonel)") },
+                                    placeholder = { Text("05XX XXX XX XX veya @mehmet#1234") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = PrimaryEmerald,
+                                        unfocusedBorderColor = Color(0xFFE2E8F0)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
-                                if (showManualForm) {
-                                    Text(
-                                        text = "Uygulama veya rehber haricinde bir kişiyi IBAN ve iletişim bilgileriyle kaydedin:",
-                                        color = Color(0xFF64748B),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                OutlinedTextField(
+                                    value = manualIban,
+                                    onValueChange = { manualIban = it },
+                                    label = { Text("FAST / IBAN Numarası (Opsiyonel)") },
+                                    placeholder = { Text("TR64 0006 2000 ...") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = PrimaryEmerald,
+                                        unfocusedBorderColor = Color(0xFFE2E8F0)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
-                                    OutlinedTextField(
-                                        value = manualName,
-                                        onValueChange = { manualName = it },
-                                        label = { Text("İsim Soyisim *") },
-                                        placeholder = { Text("örn: Mehmet Can") },
-                                        singleLine = true,
-                                        shape = RoundedCornerShape(14.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = PrimaryEmerald,
-                                            unfocusedBorderColor = Color(0xFFE2E8F0)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-
-                                    OutlinedTextField(
-                                        value = manualTagOrPhone,
-                                        onValueChange = { manualTagOrPhone = it },
-                                        label = { Text("Telefon No veya @kullanıcıadı (Opsiyonel)") },
-                                        placeholder = { Text("05XX XXX XX XX veya @mehmet#1234") },
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                                        shape = RoundedCornerShape(14.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = PrimaryEmerald,
-                                            unfocusedBorderColor = Color(0xFFE2E8F0)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-
-                                    OutlinedTextField(
-                                        value = manualIban,
-                                        onValueChange = { manualIban = it },
-                                        label = { Text("FAST / IBAN Numarası (Opsiyonel)") },
-                                        placeholder = { Text("TR64 0006 2000 ...") },
-                                        singleLine = true,
-                                        shape = RoundedCornerShape(14.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = PrimaryEmerald,
-                                            unfocusedBorderColor = Color(0xFFE2E8F0)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-
-                                    Button(
-                                        onClick = {
-                                            if (manualName.isNotBlank()) {
-                                                val generatedTag = if (manualTagOrPhone.startsWith("@") || manualTagOrPhone.startsWith("#")) {
-                                                    manualTagOrPhone
-                                                } else {
-                                                    "@${manualName.split(" ").first().lowercase()}#${(1000..9999).random()}"
-                                                }
-                                                val newManualUser = User(
-                                                    id = "manual_${System.currentTimeMillis()}",
-                                                    email = "${manualName.lowercase().replace(" ", "")}@aradapay.com",
-                                                    username = manualName.lowercase().replace(" ", "_"),
-                                                    fullName = manualName.trim(),
-                                                    iban = manualIban.ifBlank { "TR64 0006 2000 0000 " + (1000..9999).random() + " " + (1000..9999).random() + " 22" },
-                                                    tag = generatedTag
-                                                )
-                                                handleAddUser(newManualUser)
-                                                manualName = ""
-                                                manualTagOrPhone = ""
-                                                manualIban = ""
-                                                showManualForm = false
+                                Button(
+                                    onClick = {
+                                        if (manualName.isNotBlank()) {
+                                            val generatedTag = if (manualTagOrPhone.startsWith("@") || manualTagOrPhone.startsWith("#")) {
+                                                manualTagOrPhone
                                             } else {
-                                                Toast.makeText(context, "Lütfen isim soyisim giriniz", Toast.LENGTH_SHORT).show()
+                                                "@${manualName.split(" ").first().lowercase()}#${(1000..9999).random()}"
                                             }
-                                        },
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(50.dp)
-                                            .bounceClick { }
-                                    ) {
-                                        Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Manuel Kişiyi Kaydet", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                                    }
+                                            val newManualUser = User(
+                                                id = "manual_${System.currentTimeMillis()}",
+                                                email = "${manualName.lowercase().replace(" ", "")}@aradapay.com",
+                                                username = manualName.lowercase().replace(" ", "_"),
+                                                fullName = manualName.trim(),
+                                                iban = manualIban.ifBlank { "TR64 0006 2000 0000 " + (1000..9999).random() + " " + (1000..9999).random() + " 22" },
+                                                tag = generatedTag
+                                            )
+                                            handleAddUser(newManualUser)
+                                            manualName = ""
+                                            manualTagOrPhone = ""
+                                            manualIban = ""
+                                            showManualForm = false
+                                        } else {
+                                            Toast.makeText(context, "Lütfen isim soyisim giriniz", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .bounceClick { }
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Manuel Kişiyi Kaydet", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                                 }
                             }
                         }

@@ -33,15 +33,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.LocalGasStation
-import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,20 +65,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ardabank.aradapay.presentation.common.UserAvatar
 import com.ardabank.aradapay.presentation.components.bounceClick
 import com.ardabank.aradapay.presentation.theme.LightBackground
 import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
 import com.ardabank.aradapay.util.QrCodeHelper
 import com.ardabank.aradapay.util.QrUserData
-
-data class ProfileCategoryStat(
-    val categoryName: String,
-    val totalAmount: Double,
-    val subtitle: String,
-    val icon: ImageVector,
-    val iconBgColor: Color
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,6 +80,7 @@ fun ProfileScreen(
     userTag: String = "Arda#1453",
     userIban: String = "TR64 0006 2000 0000 1122 3344 55",
     avatarEmoji: String = "MD",
+    avatarUrl: String = "",
     onBackClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onEditProfileClick: () -> Unit = {},
@@ -103,24 +91,8 @@ fun ProfileScreen(
     val haptic = LocalHapticFeedback.current
     var showQrModal by remember { mutableStateOf(false) }
 
-    val categoryStats = remember {
-        listOf(
-            ProfileCategoryStat("Yeme & İçme", 520.0, "%45 pay • 12 işlem", Icons.Default.Fastfood, Color(0xFFF97316)),
-            ProfileCategoryStat("Market & Alışveriş", 340.0, "%30 pay • 8 işlem", Icons.Default.ShoppingCart, Color(0xFF06B6D4)),
-            ProfileCategoryStat("Ulaşım & Seyahat", 180.0, "%15 pay • 4 işlem", Icons.Default.LocalGasStation, Color(0xFF8B5CF6)),
-            ProfileCategoryStat("Abonelikler & Faturalar", 110.0, "%10 pay • 2 işlem", Icons.Default.Tv, Color(0xFFEC4899))
-        )
-    }
-
     val firstName = userName.split(" ").firstOrNull() ?: userName
     val cleanTag = if (userTag.contains("#")) userTag else "$firstName#$userTag"
-    val initials = avatarEmoji.ifEmpty {
-        userName.split(" ")
-            .mapNotNull { it.firstOrNull()?.toString() }
-            .take(2)
-            .joinToString("")
-            .ifEmpty { "MD" }
-    }
 
     LazyColumn(
         modifier = Modifier
@@ -192,7 +164,7 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .bounceClick { onEditProfileClick() }
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -200,20 +172,16 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Surface(
+                    UserAvatar(
+                        userName = userName,
+                        avatarUrl = avatarUrl,
+                        avatarEmoji = avatarEmoji,
+                        size = 56.dp,
                         shape = RoundedCornerShape(18.dp),
-                        color = Color(0xFFF1F5F9),
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = initials,
-                                color = Color(0xFF0F172A),
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp
-                            )
-                        }
-                    }
+                        backgroundColor = Color(0xFFF1F5F9),
+                        textColor = Color(0xFF0F172A),
+                        fontSizeSp = 20
+                    )
 
                     Spacer(modifier = Modifier.width(14.dp))
 
@@ -381,307 +349,6 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "Kişisel FAST QR kodunu göster",
-                            color = Color(0xFF64748B),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = Color(0xFF94A3B8),
-                    modifier = Modifier.size(13.dp)
-                )
-            }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-        }
-
-        // 4. SECTION: FİNANSAL ÖZET & RAPORLAR
-        item {
-            Text(
-                text = "FİNANSAL ÖZET & RAPORLAR",
-                color = Color(0xFF64748B),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
-                modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
-            )
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-        }
-
-        // Analytics Row
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onAnalyticsClick()
-                    }
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF1F5F9),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.PieChart,
-                                contentDescription = null,
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = "Aylık Harcama Analitiği",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Ağustos toplamı 1.150,00 ₺",
-                            color = Color(0xFF64748B),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "1.150,00 ₺",
-                        color = Color(0xFF0F172A),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = null,
-                        tint = Color(0xFF94A3B8),
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-            }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-        }
-
-        // Savings Report Row
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSavingsReportClick()
-                    }
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF1F5F9),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Savings,
-                                contentDescription = null,
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = "Mahsuplaşma Tasarrufu",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "14 gereksiz FAST transferi önlendi",
-                            color = Color(0xFF64748B),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "+185,00 ₺",
-                        color = PrimaryEmerald,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = null,
-                        tint = Color(0xFF94A3B8),
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-            }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-        }
-
-        // 5. SECTION: KATEGORİ HARCAMALARI
-        item {
-            Text(
-                text = "KATEGORİ HARCAMALARI",
-                color = Color(0xFF64748B),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
-                modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
-            )
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-        }
-
-        itemsIndexed(categoryStats) { index, stat ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF1F5F9),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = stat.icon,
-                                contentDescription = null,
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = stat.categoryName,
-                            color = Color(0xFF0F172A),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = stat.subtitle,
-                            color = Color(0xFF64748B),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    val sharePercent = stat.subtitle.split("•").firstOrNull()?.trim() ?: ""
-                    Text(
-                        text = sharePercent,
-                        color = Color(0xFF64748B),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(1.dp))
-                    Text(
-                        text = "${String.format(java.util.Locale.US, "%.2f", stat.totalAmount)} ₺",
-                        color = Color(0xFF0F172A),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-        }
-
-        // 6. SECTION: AYARLAR & GÜVENLİK
-        item {
-            Text(
-                text = "HESAP & UYGULAMA",
-                color = Color(0xFF64748B),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
-                modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
-            )
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-        }
-
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSettingsClick()
-                    }
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF1F5F9),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = null,
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = "Ayarlar & Güvenlik",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "PIN kilidi, bildirimler ve tercihler",
                             color = Color(0xFF64748B),
                             fontSize = 12.sp
                         )

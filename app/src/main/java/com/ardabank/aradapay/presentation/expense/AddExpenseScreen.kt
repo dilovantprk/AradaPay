@@ -2,26 +2,40 @@ package com.ardabank.aradapay.presentation.expense
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -29,6 +43,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +55,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
@@ -60,7 +76,9 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.filled.Clear
@@ -100,9 +118,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ardabank.aradapay.data.repository.GroupRepository
@@ -131,6 +152,23 @@ data class ExpenseParticipant(
     val avatar: String
 )
 
+class ItemizedBillEntry(
+    val id: String,
+    name: String,
+    amount: String,
+    val selectedMemberIds: androidx.compose.runtime.snapshots.SnapshotStateList<String>
+) {
+    var name by mutableStateOf(name)
+    var amount by mutableStateOf(amount)
+}
+
+private enum class ExpenseScreenMode {
+    NORMAL,
+    CATEGORY,
+    PARTICIPANT,
+    SPLIT
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(
@@ -145,6 +183,18 @@ fun AddExpenseScreen(
     val context = LocalContext.current
     var isParticipantDropdownOpen by remember { mutableStateOf(false) }
     var participantSearchQuery by remember { mutableStateOf("") }
+    var showCategoryExpansion by remember { mutableStateOf(false) }
+    var showSplitExpansion by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isParticipantDropdownOpen || showCategoryExpansion || showSplitExpansion) {
+        if (showCategoryExpansion) {
+            showCategoryExpansion = false
+        } else if (isParticipantDropdownOpen) {
+            isParticipantDropdownOpen = false
+        } else if (showSplitExpansion) {
+            showSplitExpansion = false
+        }
+    }
 
     val allFriends = remember {
         mutableStateListOf(
@@ -190,13 +240,16 @@ fun AddExpenseScreen(
     var selectedSplitMethod by remember { mutableStateOf(SplitMethod.EQUAL) }
     var includeMyselfInSplit by remember { mutableStateOf(true) }
     var selectedPayerId by remember { mutableStateOf("me") } // "me" or participant id
-    var showPayerSheet by remember { mutableStateOf(false) }
-    var showSplitOptionsSheet by remember { mutableStateOf(false) }
-    var splitTabMode by remember { mutableStateOf(0) } // 0: Equal, 1: Exact, 2: Percentage, 3: Shares
+    var splitTabMode by remember { mutableStateOf(0) } // 0: Equal, 1: Exact, 2: Percentage, 3: Itemized
     val excludedInEqualSplit = remember { mutableStateListOf<String>() }
     val exactAmountsMap = remember { mutableStateMapOf<String, String>() }
     val percentageMap = remember { mutableStateMapOf<String, String>() }
-    val sharesMap = remember { mutableStateMapOf<String, Int>() }
+    val itemizedBillList = remember {
+        mutableStateListOf(
+            ItemizedBillEntry(id = "item_1", name = "Ana Yemek", amount = "", selectedMemberIds = mutableStateListOf("me")),
+            ItemizedBillEntry(id = "item_2", name = "İçecek & Meze", amount = "", selectedMemberIds = mutableStateListOf("me"))
+        )
+    }
 
     val initialSelected = remember {
         val set = mutableSetOf<String>()
@@ -234,6 +287,19 @@ fun AddExpenseScreen(
     val dynamicEqualShare = if (amountValue > 0 && includedInEqualCount > 0) amountValue / includedInEqualCount else 0.0
 
     var selectedDetailedCategory by remember { mutableStateOf(ExpenseCategoryCatalog.findDefaultItemForCategory(selectedCategory)) }
+
+    val currentMode = when {
+        showCategoryExpansion -> ExpenseScreenMode.CATEGORY
+        isParticipantDropdownOpen -> ExpenseScreenMode.PARTICIPANT
+        showSplitExpansion -> ExpenseScreenMode.SPLIT
+        else -> ExpenseScreenMode.NORMAL
+    }
+
+    val categoryChevronRotation by animateFloatAsState(
+        targetValue = if (showCategoryExpansion) 180f else 0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "CategoryChevronRotation"
+    )
 
     val isExpenseFormValid = amountValue > 0.0 && description.isNotBlank() && selectedFriendIds.isNotEmpty()
 
@@ -279,97 +345,404 @@ fun AddExpenseScreen(
             .imePadding(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(
+        // 1. TOP BAR (Matching Dashboard & App Standard) - ALWAYS FIXED
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. TOP BAR (Matching Dashboard & App Standard)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FilledTonalIconButton(
-                    onClick = onCancel,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = Color(0xFFF1F5F9)
-                    ),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Geri",
-                        tint = Color(0xFF0F172A),
-                        modifier = Modifier.size(20.dp)
-                    )
+            FilledTonalIconButton(
+                onClick = {
+                    if (showCategoryExpansion) {
+                        showCategoryExpansion = false
+                    } else if (isParticipantDropdownOpen) {
+                        isParticipantDropdownOpen = false
+                    } else if (showSplitExpansion) {
+                        showSplitExpansion = false
+                    } else {
+                        onCancel()
+                    }
+                },
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = Color(0xFFF1F5F9)
+                ),
+                modifier = Modifier.size(40.dp).bounceClick {
+                    if (showCategoryExpansion) {
+                        showCategoryExpansion = false
+                    } else if (isParticipantDropdownOpen) {
+                        isParticipantDropdownOpen = false
+                    } else if (showSplitExpansion) {
+                        showSplitExpansion = false
+                    } else {
+                        onCancel()
+                    }
                 }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Geri",
+                    tint = Color(0xFF0F172A),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
+            AnimatedContent(
+                targetState = currentMode,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(220)) + slideInVertically { -it / 3 })
+                        .togetherWith(fadeOut(animationSpec = tween(150)) + slideOutVertically { it / 3 })
+                },
+                label = "TopBarTitleAnimation"
+            ) { mode ->
                 Text(
-                    text = "Harcama Ekle",
+                    text = when (mode) {
+                        ExpenseScreenMode.CATEGORY -> "Kategori Seç"
+                        ExpenseScreenMode.PARTICIPANT -> "Kişi Ekle"
+                        ExpenseScreenMode.SPLIT -> "Ödeyen ve Bölüşüm"
+                        ExpenseScreenMode.NORMAL -> "Harcama Ekle"
+                    },
                     color = Color(0xFF0F172A),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
+            }
 
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isExpenseFormValid) PrimaryEmerald else Color(0xFFF1F5F9),
-                    modifier = Modifier
-                        .size(38.dp)
-                        .bounceClick { if (isExpenseFormValid) executeSaveExpense() }
+            if (currentMode != ExpenseScreenMode.NORMAL) {
+                FilledTonalIconButton(
+                    onClick = {
+                        showCategoryExpansion = false
+                        isParticipantDropdownOpen = false
+                        showSplitExpansion = false
+                    },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = PrimaryEmeraldContainer
+                    ),
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Kaydet",
-                            tint = if (isExpenseFormValid) Color.White else Color(0xFF94A3B8),
-                            modifier = Modifier.size(20.dp)
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Tamamla",
+                        tint = PrimaryEmerald,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.size(40.dp))
+            }
+        }
+        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+        AnimatedContent(
+            targetState = currentMode,
+            transitionSpec = {
+                if (targetState == ExpenseScreenMode.CATEGORY || targetState == ExpenseScreenMode.PARTICIPANT || targetState == ExpenseScreenMode.SPLIT) {
+                    (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) +
+                            slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) { it / 6 } +
+                            expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow), expandFrom = Alignment.Top))
+                        .togetherWith(
+                            fadeOut(animationSpec = tween(140)) +
+                            shrinkVertically(animationSpec = tween(140), shrinkTowards = Alignment.Top)
                         )
-                    }
+                } else {
+                    (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) +
+                            slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) { -it / 6 } +
+                            expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow), expandFrom = Alignment.Top))
+                        .togetherWith(
+                            fadeOut(animationSpec = tween(140)) +
+                            shrinkVertically(animationSpec = tween(140), shrinkTowards = Alignment.Top)
+                        )
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            label = "ExpenseScreenModeContentAnimation"
+        ) { mode ->
+            when (mode) {
+                ExpenseScreenMode.CATEGORY -> {
+                    // =========================================================================
+                    // KATEGORİ SEÇİM MODU: SABİT BAŞLIK + BAĞIMSIZ KAYAN LİSTE
+                    // =========================================================================
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "AÇIKLAMA & KATEGORİ",
+                                color = Color(0xFF64748B),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier.bounceClick { showCategoryExpansion = false }
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = selectedDetailedCategory.bgTint,
+                                        border = BorderStroke(1.5.dp, selectedDetailedCategory.iconTint),
+                                        modifier = Modifier.size(46.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = selectedDetailedCategory.icon,
+                                                contentDescription = selectedDetailedCategory.name,
+                                                tint = selectedDetailedCategory.iconTint,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = selectedDetailedCategory.iconTint,
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .align(Alignment.BottomEnd)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.KeyboardArrowDown,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .graphicsLayer { rotationZ = categoryChevronRotation }
+                                            )
+                                        }
+                                    }
+                                }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    BasicTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0F172A)
+                        ),
+                        cursorBrush = SolidColor(PrimaryEmerald),
+                        decorationBox = { innerTextField ->
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                if (description.isEmpty()) {
+                                    Text(
+                                        text = "Örn: ${selectedDetailedCategory.name}, Taksi, Akşam Yemeği...",
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF94A3B8)
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 2. KATILIMCI SEÇİM BARI (Seninle ve: + Kapsül Çipler + Arama + Aç/Kapat Butonu)
-            Column(modifier = Modifier.fillMaxWidth()) {
+            // YÜKSEK PERFORMANSLI LAZY KATEGORİ LİSTESİ (ANINDA YÜKLENİR)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                ExpenseCategoryCatalog.groups.forEach { group ->
+                    item(key = "group_header_${group.id}") {
+                        Text(
+                            text = group.englishTitle,
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp,
+                            modifier = Modifier.padding(start = 2.dp, top = 10.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    itemsIndexed(group.items, key = { _, item -> "cat_${item.id}" }) { idx, item ->
+                        val isSelected = selectedDetailedCategory.id == item.id
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bounceClick {
+                                    selectedDetailedCategory = item
+                                    selectedCategory = item.parentCategory
+                                    if (description.isBlank()) {
+                                        description = item.name
+                                    }
+                                    showCategoryExpansion = false
+                                }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = item.bgTint,
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.name,
+                                            tint = item.iconTint,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Text(
+                                    text = item.englishName,
+                                    color = if (isSelected) PrimaryEmerald else Color(0xFF0F172A),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 15.sp
+                                )
+                            }
+
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Seçili",
+                                    tint = PrimaryEmerald,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        if (idx < group.items.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 50.dp),
+                                color = Color(0xFFF8FAFC),
+                                thickness = 0.8.dp
+                            )
+                        }
+                    }
+                }
+
+                item(key = "bottom_spacer") {
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+        }
+    }
+    ExpenseScreenMode.PARTICIPANT -> {
+        // =========================================================================
+        // KİŞİ EKLEME TAM EKRAN MODU
+        // =========================================================================
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 1. ARAMA ÇUBUĞU
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFF1F5F9),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        BasicTextField(
+                            value = participantSearchQuery,
+                            onValueChange = { participantSearchQuery = it },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = Color(0xFF0F172A),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            cursorBrush = SolidColor(PrimaryEmerald),
+                            decorationBox = { innerTextField ->
+                                if (participantSearchQuery.isEmpty()) {
+                                    Text(
+                                        text = "Kişi ara veya #tag yaz...",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                innerTextField()
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        if (participantSearchQuery.isNotEmpty()) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Temizle",
+                                tint = Color(0xFF64748B),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .bounceClick { participantSearchQuery = "" }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 2. SEÇİLEN KİŞİLERİN KAPSÜLLERİ
+            val selectedFriends = allFriends.filter { selectedFriendIds.contains(it.id) }
+            if (selectedFriends.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Seninle ve:",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A),
-                        fontSize = 15.sp
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Seçili Katılımcı Kapsül Çipleri
-                    val selectedFriends = allFriends.filter { selectedFriendIds.contains(it.id) }
                     selectedFriends.forEach { p ->
                         Surface(
                             shape = RoundedCornerShape(20.dp),
                             color = PrimaryEmeraldContainer,
-                            border = BorderStroke(1.dp, PrimaryEmerald),
-                            modifier = Modifier.bounceClick {
-                                isParticipantDropdownOpen = !isParticipantDropdownOpen
-                            }
+                            border = BorderStroke(1.dp, PrimaryEmerald)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Surface(
-                                    shape = CircleShape,
+                                    shape = RoundedCornerShape(6.dp),
                                     color = PrimaryEmerald,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(20.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Text(
@@ -380,18 +753,14 @@ fun AddExpenseScreen(
                                         )
                                     }
                                 }
-
                                 Spacer(modifier = Modifier.width(6.dp))
-
                                 Text(
                                     text = p.name.split(" ").first(),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryEmerald
                                 )
-
                                 Spacer(modifier = Modifier.width(4.dp))
-
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Kaldır",
@@ -405,7 +774,188 @@ fun AddExpenseScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+            // 3. KİŞİ LİSTESİ
+            val filteredFriends = allFriends.filter { friend ->
+                participantSearchQuery.isBlank() ||
+                friend.name.contains(participantSearchQuery, ignoreCase = true) ||
+                friend.tag.contains(participantSearchQuery, ignoreCase = true)
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp)
+            ) {
+                if (filteredFriends.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Sonuç bulunamadı",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    }
+                } else {
+                    items(filteredFriends, key = { it.id }) { friend ->
+                        val isSelected = selectedFriendIds.contains(friend.id)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bounceClick {
+                                    if (isSelected) {
+                                        selectedFriendIds.remove(friend.id)
+                                        if (selectedPayerId == friend.id) selectedPayerId = "me"
+                                    } else {
+                                        selectedFriendIds.add(friend.id)
+                                    }
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(42.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = friend.avatar,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = if (isSelected) PrimaryEmerald else Color(0xFF0F172A)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = friend.name,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                        fontSize = 15.sp,
+                                        color = if (isSelected) PrimaryEmerald else Color(0xFF0F172A)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = friend.tag,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
+
+                            AnimatedContent(
+                                targetState = isSelected,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
+                                },
+                                label = "SelectionAnimation"
+                            ) { selected ->
+                                if (selected) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Seçili",
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Circle,
+                                        contentDescription = "Seçilmedi",
+                                        tint = Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = Color(0xFFF8FAFC),
+                            thickness = 1.dp
+                        )
+                    }
+                }
+            }
+        }
+    }
+    ExpenseScreenMode.NORMAL -> {
+        // =========================================================================
+        // NORMAL HARCAMA FORMU MODU
+        // =========================================================================
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // 2. KATILIMCI SEÇİM BARI (Seninle ve: + Kapsül Çipler + Kişi ara... + [ v ] Butonu)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Seninle ve:",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A),
+                    fontSize = 15.sp
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val selectedFriends = allFriends.filter { selectedFriendIds.contains(it.id) }
+                    selectedFriends.forEach { p ->
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = PrimaryEmeraldContainer,
+                            border = BorderStroke(1.dp, PrimaryEmerald),
+                            modifier = Modifier.bounceClick { isParticipantDropdownOpen = !isParticipantDropdownOpen }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Surface(shape = CircleShape, color = PrimaryEmerald, modifier = Modifier.size(22.dp)) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(text = p.avatar, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = p.name.split(" ").first(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryEmerald)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Kaldır",
+                                    tint = PrimaryEmerald,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable {
+                                            selectedFriendIds.remove(p.id)
+                                            if (selectedPayerId == p.id) selectedPayerId = "me"
+                                        }
+                                )
+                            }
+                        }
                     }
 
                     BasicTextField(
@@ -425,7 +975,7 @@ fun AddExpenseScreen(
                             Box(contentAlignment = Alignment.CenterStart) {
                                 if (participantSearchQuery.isEmpty()) {
                                     Text(
-                                        text = if (selectedFriendIds.isEmpty()) "Kişi seç veya ara..." else "Kişi ara...",
+                                        text = if (selectedFriendIds.isEmpty()) "Kişi ara..." else "Ekle...",
                                         fontSize = 14.sp,
                                         color = Color(0xFF94A3B8)
                                     )
@@ -433,128 +983,34 @@ fun AddExpenseScreen(
                                 innerTextField()
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.defaultMinSize(minWidth = 60.dp)
                     )
-
-                    FilledTonalIconButton(
-                        onClick = { isParticipantDropdownOpen = !isParticipantDropdownOpen },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = if (isParticipantDropdownOpen) PrimaryEmeraldContainer else Color(0xFFF1F5F9)
-                        ),
-                        modifier = Modifier.size(34.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isParticipantDropdownOpen) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Kişi Seç",
-                            tint = if (isParticipantDropdownOpen) PrimaryEmerald else Color(0xFF64748B),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                 }
 
-                // ALTA DOĞRU GENİŞLEYEN KİŞİLER LİSTESİ (AnimatedVisibility)
-                AnimatedVisibility(
-                    visible = isParticipantDropdownOpen,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
+                Spacer(modifier = Modifier.width(6.dp))
+
+                FilledTonalIconButton(
+                    onClick = { isParticipantDropdownOpen = !isParticipantDropdownOpen },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color(0xFFF1F5F9)
+                    ),
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    val filteredFriends = allFriends.filter {
-                        participantSearchQuery.isBlank() ||
-                        it.name.contains(participantSearchQuery, ignoreCase = true) ||
-                        it.tag.contains(participantSearchQuery, ignoreCase = true)
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "KİŞİLER (${allFriends.size})",
-                            color = Color(0xFF64748B),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                            modifier = Modifier.padding(bottom = 6.dp)
-                        )
-
-                        filteredFriends.forEach { contact ->
-                            val isChecked = selectedFriendIds.contains(contact.id)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .bounceClick {
-                                        if (isChecked) {
-                                            selectedFriendIds.remove(contact.id)
-                                            if (selectedPayerId == contact.id) selectedPayerId = "me"
-                                        } else {
-                                            selectedFriendIds.add(contact.id)
-                                        }
-                                    }
-                                    .padding(vertical = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (isChecked) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
-                                        modifier = Modifier.size(38.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = contact.avatar,
-                                                color = if (isChecked) PrimaryEmerald else Color(0xFF0F172A),
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
-                                        Text(
-                                            text = contact.name,
-                                            fontWeight = if (isChecked) FontWeight.Bold else FontWeight.SemiBold,
-                                            fontSize = 14.sp,
-                                            color = if (isChecked) PrimaryEmerald else Color(0xFF0F172A)
-                                        )
-                                        Text(
-                                            text = contact.tag,
-                                            color = Color(0xFF64748B),
-                                            fontSize = 11.sp
-                                        )
-                                    }
-                                }
-
-                                if (isChecked) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = "Seçili",
-                                        tint = PrimaryEmerald,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Circle,
-                                        contentDescription = null,
-                                        tint = Color(0xFFCBD5E1),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    Icon(
+                        imageVector = if (isParticipantDropdownOpen) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Seç",
+                        tint = Color(0xFF0F172A),
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
+
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 2. HERO AMOUNT SECTION
+            // =========================================================================
+            // 3. TUTAR GİRİŞİ (Kahraman Büyük Tutar & Hızlı Artırma Çipleri)
+            // =========================================================================
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -570,26 +1026,29 @@ fun AddExpenseScreen(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BasicTextField(
                         value = amountText,
-                        onValueChange = { input ->
-                            val clean = input.replace(",", ".")
-                            if (clean.isEmpty() || clean.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
-                                amountText = input
+                        onValueChange = { newText ->
+                            val filtered = newText.filter { it.isDigit() || it == '.' || it == ',' }
+                            val normalized = filtered.replace(',', '.')
+                            if (normalized.count { it == '.' } <= 1) {
+                                val parts = normalized.split('.')
+                                if (parts.size == 1 || parts[1].length <= 2) {
+                                    amountText = normalized
+                                }
                             }
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         textStyle = TextStyle(
                             fontSize = 38.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF0F172A)
+                            color = PrimaryEmerald
                         ),
                         cursorBrush = SolidColor(PrimaryEmerald),
                         decorationBox = { innerTextField ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(contentAlignment = Alignment.CenterStart) {
                                 if (amountText.isEmpty()) {
                                     Text(
                                         text = "0,00",
@@ -599,35 +1058,38 @@ fun AddExpenseScreen(
                                     )
                                 }
                                 innerTextField()
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "₺",
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryEmerald
-                                )
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .width(IntrinsicSize.Min)
+                            .defaultMinSize(minWidth = if (amountText.isEmpty()) 76.dp else 24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "₺",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryEmerald
                     )
                 }
 
+                // Hızlı Tutar Ekleme Çipleri
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
-                    listOf(50, 100, 250, 500).forEach { inc ->
+                    listOf(50, 100, 250, 500).forEach { addVal ->
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFF1F5F9),
                             modifier = Modifier.bounceClick {
                                 val current = amountText.replace(",", ".").toDoubleOrNull() ?: 0.0
-                                val updated = current + inc
-                                amountText = if (updated % 1.0 == 0.0) updated.toLong().toString() else String.format(java.util.Locale.US, "%.2f", updated)
+                                val next = current + addVal
+                                amountText = if (next % 1.0 == 0.0) next.toLong().toString() else String.format(java.util.Locale.US, "%.2f", next)
                             }
                         ) {
                             Text(
-                                text = "+$inc ₺",
+                                text = "+$addVal ₺",
                                 color = Color(0xFF475569),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -637,37 +1099,25 @@ fun AddExpenseScreen(
                     }
                 }
             }
+
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 3. AÇIKLAMA & KATEGORİ SEÇİCİ (Genişleme Animasyonlu & Zengin Kategori Kataloğu)
-            var showCategoryExpansion by remember { mutableStateOf(false) }
-
+            // =========================================================================
+            // 4. AÇIKLAMA & KATEGORİ ÇUBUĞU (Normal Görünüm)
+            // =========================================================================
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "AÇIKLAMA & KATEGORİ",
-                        color = Color(0xFF64748B),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
-                    )
-
-                    Text(
-                        text = selectedDetailedCategory.name,
-                        color = PrimaryEmerald,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    text = "AÇIKLAMA & KATEGORİ",
+                    color = Color(0xFF64748B),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
 
                 Row(
                     modifier = Modifier
@@ -675,21 +1125,45 @@ fun AddExpenseScreen(
                         .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (showCategoryExpansion) PrimaryEmeraldContainer else selectedDetailedCategory.bgTint,
-                        border = if (showCategoryExpansion) BorderStroke(1.dp, PrimaryEmerald) else null,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .bounceClick { showCategoryExpansion = !showCategoryExpansion }
+                    Box(
+                        modifier = Modifier.bounceClick {
+                            showCategoryExpansion = true
+                            isParticipantDropdownOpen = false
+                        }
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = selectedDetailedCategory.icon,
-                                contentDescription = selectedDetailedCategory.name,
-                                tint = if (showCategoryExpansion) PrimaryEmerald else selectedDetailedCategory.iconTint,
-                                modifier = Modifier.size(24.dp)
-                            )
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = selectedDetailedCategory.bgTint,
+                            border = BorderStroke(1.5.dp, selectedDetailedCategory.iconTint),
+                            modifier = Modifier.size(46.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = selectedDetailedCategory.icon,
+                                    contentDescription = selectedDetailedCategory.name,
+                                    tint = selectedDetailedCategory.iconTint,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = selectedDetailedCategory.iconTint,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .align(Alignment.BottomEnd)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .graphicsLayer { rotationZ = categoryChevronRotation }
+                                )
+                            }
                         }
                     }
 
@@ -720,123 +1194,18 @@ fun AddExpenseScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-
-                // Alta Doğru Genişleyen Zengin Kategori Seçici (AnimatedVisibility)
-                AnimatedVisibility(
-                    visible = showCategoryExpansion,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            ExpenseCategoryCatalog.groups.forEach { group ->
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    // Grup Başlığı (Fotoğraftaki gibi sade ve net)
-                                    Text(
-                                        text = group.englishTitle,
-                                        color = Color(0xFF64748B),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.6.sp,
-                                        modifier = Modifier.padding(start = 2.dp, top = 4.dp, bottom = 2.dp)
-                                    )
-
-                                    // Grup İçindeki Kategoriler
-                                    group.items.forEachIndexed { idx, item ->
-                                        val isSelected = selectedDetailedCategory.id == item.id
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .bounceClick {
-                                                    selectedDetailedCategory = item
-                                                    selectedCategory = item.parentCategory
-                                                    if (description.isBlank()) {
-                                                        description = item.name
-                                                    }
-                                                    showCategoryExpansion = false
-                                                }
-                                                .padding(vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.weight(1f)
-                                            ) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(10.dp),
-                                                    color = item.bgTint,
-                                                    modifier = Modifier.size(38.dp)
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Icon(
-                                                            imageVector = item.icon,
-                                                            contentDescription = item.name,
-                                                            tint = item.iconTint,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-
-                                                Spacer(modifier = Modifier.width(12.dp))
-
-                                                Text(
-                                                    text = item.englishName,
-                                                    color = if (isSelected) PrimaryEmerald else Color(0xFF0F172A),
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    fontSize = 15.sp
-                                                )
-                                            }
-
-                                            if (isSelected) {
-                                                Icon(
-                                                    imageVector = Icons.Default.CheckCircle,
-                                                    contentDescription = "Seçili",
-                                                    tint = PrimaryEmerald,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                            }
-                                        }
-
-                                        if (idx < group.items.lastIndex) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(start = 50.dp),
-                                                color = Color(0xFFF8FAFC),
-                                                thickness = 0.8.dp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
+
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
             // =========================================================================
-            // 4. SPLITWISE INTERAKTİF BÖLÜŞÜM ÇUBUĞU ("Ödeyen [Sen] ve [Eşit] bölüşülecek")
+            // 5. SPLITWISE BÖLÜŞÜM ÇUBUĞU (Düz, Kart İçi Kartsız Akış)
             // =========================================================================
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = "ÖDEYEN VE BÖLÜŞÜM ŞEKLİ",
@@ -846,115 +1215,39 @@ fun AddExpenseScreen(
                     letterSpacing = 0.8.sp
                 )
 
-                // Splitwise Cümle Butonu
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Ödeyen ",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF0F172A)
-                    )
-
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = PrimaryEmeraldContainer,
-                        border = BorderStroke(1.dp, PrimaryEmerald),
-                        modifier = Modifier.bounceClick { showPayerSheet = true }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
                         ) {
-                            Text(
-                                text = if (selectedPayerId == "me") "Sen" else currentPayerShortName,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryEmerald
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = PrimaryEmerald,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            showSplitExpansion = true
+                            isParticipantDropdownOpen = false
+                            showCategoryExpansion = false
                         }
-                    }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Text(
-                        text = " ve ",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF0F172A)
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    val splitMethodSummary = when (splitTabMode) {
-                        0 -> if (excludedInEqualSplit.isEmpty()) "Eşit" else "Eşit (${includedInEqualCount} kişi)"
-                        1 -> "Tam Tutarlarla"
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val splitModeLabel = when (splitTabMode) {
+                        0 -> "Eşit"
+                        1 -> "Tutarlarla"
                         2 -> "Yüzdelerle"
-                        3 -> "Paylarla"
+                        3 -> "Hisselerle"
+                        4 -> "Kalemlerle"
                         else -> "Eşit"
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = PrimaryEmeraldContainer,
-                        border = BorderStroke(1.dp, PrimaryEmerald),
-                        modifier = Modifier.bounceClick { showSplitOptionsSheet = true }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        ) {
-                            Text(
-                                text = splitMethodSummary,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryEmerald
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = PrimaryEmerald,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Ödeyen $currentPayerName • $splitModeLabel bölüşülecek",
+                            color = Color(0xFF0F172A),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
 
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Text(
-                        text = "bölüşülecek.",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF0F172A)
-                    )
-                }
-
-                // Splitwise Net Bakiye Özeti
-                if (amountValue > 0 && selectedFriendIds.isNotEmpty()) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF8FAFC),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        if (amountValue > 0 && selectedFriendIds.isNotEmpty()) {
                             val isMePaying = selectedPayerId == "me"
                             val statusColor = if (isMePaying) PrimaryEmerald else AccentRose
 
@@ -962,7 +1255,7 @@ fun AddExpenseScreen(
                                 if (splitTabMode == 0) {
                                     val otherCount = selectedFriendIds.filter { !excludedInEqualSplit.contains(it) }.size
                                     val totalReceivable = dynamicEqualShare * otherCount
-                                    "Sen ödedin, ${String.format(java.util.Locale.US, "%.2f", totalReceivable)} ₺ alacağın var"
+                                    "Sen ödedin, +${String.format(java.util.Locale.US, "%.2f", totalReceivable)} ₺ alacağın var"
                                 } else {
                                     "Sen ödedin, ortaklar borçlandı"
                                 }
@@ -970,25 +1263,37 @@ fun AddExpenseScreen(
                                 val myShare = if (splitTabMode == 0) {
                                     if (excludedInEqualSplit.contains("me")) 0.0 else dynamicEqualShare
                                 } else 0.0
-                                if (myShare > 0) "$currentPayerShortName ödedi, ${String.format(java.util.Locale.US, "%.2f", myShare)} ₺ borcun var" else "$currentPayerShortName ödedi"
+                                if (myShare > 0) "$currentPayerShortName ödedi, -${String.format(java.util.Locale.US, "%.2f", myShare)} ₺ borcun var" else "$currentPayerShortName ödedi"
                             }
 
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = summaryText,
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Medium,
                                 color = statusColor
                             )
-
-                            if (splitTabMode == 0 && !excludedInEqualSplit.contains("me") && dynamicEqualShare > 0) {
-                                Text(
-                                    text = "(${String.format(java.util.Locale.US, "%.2f", dynamicEqualShare)} ₺ / kişi)",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF64748B)
-                                )
-                            }
                         }
+                    }
+
+                    FilledTonalIconButton(
+                        onClick = {
+                            showSplitExpansion = true
+                            isParticipantDropdownOpen = false
+                            showCategoryExpansion = false
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Color(0xFFF1F5F9)
+                        ),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Bölüşüm Ayarları",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
@@ -996,181 +1301,122 @@ fun AddExpenseScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
-
-        // FIXED BOTTOM CTA BUTTON
+    }
+    ExpenseScreenMode.SPLIT -> {
+        // =========================================================================
+        // BÖLÜŞÜM MODU: TAM EKRANI KAPLAYAN ORGANİK GENİŞLEYEN GÖRÜNÜM
+        // =========================================================================
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = if (isExpenseFormValid) PrimaryEmerald else Color(0xFFE2E8F0),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .then(
-                        if (isExpenseFormValid) {
-                            Modifier.bounceClick { executeSaveExpense() }
-                        } else {
-                            Modifier.clickable { executeSaveExpense() }
-                        }
-                    )
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = if (isExpenseFormValid) Color.White else Color(0xFF94A3B8),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (amountValue > 0) "Harcamayı Kaydet (${String.format(java.util.Locale.US, "%.2f", amountValue)} ₺)" else "Harcamayı Kaydet",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = if (isExpenseFormValid) Color.White else Color(0xFF94A3B8)
-                    )
-                }
-            }
-        }
-    }
-
-    // =========================================================================
-    // SPLITWISE MODAL 1: ÖDEYEN KİŞİ SEÇİMİ
-    // =========================================================================
-    if (showPayerSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showPayerSheet = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFCBD5E1)) }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
-                    .padding(bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+            // 1. ÖDEYEN KİŞİ SEÇİCİ
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Harcamayı Kim Ödedi?",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "ÖDEYEN KİŞİ",
+                    color = Color(0xFF64748B),
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+                    letterSpacing = 0.8.sp
                 )
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-                // 1. Sen
-                val isMeSelected = selectedPayerId == "me"
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .bounceClick {
-                            selectedPayerId = "me"
-                            showPayerSheet = false
-                        }
-                        .padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (isMeSelected) PrimaryEmerald else Color(0xFFF1F5F9),
-                            modifier = Modifier.size(38.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("Sen", color = if (isMeSelected) Color.White else Color(0xFF0F172A), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = "Sen (Tümünü sen ödedin)", fontWeight = if (isMeSelected) FontWeight.Bold else FontWeight.Medium, fontSize = 15.sp, color = Color(0xFF0F172A))
-                    }
-                    if (isMeSelected) {
-                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = PrimaryEmerald, modifier = Modifier.size(22.dp))
-                    }
-                }
-
-                HorizontalDivider(color = Color(0xFFF8FAFC), thickness = 1.dp)
-
-                // 2. Katılımcılar
-                selectedFriendIds.forEach { friendId ->
-                    val friend = allFriends.find { it.id == friendId }
-                    if (friend != null) {
-                        val isFriendSelected = selectedPayerId == friend.id
+                    // Sen
+                    val isMe = selectedPayerId == "me"
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isMe) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                        border = if (isMe) BorderStroke(1.dp, PrimaryEmerald) else null,
+                        modifier = Modifier.bounceClick { selectedPayerId = "me" }
+                    ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .bounceClick {
-                                    selectedPayerId = friend.id
-                                    showPayerSheet = false
-                                }
-                                .padding(vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = if (isFriendSelected) PrimaryEmerald else Color(0xFFF1F5F9),
-                                    modifier = Modifier.size(38.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(friend.avatar, color = if (isFriendSelected) Color.White else Color(0xFF0F172A), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isMe) PrimaryEmerald else Color(0xFF94A3B8),
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("SEN", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = "${friend.name} (Tümünü ödedi)", fontWeight = if (isFriendSelected) FontWeight.Bold else FontWeight.Medium, fontSize = 15.sp, color = Color(0xFF0F172A))
                             }
-                            if (isFriendSelected) {
-                                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = PrimaryEmerald, modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Sen",
+                                fontSize = 14.sp,
+                                fontWeight = if (isMe) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isMe) PrimaryEmerald else Color(0xFF0F172A)
+                            )
+                        }
+                    }
+
+                    // Diğer Katılımcılar
+                    selectedFriendIds.forEach { fId ->
+                        val f = allFriends.find { it.id == fId }
+                        if (f != null) {
+                            val isSelected = selectedPayerId == f.id
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                                border = if (isSelected) BorderStroke(1.dp, PrimaryEmerald) else null,
+                                modifier = Modifier.bounceClick { selectedPayerId = f.id }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (isSelected) PrimaryEmerald else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(f.avatar, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = f.name.split(" ").first(),
+                                        fontSize = 14.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) PrimaryEmerald else Color(0xFF0F172A)
+                                    )
+                                }
                             }
                         }
-                        HorizontalDivider(color = Color(0xFFF8FAFC), thickness = 1.dp)
                     }
                 }
             }
-        }
-    }
 
-    // =========================================================================
-    // SPLITWISE MODAL 2: BÖLÜŞÜM SEÇENEKLERİ (4 SEKME: =, 123, %, ||)
-    // =========================================================================
-    if (showSplitOptionsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showSplitOptionsSheet = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFCBD5E1)) }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
-                    .padding(bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+            // 2. BÖLÜŞÜM YÖNTEMİ
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "Bölüşüm Seçenekleri",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "BÖLÜŞÜM YÖNTEMİ",
+                    color = Color(0xFF64748B),
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+                    letterSpacing = 0.8.sp
                 )
 
-                // iOS Segmented Control for Split Tabs: =, 123, %, ||
                 IOSSegmentedControl(
                     items = listOf(
                         0 to "= Eşit",
                         1 to "123 Tutar",
                         2 to "% Yüzde",
-                        3 to "|| Paylar"
+                        3 to "🧾 Kalemler"
                     ),
                     selectedItem = splitTabMode,
                     onItemSelected = { index ->
@@ -1179,18 +1425,19 @@ fun AddExpenseScreen(
                             0 -> selectedSplitMethod = SplitMethod.EQUAL
                             1 -> selectedSplitMethod = SplitMethod.EXACT
                             2 -> selectedSplitMethod = SplitMethod.PERCENTAGE
-                            3 -> selectedSplitMethod = SplitMethod.EQUAL
+                            3 -> selectedSplitMethod = SplitMethod.EXACT
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    backgroundColor = Color(0xFFF1F5F9)
+                    backgroundColor = Color(0xFFF1F5F9),
+                    selectedBackgroundColor = Color.White,
+                    selectedTextColor = Color(0xFF0F172A),
+                    unselectedTextColor = Color(0xFF64748B)
                 )
 
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-
-                // TAB 0: = EŞİT BÖLÜŞÜM (Splitwise Checkbox List)
+                // TAB 0: = EŞİT BÖLÜŞÜM
                 if (splitTabMode == 0) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = "Harcamaya dahil olan kişileri işaretleyin:",
                             fontSize = 13.sp,
@@ -1212,24 +1459,42 @@ fun AddExpenseScreen(
                                         includeMyselfInSplit = true
                                     }
                                 }
-                                .padding(vertical = 6.dp),
+                                .padding(vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isMeIncluded) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("SEN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isMeIncluded) PrimaryEmerald else Color(0xFF64748B))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Sen", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isMeIncluded && dynamicEqualShare > 0) {
+                                    Text(
+                                        text = "${String.format(java.util.Locale.US, "%.2f", dynamicEqualShare)} ₺",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = PrimaryEmerald
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                }
                                 Icon(
                                     imageVector = if (isMeIncluded) Icons.Default.CheckCircle else Icons.Outlined.Circle,
                                     contentDescription = null,
                                     tint = if (isMeIncluded) PrimaryEmerald else Color(0xFFCBD5E1),
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text("Sen", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                            }
-                            if (isMeIncluded && dynamicEqualShare > 0) {
-                                Text("${String.format(java.util.Locale.US, "%.2f", dynamicEqualShare)} ₺", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryEmerald)
                             }
                         }
+                        HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
 
                         // 2. Arkadaşlar
                         selectedFriendIds.forEach { friendId ->
@@ -1246,24 +1511,42 @@ fun AddExpenseScreen(
                                                 excludedInEqualSplit.remove(friendId)
                                             }
                                         }
-                                        .padding(vertical = 6.dp),
+                                        .padding(vertical = 8.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = if (isFriendIncluded) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isFriendIncluded) PrimaryEmerald else Color(0xFF64748B))
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (isFriendIncluded && dynamicEqualShare > 0) {
+                                            Text(
+                                                text = "${String.format(java.util.Locale.US, "%.2f", dynamicEqualShare)} ₺",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp,
+                                                color = PrimaryEmerald
+                                            )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                        }
                                         Icon(
                                             imageVector = if (isFriendIncluded) Icons.Default.CheckCircle else Icons.Outlined.Circle,
                                             contentDescription = null,
                                             tint = if (isFriendIncluded) PrimaryEmerald else Color(0xFFCBD5E1),
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(22.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                                    }
-                                    if (isFriendIncluded && dynamicEqualShare > 0) {
-                                        Text("${String.format(java.util.Locale.US, "%.2f", dynamicEqualShare)} ₺", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryEmerald)
                                     }
                                 }
+                                HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
                             }
                         }
                     }
@@ -1281,18 +1564,32 @@ fun AddExpenseScreen(
 
                         // Sen
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Sen", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("SEN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Sen", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                            }
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 color = Color(0xFFF1F5F9),
-                                modifier = Modifier.width(100.dp).height(38.dp)
+                                modifier = Modifier.width(110.dp).height(40.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                                    modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     BasicTextField(
@@ -1301,30 +1598,46 @@ fun AddExpenseScreen(
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                         singleLine = true,
                                         textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                        cursorBrush = SolidColor(PrimaryEmerald),
                                         modifier = Modifier.weight(1f)
                                     )
                                     Text("₺", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
+                        HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
 
                         // Arkadaşlar
                         selectedFriendIds.forEach { friendId ->
                             val friend = allFriends.find { it.id == friendId }
                             if (friend != null) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = Color(0xFFF1F5F9),
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                                    }
                                     Surface(
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         color = Color(0xFFF1F5F9),
-                                        modifier = Modifier.width(100.dp).height(38.dp)
+                                        modifier = Modifier.width(110.dp).height(40.dp)
                                     ) {
                                         Row(
-                                            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                                            modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             BasicTextField(
@@ -1333,12 +1646,14 @@ fun AddExpenseScreen(
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                 singleLine = true,
                                                 textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                                cursorBrush = SolidColor(PrimaryEmerald),
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Text("₺", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
+                                HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
                             }
                         }
                     }
@@ -1356,18 +1671,32 @@ fun AddExpenseScreen(
 
                         // Sen
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Sen", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("SEN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Sen", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                            }
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 color = Color(0xFFF1F5F9),
-                                modifier = Modifier.width(80.dp).height(38.dp)
+                                modifier = Modifier.width(85.dp).height(40.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                                    modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     BasicTextField(
@@ -1376,30 +1705,46 @@ fun AddExpenseScreen(
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                        cursorBrush = SolidColor(PrimaryEmerald),
                                         modifier = Modifier.weight(1f)
                                     )
                                     Text("%", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
+                        HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
 
                         // Arkadaşlar
                         selectedFriendIds.forEach { friendId ->
                             val friend = allFriends.find { it.id == friendId }
                             if (friend != null) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = Color(0xFFF1F5F9),
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                                    }
                                     Surface(
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         color = Color(0xFFF1F5F9),
-                                        modifier = Modifier.width(80.dp).height(38.dp)
+                                        modifier = Modifier.width(85.dp).height(40.dp)
                                     ) {
                                         Row(
-                                            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                                            modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             BasicTextField(
@@ -1408,114 +1753,345 @@ fun AddExpenseScreen(
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                                 singleLine = true,
                                                 textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                                cursorBrush = SolidColor(PrimaryEmerald),
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Text("%", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
+                                HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
                             }
                         }
                     }
                 }
 
-                // TAB 3: || PAYLARLA BÖLÜŞÜM
+                // TAB 3: 🧾 KALEM KALEM FİŞ BÖLÜŞÜMÜ (Itemized Bill Split)
                 if (splitTabMode == 3) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text = "Her kişinin pay adedini belirleyin:",
-                            fontSize = 13.sp,
-                            color = Color(0xFF64748B),
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        // Sen
-                        val myShares = sharesMap["me"] ?: 1
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Sen", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color(0xFFF1F5F9),
-                                    modifier = Modifier.size(28.dp).bounceClick {
-                                        if (myShares > 0) sharesMap["me"] = myShares - 1
-                                    }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) { Text("-", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                            Text(
+                                text = "Fiş Kalemleri (${itemizedBillList.size})",
+                                fontSize = 13.sp,
+                                color = Color(0xFF64748B),
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            FilledTonalButton(
+                                onClick = {
+                                    itemizedBillList.add(
+                                        ItemizedBillEntry(
+                                            id = "item_${System.currentTimeMillis()}",
+                                            name = "Kalem ${itemizedBillList.size + 1}",
+                                            amount = "",
+                                            selectedMemberIds = androidx.compose.runtime.mutableStateListOf("me")
+                                        )
+                                    )
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = PrimaryEmeraldContainer,
+                                    contentColor = PrimaryEmerald
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.bounceClick {
+                                    itemizedBillList.add(
+                                        ItemizedBillEntry(
+                                            id = "item_${System.currentTimeMillis()}",
+                                            name = "Kalem ${itemizedBillList.size + 1}",
+                                            amount = "",
+                                            selectedMemberIds = androidx.compose.runtime.mutableStateListOf("me")
+                                        )
+                                    )
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text("$myShares Pay", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color(0xFFF1F5F9),
-                                    modifier = Modifier.size(28.dp).bounceClick {
-                                        sharesMap["me"] = myShares + 1
-                                    }
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryEmerald)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Kalem Ekle", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryEmerald)
+                            }
+                        }
+
+                        itemizedBillList.forEachIndexed { itemIdx, itemEntry ->
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0xFFF8FAFC),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) { Text("+", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        BasicTextField(
+                                            value = itemEntry.name,
+                                            onValueChange = { itemEntry.name = it },
+                                            singleLine = true,
+                                            textStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                            cursorBrush = SolidColor(PrimaryEmerald),
+                                            decorationBox = { inner ->
+                                                if (itemEntry.name.isEmpty()) {
+                                                    Text("Kalem adı...", color = Color(0xFF94A3B8), fontSize = 14.sp)
+                                                }
+                                                inner()
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+
+                                        Spacer(modifier = Modifier.width(10.dp))
+
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = Color.White,
+                                            modifier = Modifier.width(95.dp).height(36.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                BasicTextField(
+                                                    value = itemEntry.amount,
+                                                    onValueChange = { itemEntry.amount = it },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                                    singleLine = true,
+                                                    textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                                    cursorBrush = SolidColor(PrimaryEmerald),
+                                                    decorationBox = { inner ->
+                                                        if (itemEntry.amount.isEmpty()) {
+                                                            Text("0,00", color = Color(0xFF94A3B8), fontSize = 13.sp)
+                                                        }
+                                                        inner()
+                                                    },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Text("₺", fontSize = 13.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        if (itemizedBillList.size > 1) {
+                                            FilledTonalIconButton(
+                                                onClick = { itemizedBillList.removeAt(itemIdx) },
+                                                shape = RoundedCornerShape(8.dp),
+                                                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color.Transparent),
+                                                modifier = Modifier.size(32.dp).padding(start = 4.dp)
+                                            ) {
+                                                Icon(Icons.Default.Close, contentDescription = "Sil", tint = AccentRose, modifier = Modifier.size(16.dp))
+                                            }
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "Bu kalemi tüketenler:",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF64748B),
+                                        fontWeight = FontWeight.Medium
+                                    )
+
+                                    // Katılımcı Çipleri
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        item {
+                                            val isAssigned = itemEntry.selectedMemberIds.contains("me")
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = if (isAssigned) PrimaryEmeraldContainer else Color.White,
+                                                border = if (isAssigned) BorderStroke(1.dp, PrimaryEmerald) else null,
+                                                modifier = Modifier.bounceClick {
+                                                    if (isAssigned) itemEntry.selectedMemberIds.remove("me")
+                                                    else itemEntry.selectedMemberIds.add("me")
+                                                }
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                ) {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = if (isAssigned) PrimaryEmerald else Color(0xFF94A3B8),
+                                                        modifier = Modifier.size(14.dp)
+                                                    ) {
+                                                        Box(contentAlignment = Alignment.Center) {
+                                                            Text("S", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                        }
+                                                    }
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "Sen",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isAssigned) PrimaryEmerald else Color(0xFF64748B)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        items(selectedFriendIds) { friendId ->
+                                            val friend = allFriends.find { it.id == friendId }
+                                            if (friend != null) {
+                                                val isAssigned = itemEntry.selectedMemberIds.contains(friendId)
+                                                val shortName = friend.name.split(" ").first()
+                                                Surface(
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    color = if (isAssigned) PrimaryEmeraldContainer else Color.White,
+                                                    border = if (isAssigned) BorderStroke(1.dp, PrimaryEmerald) else null,
+                                                    modifier = Modifier.bounceClick {
+                                                        if (isAssigned) itemEntry.selectedMemberIds.remove(friendId)
+                                                        else itemEntry.selectedMemberIds.add(friendId)
+                                                    }
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                    ) {
+                                                        Surface(
+                                                            shape = RoundedCornerShape(4.dp),
+                                                            color = if (isAssigned) PrimaryEmerald else Color(0xFF94A3B8),
+                                                            modifier = Modifier.size(14.dp)
+                                                        ) {
+                                                            Box(contentAlignment = Alignment.Center) {
+                                                                Text(friend.avatar, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                            }
+                                                        }
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Text(
+                                                            text = shortName,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isAssigned) PrimaryEmerald else Color(0xFF64748B)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        // Arkadaşlar
-                        selectedFriendIds.forEach { friendId ->
-                            val friend = allFriends.find { it.id == friendId }
-                            if (friend != null) {
-                                val fShares = sharesMap[friendId] ?: 1
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = Color(0xFFF1F5F9),
-                                            modifier = Modifier.size(28.dp).bounceClick {
-                                                if (fShares > 0) sharesMap[friendId] = fShares - 1
+                        // Kalemler toplam hesaplama butonu / özeti
+                        val totalItemizedSum = itemizedBillList.sumOf { it.amount.replace(",", ".").toDoubleOrNull() ?: 0.0 }
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = PrimaryEmeraldContainer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bounceClick {
+                                    if (totalItemizedSum > 0) {
+                                        amountText = String.format(java.util.Locale.US, "%.2f", totalItemizedSum)
+                                        val memberCalculated = mutableMapOf<String, Double>()
+                                        itemizedBillList.forEach { entry ->
+                                            val entryAmt = entry.amount.replace(",", ".").toDoubleOrNull() ?: 0.0
+                                            val consumers = entry.selectedMemberIds.toList().ifEmpty { listOf("me") }
+                                            val perPerson = entryAmt / consumers.size
+                                            consumers.forEach { uid ->
+                                                memberCalculated[uid] = (memberCalculated[uid] ?: 0.0) + perPerson
                                             }
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) { Text("-", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
                                         }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text("$fShares Pay", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = Color(0xFFF1F5F9),
-                                            modifier = Modifier.size(28.dp).bounceClick {
-                                                sharesMap[friendId] = fShares + 1
-                                            }
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) { Text("+", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                                        memberCalculated.forEach { (uid, amt) ->
+                                            exactAmountsMap[uid] = String.format(java.util.Locale.US, "%.2f", amt)
                                         }
+                                        Toast.makeText(context, "Kalemler harcamaya aktarıldı (${String.format(java.util.Locale.US, "%.2f", totalItemizedSum)} ₺)", Toast.LENGTH_SHORT).show()
                                     }
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Kalemler Toplamı:", fontSize = 11.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("${String.format(java.util.Locale.US, "%.2f", totalItemizedSum)} ₺", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryEmerald)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Toplamı Aktar", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryEmerald)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PrimaryEmerald, modifier = Modifier.size(16.dp))
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-                Button(
-                    onClick = { showSplitOptionsSheet = false },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
+            Button(
+                onClick = { showSplitExpansion = false },
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .bounceClick { showSplitExpansion = false },
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Bölüşümü Onayla", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+}
+
+        // FIXED BOTTOM CTA BUTTON
+        AnimatedVisibility(
+            visible = currentMode == ExpenseScreenMode.NORMAL,
+            enter = fadeIn(animationSpec = tween(200)) + expandVertically(),
+            exit = fadeOut(animationSpec = tween(150)) + shrinkVertically()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isExpenseFormValid) PrimaryEmerald else Color(0xFFE2E8F0),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(54.dp)
+                        .then(
+                            if (isExpenseFormValid) {
+                                Modifier.bounceClick { executeSaveExpense() }
+                            } else {
+                                Modifier.clickable { executeSaveExpense() }
+                            }
+                        )
                 ) {
-                    Text("Bölüşümü Kaydet", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = if (isExpenseFormValid) Color.White else Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (amountValue > 0) "Harcamayı Kaydet (${String.format(java.util.Locale.US, "%.2f", amountValue)} ₺)" else "Harcamayı Kaydet",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = if (isExpenseFormValid) Color.White else Color(0xFF94A3B8)
+                        )
+                    }
                 }
             }
         }
     }
 }
+
 

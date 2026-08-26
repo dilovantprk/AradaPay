@@ -171,68 +171,18 @@ fun FriendsScreen(
     var selectedFriendForQuickAction by remember { mutableStateOf<FriendProfile?>(null) }
     var selectedNonMemberForInvite by remember { mutableStateOf<PhoneBookContact?>(null) }
 
-    val demoProfiles = remember {
-        mutableStateListOf(
-            FriendProfile(
-                user = User(id = "1", email = "ahmet@aradapay.com", username = "ahmet_y", fullName = "Ahmet Yılmaz", iban = "TR64 0006 2000 0000 1122 3344 55", tag = "Ahmet#7821"),
-                avatarEmoji = "AY",
-                balanceAmount = 350.0,
-                isCreditor = true
-            ),
-            FriendProfile(
-                user = User(id = "2", email = "zeynep@aradapay.com", username = "zeynep_k", fullName = "Zeynep Kaya", iban = "TR64 0006 2000 0000 2233 4455 66", tag = "Zeynep#3412"),
-                avatarEmoji = "ZK",
-                balanceAmount = 180.0,
-                isCreditor = true
-            ),
-            FriendProfile(
-                user = User(id = "3", email = "mert@aradapay.com", username = "mert_d", fullName = "Mert Demir", iban = "TR64 0006 2000 0000 3344 5566 77", tag = "Mert#9015"),
-                avatarEmoji = "MD",
-                balanceAmount = 120.0,
-                isCreditor = false
-            ),
-            FriendProfile(
-                user = User(id = "4", email = "elif@aradapay.com", username = "elif_s", fullName = "Elif Şahin", iban = "TR64 0006 2000 0000 4455 6677 88", tag = "Elif#4420"),
-                avatarEmoji = "EŞ",
-                balanceAmount = 450.0,
-                isCreditor = true
-            ),
-            FriendProfile(
-                user = User(id = "5", email = "burak@aradapay.com", username = "burak_o", fullName = "Burak Öztürk", iban = "TR64 0006 2000 0000 5566 7788 99", tag = "Burak#6108"),
-                avatarEmoji = "BÖ",
-                balanceAmount = 230.0,
-                isCreditor = false
-            ),
-            FriendProfile(
-                user = User(id = "6", email = "selin@aradapay.com", username = "selin_a", fullName = "Selin Aydın", iban = "TR64 0006 2000 0000 6677 8899 00", tag = "Selin#2839"),
-                avatarEmoji = "SA",
-                balanceAmount = 95.0,
-                isCreditor = true
-            ),
-            FriendProfile(
-                user = User(id = "7", email = "caner@aradapay.com", username = "caner_e", fullName = "Caner Erkin", iban = "TR64 0006 2000 0000 7788 9900 11", tag = "Caner#1903"),
-                avatarEmoji = "CE",
-                balanceAmount = 100.0,
-                isCreditor = false
-            ),
-            FriendProfile(
-                user = User(id = "8", email = "deniz@aradapay.com", username = "deniz_c", fullName = "Deniz Çelik", iban = "TR64 0006 2000 0000 8899 0011 22", tag = "Deniz#5522"),
-                avatarEmoji = "DÇ",
-                balanceAmount = 0.0,
-                isCreditor = false,
-                isBalanced = true
-            )
-        )
+    val friendsList = remember {
+        mutableStateListOf<FriendProfile>()
     }
 
     // Overall Balance Calculation
-    val totalReceivables = demoProfiles.filter { it.isCreditor && !it.isBalanced }.sumOf { it.balanceAmount }
-    val totalPayables = demoProfiles.filter { !it.isCreditor && !it.isBalanced }.sumOf { it.balanceAmount }
+    val totalReceivables = friendsList.filter { it.isCreditor && !it.isBalanced }.sumOf { it.balanceAmount }
+    val totalPayables = friendsList.filter { !it.isCreditor && !it.isBalanced }.sumOf { it.balanceAmount }
     val overallNet = totalReceivables - totalPayables
 
     // Filtered Friends List
-    val filteredFriends = remember(demoProfiles.toList(), searchQuery, selectedFilter) {
-        demoProfiles.filter { friend ->
+    val filteredFriends = remember(friendsList.toList(), searchQuery, selectedFilter) {
+        friendsList.filter { friend ->
             val matchesSearch = searchQuery.isBlank() ||
                     friend.user.fullName.contains(searchQuery, ignoreCase = true) ||
                     friend.user.username.contains(searchQuery, ignoreCase = true) ||
@@ -257,11 +207,11 @@ fun FriendsScreen(
             showAddFriendsScreen = false
         }
         AddFriendScreen(
-            existingFriends = demoProfiles,
+            existingFriends = friendsList,
             onBack = { showAddFriendsScreen = false },
             onFriendAdded = { newProfile ->
-                if (demoProfiles.none { it.user.id == newProfile.user.id || it.user.tag.equals(newProfile.user.tag, ignoreCase = true) }) {
-                    demoProfiles.add(0, newProfile)
+                if (friendsList.none { it.user.id == newProfile.user.id || it.user.tag.equals(newProfile.user.tag, ignoreCase = true) }) {
+                    friendsList.add(0, newProfile)
                 }
             }
         )
@@ -480,7 +430,46 @@ fun FriendsScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                itemsIndexed(filteredFriends, key = { _, friend -> friend.user.id }) { index, friend ->
+                if (filteredFriends.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 48.dp, start = 24.dp, end = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFF1F5F9),
+                                modifier = Modifier.size(64.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.PersonAdd,
+                                        contentDescription = null,
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "Henüz Eklenmiş Arkadaş Yok",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Kişi eklemek veya davet etmek için sağ üstteki butona tıklayın.",
+                                color = Color(0xFF64748B),
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    itemsIndexed(filteredFriends, key = { _, friend -> friend.user.id }) { index, friend ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -563,12 +552,6 @@ fun FriendsScreen(
                         }
                     }
 
-                    if (index < filteredFriends.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 78.dp),
-                            color = Color(0xFFF1F5F9),
-                            thickness = 0.8.dp
-                        )
                     }
                 }
 

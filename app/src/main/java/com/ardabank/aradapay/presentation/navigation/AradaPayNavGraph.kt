@@ -112,48 +112,22 @@ fun AradaPayNavGraph() {
 
     var isDataLocked by remember { mutableStateOf(false) }
     val firebaseUser = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser }
-    val defaultName = firebaseUser?.displayName ?: firebaseUser?.email?.split("@")?.first()?.replaceFirstChar { it.uppercase() } ?: "Mehmet Dilovan"
+    val defaultName = firebaseUser?.displayName ?: firebaseUser?.email?.split("@")?.first()?.replaceFirstChar { it.uppercase() } ?: "Kullanıcı"
     var userName by remember { mutableStateOf(defaultName) }
-    var userIban by remember { mutableStateOf("TR64 0006 2000 0000 1122 3344 55") }
-    var userAvatarEmoji by remember { mutableStateOf("MD") }
-
-    val pendingList = remember {
-        mutableStateListOf(
-            Expense(
-                id = "exp_1",
-                paidBy = "user_zeynep",
-                description = "Zeynep: Starbucks Kahve & Tatlı",
-                amount = 240.0,
-                currency = Currency.TRY,
-                category = ExpenseCategory.DINING,
-                splitMethod = SplitMethod.EQUAL,
-                status = ApprovalStatus.PENDING,
-                createdAt = "2026-08-22"
-            ),
-            Expense(
-                id = "exp_2",
-                paidBy = "user_ahmet",
-                description = "Ahmet: Migros Ortak Mutfak Alışverişi",
-                amount = 450.0,
-                currency = Currency.TRY,
-                category = ExpenseCategory.GROCERIES,
-                splitMethod = SplitMethod.EQUAL,
-                status = ApprovalStatus.PENDING,
-                createdAt = "2026-08-22"
-            )
+    var userIban by remember { mutableStateOf("") }
+    var userAvatarUrl by remember { mutableStateOf("") }
+    var userAvatarEmoji by remember {
+        mutableStateOf(
+            if (defaultName.length >= 2) defaultName.take(2).uppercase() else "AP"
         )
     }
 
-    val demoNudges = remember {
-        mutableStateListOf(
-            Nudge(
-                id = "ndg_1",
-                fromUserId = "3",
-                toUserId = "me",
-                message = "Mert Demir senden kahve ödemesi için 120,00 ₺ bekliyor.",
-                createdAt = "2026-08-22"
-            )
-        )
+    val pendingList = remember {
+        mutableStateListOf<Expense>()
+    }
+
+    val nudgesList = remember {
+        mutableStateListOf<Nudge>()
     }
 
     val bottomNavItems = listOf(
@@ -303,8 +277,9 @@ fun AradaPayNavGraph() {
                 DashboardScreen(
                     userName = userName,
                     avatarEmoji = userAvatarEmoji,
+                    avatarUrl = userAvatarUrl,
                     isLocked = isDataLocked,
-                    nudges = demoNudges,
+                    nudges = nudgesList,
                     pendingExpenses = pendingList,
                     groupRepository = groupRepository,
                     onApproveExpense = { id -> pendingList.removeAll { it.id == id } },
@@ -354,7 +329,10 @@ fun AradaPayNavGraph() {
                     groupId = groupId,
                     groupRepository = groupRepository,
                     onBackClick = { navController.popBackStack() },
-                    onAddExpenseInGroup = { groupName, grpId -> navController.navigate("add_expense?initialGroupId=$grpId&initialGroupName=$groupName") }
+                    onAddExpenseInGroup = { groupName, grpId -> navController.navigate("add_expense?initialGroupId=$grpId&initialGroupName=$groupName") },
+                    onNavigateToSettleUp = { amount, _, groupName, grpId ->
+                        navController.navigate("settle_up?initialGroupId=$grpId&initialGroupName=$groupName&amount=$amount")
+                    }
                 )
             }
 
@@ -412,6 +390,7 @@ fun AradaPayNavGraph() {
                     userName = userName,
                     userIban = userIban,
                     avatarEmoji = userAvatarEmoji,
+                    avatarUrl = userAvatarUrl,
                     onBackClick = { navController.popBackStack() },
                     onSettingsClick = { navController.navigate("settings") },
                     onEditProfileClick = { navController.navigate("edit_profile") },
@@ -425,18 +404,21 @@ fun AradaPayNavGraph() {
                     currentName = userName,
                     currentIban = userIban,
                     currentAvatarEmoji = userAvatarEmoji,
+                    currentAvatarUrl = userAvatarUrl,
                     onBackClick = { navController.popBackStack() },
-                    onSaveProfile = { newName, newIban, newAvatar ->
+                    onSaveProfile = { newName, newIban, newEmoji, newAvatarUrl ->
                         userName = newName
                         userIban = newIban
-                        userAvatarEmoji = newAvatar
+                        userAvatarEmoji = newEmoji
+                        userAvatarUrl = newAvatarUrl
                     }
                 )
             }
 
             composable("settings") {
                 SettingsScreen(
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navController.popBackStack() },
+                    onEditProfileClick = { navController.navigate("edit_profile") }
                 )
             }
 
@@ -503,26 +485,61 @@ fun AradaPayNavGraph() {
             }
 
             composable(
-                route = "settle_up",
+                route = "settle_up?initialGroupId={initialGroupId}&initialGroupName={initialGroupName}&amount={amount}",
+                arguments = listOf(
+                    navArgument("initialGroupId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("initialGroupName") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("amount") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
                 deepLinks = listOf(
                     navDeepLink { uriPattern = "aradapay://settle_up" },
                     navDeepLink { uriPattern = "aradapay://qr_scan" }
                 )
-            ) {
+            ) { backStackEntry ->
+                val initialGroupId = backStackEntry.arguments?.getString("initialGroupId")
+                val initialGroupName = backStackEntry.arguments?.getString("initialGroupName")
+                val amountStr = backStackEntry.arguments?.getString("amount")
+                val amountDouble = amountStr?.toDoubleOrNull() ?: 120.0
+
                 SettleUpScreen(
                     creditorUser = null,
+                    owedAmount = amountDouble,
+                    initialGroupId = initialGroupId,
+                    initialGroupName = initialGroupName,
                     onCancel = { navController.popBackStack() },
                     onConfirmSettlement = { _, _ -> navController.popBackStack() }
                 )
             }
 
             composable(
-                route = "analytics",
-                deepLinks = listOf(navDeepLink { uriPattern = "aradapay://analytics" })
+                route = "analytics?tab={tab}",
+                arguments = listOf(
+                    navArgument("tab") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = "overview"
+                    }
+                ),
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "aradapay://analytics" }
+                )
             ) {
                 com.ardabank.aradapay.presentation.analytics.AnalyticsScreen(
                     onBackClick = { navController.popBackStack() },
-                    onFriendClick = { friendId -> navController.navigate("friend_detail/$friendId") }
+                    onFriendClick = { friendId -> navController.navigate("friend_detail/$friendId") },
+                    onNavigateToSettleUp = { navController.navigate("settle_up") }
                 )
             }
 
@@ -530,8 +547,9 @@ fun AradaPayNavGraph() {
                 route = "savings_report",
                 deepLinks = listOf(navDeepLink { uriPattern = "aradapay://savings_report" })
             ) {
-                com.ardabank.aradapay.presentation.settlement.SmartSettlementReportScreen(
+                com.ardabank.aradapay.presentation.analytics.AnalyticsScreen(
                     onBackClick = { navController.popBackStack() },
+                    onFriendClick = { friendId -> navController.navigate("friend_detail/$friendId") },
                     onNavigateToSettleUp = { navController.navigate("settle_up") }
                 )
             }
