@@ -1,18 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UserPlus, Send, CreditCard, Check, Search, X, CheckCircle2 } from 'lucide-react';
-import { User, Expense, Settlement } from '../types';
+import { UserPlus, Send, CreditCard, Check, Search, X, CheckCircle2, ChevronRight } from 'lucide-react';
+import { User, Expense, Settlement, Group } from '../types';
 import { AddFriendModal } from '../components/AddFriendModal';
+import { FriendDetailModal } from '../components/FriendDetailModal';
 
 interface FriendsViewProps {
   currentUser: User;
   users: User[];
   expenses: Expense[];
   settlements: Settlement[];
+  groups: Group[];
   isLocked: boolean;
-  onOpenSettleWithUser: (user: User) => void;
+  onOpenSettleWithUser: (user: User, amount?: number) => void;
   onOpenNudgeWithUser: (user: User) => void;
+  onOpenAddExpenseWithUser: (user: User) => void;
+  onViewExpenseDetail: (expense: Expense) => void;
   onAddFriend: (user: User) => void;
 }
 
@@ -21,12 +25,16 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
   users,
   expenses,
   settlements,
+  groups,
   isLocked,
   onOpenSettleWithUser,
   onOpenNudgeWithUser,
+  onOpenAddExpenseWithUser,
+  onViewExpenseDetail,
   onAddFriend
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const friends = users.filter((u) => u.id !== currentUser.id);
 
   // Compute bilateral balance with each friend
@@ -54,17 +62,17 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
   };
 
   return (
-    <div className="pb-24 max-w-2xl mx-auto px-5 py-4">
+    <div className="space-y-4 text-left">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between px-1">
         <div>
-          <h2 className="text-[24px] font-bold text-textPrimary">Arkadaşlar</h2>
-          <p className="text-[12px] text-textSecondary">Bireysel borç & alacak takibi</p>
+          <h2 className="text-[26px] font-bold text-[#1C1C1E] tracking-tight">Arkadaşlar</h2>
+          <p className="text-[13px] text-[#8E8E93]">Bireysel borç ve alacak takibi</p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-3.5 py-2 rounded-[12px] bg-primaryEmerald text-white text-[13px] font-bold flex items-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm"
+          className="px-4 py-2 rounded-full bg-[#00875A] text-white text-[13px] font-bold flex items-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-800/20"
         >
           <UserPlus className="w-4 h-4 stroke-[2.5]" />
           <span>Arkadaş Ekle</span>
@@ -74,11 +82,11 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
       {/* Friends List */}
       <div className="space-y-3">
         {friends.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-[22px] border border-slate-200 space-y-3">
-            <p className="text-[14px] text-slate-500">Henüz eklenmiş arkadaşın yok.</p>
+          <div className="apple-card p-8 text-center space-y-3">
+            <p className="text-[14px] text-[#8E8E93]">Henüz eklenmiş arkadaşın yok.</p>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 rounded-[12px] bg-primaryEmerald text-white text-[13px] font-bold inline-flex items-center gap-1.5"
+              className="px-4 py-2 rounded-full bg-[#00875A] text-white text-[13px] font-bold inline-flex items-center gap-1.5"
             >
               <UserPlus className="w-4 h-4" />
               <span>İlk Arkadaşını Ekle</span>
@@ -93,23 +101,24 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
             return (
               <div
                 key={friend.id}
-                className="p-4 rounded-[18px] bg-white border border-surfaceBorder shadow-xs space-y-3"
+                onClick={() => setSelectedFriend(friend)}
+                className="apple-card p-4 hover:border-black/[0.1] active:scale-[0.99] cursor-pointer transition space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-[14px] bg-surfaceContainerLow flex items-center justify-center font-bold text-[15px] text-textPrimary">
+                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-[#00875A] border border-emerald-300 flex items-center justify-center font-extrabold text-[15px] shadow-2xs">
                       {friend.fullName.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="text-[16px] font-bold text-textPrimary">{friend.fullName}</h3>
-                      <p className="text-[12px] font-mono text-textSecondary">{friend.tag || '@' + friend.username}</p>
+                      <h3 className="text-[16px] font-bold text-[#1C1C1E]">{friend.fullName}</h3>
+                      <p className="text-[12px] font-mono text-[#8E8E93]">{friend.tag || '@' + friend.username}</p>
                     </div>
                   </div>
 
                   <div className="text-right">
                     <span
                       className={`text-[11px] font-semibold block ${
-                        isPositive ? 'text-primaryEmerald' : 'text-accentRose'
+                        isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
                       }`}
                     >
                       {!hasBalance
@@ -119,8 +128,8 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
                         : 'sen borçlusun'}
                     </span>
                     <span
-                      className={`text-[16px] font-bold block ${
-                        isPositive ? 'text-primaryEmerald' : 'text-accentRose'
+                      className={`text-[16px] font-black font-tabular block ${
+                        isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
                       }`}
                     >
                       {isLocked
@@ -134,18 +143,24 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
                 </div>
 
                 {/* Action Buttons Row */}
-                <div className="flex items-center gap-2 pt-2 border-t border-surfaceBorder">
+                <div className="flex items-center gap-2 pt-2 border-t border-black/[0.04]">
                   <button
-                    onClick={() => onOpenNudgeWithUser(friend)}
-                    className="flex-1 py-2 rounded-[12px] bg-surfaceContainerLow text-textPrimary text-[12px] font-bold flex items-center justify-center gap-1.5 hover:bg-slate-200 active:scale-95 transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenNudgeWithUser(friend);
+                    }}
+                    className="flex-1 py-2 rounded-[12px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center justify-center gap-1.5 active:scale-95 transition"
                   >
-                    <Send className="w-3.5 h-3.5 text-textSecondary" />
-                    <span>Dürt / Hatırlat</span>
+                    <Send className="w-3.5 h-3.5 text-[#8E8E93]" />
+                    <span>Dürt</span>
                   </button>
 
                   <button
-                    onClick={() => onOpenSettleWithUser(friend)}
-                    className="flex-1 py-2 rounded-[12px] bg-primaryEmerald text-white text-[12px] font-bold flex items-center justify-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-2xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenSettleWithUser(friend, Math.abs(balance));
+                    }}
+                    className="flex-1 py-2 rounded-[12px] bg-[#00875A] text-white text-[12px] font-bold flex items-center justify-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-2xs"
                   >
                     <CreditCard className="w-3.5 h-3.5" />
                     <span>Fitleş</span>
@@ -164,6 +179,34 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
         existingFriends={users}
         onFriendAdded={(user) => {
           onAddFriend(user);
+        }}
+      />
+
+      {/* 1:1 Android FriendDetailModal */}
+      <FriendDetailModal
+        isOpen={selectedFriend !== null}
+        onClose={() => setSelectedFriend(null)}
+        friend={selectedFriend}
+        currentUser={currentUser}
+        expenses={expenses}
+        settlements={settlements}
+        groups={groups}
+        isLocked={isLocked}
+        onOpenSettleUp={(f) => {
+          setSelectedFriend(null);
+          onOpenSettleWithUser(f);
+        }}
+        onOpenNudge={(f) => {
+          setSelectedFriend(null);
+          onOpenNudgeWithUser(f);
+        }}
+        onOpenAddExpense={(f) => {
+          setSelectedFriend(null);
+          onOpenAddExpenseWithUser(f);
+        }}
+        onViewExpenseDetail={(exp) => {
+          setSelectedFriend(null);
+          onViewExpenseDetail(exp);
         }}
       />
     </div>

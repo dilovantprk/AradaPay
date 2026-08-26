@@ -14,13 +14,18 @@ import { RequestMoneyDrawer } from './components/RequestMoneyDrawer';
 import { SmartSettlementModal } from './components/SmartSettlementModal';
 import { MerkleReceiptModal } from './components/MerkleReceiptModal';
 import { AddFriendModal } from './components/AddFriendModal';
+import { ExpenseDetailModal } from './components/ExpenseDetailModal';
+import { FriendDetailModal } from './components/FriendDetailModal';
+import { GroupDetailModal } from './components/GroupDetailModal';
+import { SmartSettlementReportModal } from './components/SmartSettlementReportModal';
+import { EditProfileModal } from './components/EditProfileModal';
 import { LandingPage } from './components/LandingPage';
 import { AuthScreen } from './components/AuthScreen';
 import { GroupsView } from './views/GroupsView';
 import { FriendsView } from './views/FriendsView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { SettingsView } from './views/SettingsView';
-import { Download, Sparkles } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 import {
   User,
@@ -57,11 +62,17 @@ export function App() {
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [dismissAppBanner, setDismissAppBanner] = useState(false);
 
+  // Active user (default to CURRENT_USER if null in internal logic)
+  const activeUser = currentUser || CURRENT_USER;
+
   // Modals state
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showSettleUp, setShowSettleUp] = useState(false);
+  const [settlePreselectedUser, setSettlePreselectedUser] = useState<User | null>(null);
   const [showRequestMoney, setShowRequestMoney] = useState(false);
   const [showAddFriend, setShowAddFriend] = useState(false);
+
+  const [selectedExpenseForDetail, setSelectedExpenseForDetail] = useState<Expense | null>(null);
   const [selectedCrossOffer, setSelectedCrossOffer] = useState<CrossSettlementOffer | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<{
     txId: string;
@@ -69,9 +80,6 @@ export function App() {
     receiverName: string;
     amount: number;
   } | null>(null);
-
-  // Active user (default to CURRENT_USER if null in internal logic)
-  const activeUser = currentUser || CURRENT_USER;
 
   // Real-time Firestore Subscriptions
   useEffect(() => {
@@ -223,6 +231,12 @@ export function App() {
     FirestoreService.sendNudge(nudge).catch(console.error);
   };
 
+  const handleSaveProfile = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    FirestoreService.saveUser(updatedUser).catch(console.error);
+  };
+
   const handleWipeData = () => {
     setExpenses([]);
     setSettlements([]);
@@ -264,7 +278,10 @@ export function App() {
         onTabChange={(tab) => setCurrentTab(tab)}
         currentUser={activeUser}
         onOpenAddExpense={() => setShowAddExpense(true)}
-        onOpenSettleUp={() => setShowSettleUp(true)}
+        onOpenSettleUp={() => {
+          setSettlePreselectedUser(null);
+          setShowSettleUp(true);
+        }}
         onLogout={handleLogout}
       />
 
@@ -301,7 +318,7 @@ export function App() {
           </div>
         )}
 
-        {/* Mobile / Tablet Top Bar (Hidden on desktop if preferred, or provides global identity) */}
+        {/* Mobile Top Bar */}
         <div className="lg:hidden">
           <TopBar
             user={activeUser}
@@ -327,11 +344,14 @@ export function App() {
                     onToggleLock={() => setIsLocked(!isLocked)}
                   />
 
-                  {/* Action Buttons Row (Mobile/Tablet visible, desktop quick trigger) */}
+                  {/* Action Buttons Row */}
                   <div className="lg:hidden">
                     <ActionButtonsRow
                       onAddExpenseClick={() => setShowAddExpense(true)}
-                      onSettleUpClick={() => setShowSettleUp(true)}
+                      onSettleUpClick={() => {
+                        setSettlePreselectedUser(null);
+                        setShowSettleUp(true);
+                      }}
                       onRequestMoneyClick={() => setShowRequestMoney(true)}
                     />
                   </div>
@@ -351,15 +371,7 @@ export function App() {
                     currentUserId={activeUser.id}
                     isLocked={isLocked}
                     onSeeAllClick={() => setCurrentTab('analytics')}
-                    onExpenseClick={(exp) => {
-                      const payer = users.find((u) => u.id === exp.paidBy);
-                      setSelectedReceipt({
-                        txId: exp.id,
-                        payerName: payer?.fullName || 'Ödeyen',
-                        receiverName: activeUser.fullName,
-                        amount: exp.amount
-                      });
-                    }}
+                    onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
                   />
                 </div>
               </div>
@@ -371,12 +383,18 @@ export function App() {
               groups={groups}
               currentUser={activeUser}
               users={users}
+              expenses={expenses}
               isLocked={isLocked}
               onAddExpenseClick={() => setShowAddExpense(true)}
               onSaveGroup={(newGroup) => {
                 setGroups((prev) => [newGroup, ...prev]);
                 FirestoreService.saveGroup(newGroup).catch(console.error);
               }}
+              onOpenSettleUp={(targetUser) => {
+                setSettlePreselectedUser(targetUser);
+                setShowSettleUp(true);
+              }}
+              onViewExpenseDetail={(exp) => setSelectedExpenseForDetail(exp)}
             />
           )}
 
@@ -386,9 +404,15 @@ export function App() {
               users={users}
               expenses={expenses}
               settlements={settlements}
+              groups={groups}
               isLocked={isLocked}
-              onOpenSettleWithUser={() => setShowSettleUp(true)}
+              onOpenSettleWithUser={(user) => {
+                setSettlePreselectedUser(user);
+                setShowSettleUp(true);
+              }}
               onOpenNudgeWithUser={() => setShowRequestMoney(true)}
+              onOpenAddExpenseWithUser={() => setShowAddExpense(true)}
+              onViewExpenseDetail={(exp) => setSelectedExpenseForDetail(exp)}
               onAddFriend={handleAddFriend}
             />
           )}
@@ -399,6 +423,16 @@ export function App() {
               settlements={settlements}
               currentUserId={activeUser.id}
               isLocked={isLocked}
+              crossOffers={crossOffers}
+              currentUser={activeUser}
+              onOpenReceipt={(txId) => {
+                setSelectedReceipt({
+                  txId,
+                  payerName: activeUser.fullName,
+                  receiverName: 'Mahsuplaşma Grubu',
+                  amount: crossOffers[0]?.cycleAmount || 0
+                });
+              }}
             />
           )}
 
@@ -409,6 +443,7 @@ export function App() {
               onToggleLock={() => setIsLocked(!isLocked)}
               onWipeData={handleWipeData}
               onLogout={handleLogout}
+              onSaveProfile={handleSaveProfile}
             />
           )}
         </main>
@@ -423,7 +458,7 @@ export function App() {
       />
 
       {/* ========================================================================= */}
-      {/* D. APPLE HIG MODALS & SHEETS */}
+      {/* D. APPLE HIG MODALS & DRAWERS (100% Mobile Android Parity) */}
       {/* ========================================================================= */}
       <AddExpenseModal
         isOpen={showAddExpense}
@@ -436,7 +471,10 @@ export function App() {
 
       <SettleUpModal
         isOpen={showSettleUp}
-        onClose={() => setShowSettleUp(false)}
+        onClose={() => {
+          setShowSettleUp(false);
+          setSettlePreselectedUser(null);
+        }}
         currentUser={activeUser}
         users={users}
         onConfirmSettlement={handleConfirmSettlement}
@@ -457,6 +495,29 @@ export function App() {
         currentUser={activeUser}
         users={users}
         onSendNudge={handleSendNudge}
+      />
+
+      <ExpenseDetailModal
+        isOpen={selectedExpenseForDetail !== null}
+        onClose={() => setSelectedExpenseForDetail(null)}
+        expense={selectedExpenseForDetail}
+        currentUser={activeUser}
+        users={users}
+        onOpenReceipt={(exp) => {
+          const payer = users.find((u) => u.id === exp.paidBy);
+          setSelectedReceipt({
+            txId: exp.id,
+            payerName: payer?.fullName || 'Ödeyen',
+            receiverName: activeUser.fullName,
+            amount: exp.amount
+          });
+        }}
+        onOpenSettleUp={(exp) => {
+          const payer = users.find((u) => u.id === exp.paidBy);
+          if (payer) setSettlePreselectedUser(payer);
+          setShowSettleUp(true);
+        }}
+        onOpenNudge={() => setShowRequestMoney(true)}
       />
 
       <SmartSettlementModal

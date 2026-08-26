@@ -1,12 +1,18 @@
-import React from 'react';
-import { PieChart, TrendingUp, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { Expense, Settlement, ExpenseCategory } from '../types';
+'use client';
+
+import React, { useState } from 'react';
+import { PieChart, TrendingUp, Sparkles, CheckCircle2, ShieldCheck, Repeat, ArrowRight } from 'lucide-react';
+import { Expense, Settlement, ExpenseCategory, CrossSettlementOffer, User } from '../types';
+import { SmartSettlementReportModal } from '../components/SmartSettlementReportModal';
 
 interface AnalyticsViewProps {
   expenses: Expense[];
   settlements: Settlement[];
   currentUserId: string;
   isLocked: boolean;
+  crossOffers?: CrossSettlementOffer[];
+  currentUser?: User;
+  onOpenReceipt?: (txId: string) => void;
 }
 
 const CATEGORY_NAMES: Record<ExpenseCategory, { name: string; color: string; icon: string }> = {
@@ -24,8 +30,13 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   expenses,
   settlements,
   currentUserId,
-  isLocked
+  isLocked,
+  crossOffers = [],
+  currentUser,
+  onOpenReceipt
 }) => {
+  const [selectedOfferForReport, setSelectedOfferForReport] = useState<CrossSettlementOffer | null>(null);
+
   const totalSpent = expenses
     .filter((e) => e.paidBy === currentUserId)
     .reduce((sum, e) => sum + e.amount, 0);
@@ -40,60 +51,78 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const grandTotal = Object.values(categoryTotals).reduce((a, b) => a + b, 0) || 1;
 
+  const activeOffer = crossOffers[0] || null;
+
   return (
-    <div className="pb-24 max-w-2xl mx-auto px-5 py-4 space-y-4">
+    <div className="space-y-4 text-left">
       {/* Header */}
-      <div>
-        <h2 className="text-[24px] font-bold text-textPrimary">Finansal Analiz</h2>
-        <p className="text-[12px] text-textSecondary">Harcama dağılımı ve tasarruf raporu</p>
+      <div className="px-1">
+        <h2 className="text-[26px] font-bold text-[#1C1C1E] tracking-tight">Finansal Analiz</h2>
+        <p className="text-[13px] text-[#8E8E93]">Harcama dağılımı ve tasarruf raporu</p>
       </div>
 
-      {/* Hero Stats */}
+      {/* Hero Stats (Apple HIG Style) */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="p-4 rounded-[18px] bg-surfaceWhite border border-surfaceBorder shadow-xs">
-          <span className="text-[11px] font-bold text-textSecondary uppercase tracking-wider block">
+        <div className="apple-card p-5 space-y-1">
+          <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-wider block">
             TOPLAM ÖDENEN
           </span>
-          <p className="text-[22px] font-bold text-textPrimary mt-1">
+          <p className="text-[24px] font-black text-[#1C1C1E] font-tabular">
             {isLocked ? '•••• ₺' : `${totalSpent.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`}
           </p>
-          <span className="text-[11px] text-textSecondary">{expenses.length} adet harcama</span>
+          <span className="text-[11px] text-[#8E8E93]">{expenses.length} adet harcama kaydı</span>
         </div>
 
-        <div className="p-4 rounded-[18px] bg-surfaceWhite border border-surfaceBorder shadow-xs">
-          <span className="text-[11px] font-bold text-textSecondary uppercase tracking-wider block">
+        <div className="apple-card p-5 space-y-1">
+          <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-wider block">
             FİTLEŞİLEN TUTAR
           </span>
-          <p className="text-[22px] font-bold text-primaryEmerald mt-1">
+          <p className="text-[24px] font-black text-[#00875A] font-tabular">
             {isLocked ? '•••• ₺' : `${totalSettled.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`}
           </p>
-          <span className="text-[11px] text-primaryEmerald font-medium">Banka EFT/FAST</span>
+          <span className="text-[11px] text-[#00875A] font-semibold">FAST / Havale Tamamlandı</span>
         </div>
       </div>
 
       {/* DFS Smart Savings Card */}
-      <div className="p-4 rounded-[18px] bg-gradient-to-r from-[#F0FDF4] to-[#ECFDF5] border border-[#BBF7D0]">
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-4 h-4 text-primaryEmerald" />
-          <span className="text-[13px] font-bold text-primaryEmerald uppercase">
-            DFS Borç Optimizasyonu
-          </span>
+      <div className="p-6 rounded-[24px] bg-gradient-to-br from-emerald-50 via-[#F0FDF4] to-emerald-100/50 border border-emerald-200/80 shadow-apple-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-[#00875A] text-white shadow-sm shadow-emerald-900/20">
+              <Repeat className="w-4 h-4" />
+            </div>
+            <span className="text-[12px] font-bold text-[#00875A] uppercase tracking-wider">
+              DFS Akıllı Mahsuplaşma Tasarrufu
+            </span>
+          </div>
+
+          {activeOffer && (
+            <button
+              onClick={() => setSelectedOfferForReport(activeOffer)}
+              className="px-3 py-1 rounded-full bg-white text-[#00875A] text-[11px] font-bold border border-emerald-300 hover:bg-emerald-50 transition shadow-2xs flex items-center gap-1"
+            >
+              <span>Raporu Aç</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
         </div>
-        <p className="text-[18px] font-extrabold text-textPrimary">
+
+        <p className="text-[20px] font-black text-[#1C1C1E]">
           %65 Daha Az Banka Transferi
         </p>
-        <p className="text-[12px] text-textSecondary mt-1 leading-relaxed">
+
+        <p className="text-[13px] text-[#8E8E93] leading-relaxed">
           AradaPay DFS ve Greedy Borç Sadeleştirici motoru, döngüsel borçları otomatik mahsuplayarak işlem ücreti ve EFT trafiğini minimuma indirir.
         </p>
       </div>
 
       {/* Category Breakdown */}
-      <div className="p-5 rounded-[18px] bg-surfaceWhite border border-surfaceBorder shadow-xs space-y-3">
-        <h3 className="text-[14px] font-bold text-textPrimary uppercase tracking-wider">
+      <div className="apple-card p-6 space-y-4">
+        <h3 className="text-[13px] font-bold text-[#8E8E93] uppercase tracking-wider">
           KATEGORİ BAZLI HARCAMALAR
         </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {(Object.keys(categoryTotals) as ExpenseCategory[]).map((catKey) => {
             const amount = categoryTotals[catKey] || 0;
             const percentage = Math.round((amount / grandTotal) * 100);
@@ -102,18 +131,17 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             return (
               <div key={catKey} className="space-y-1.5">
                 <div className="flex items-center justify-between text-[13px]">
-                  <span className="font-semibold text-textPrimary flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <span>{catInfo.icon}</span>
-                    <span>{catInfo.name}</span>
-                  </span>
-                  <span className="font-bold text-textPrimary">
-                    {isLocked ? '•••• ₺' : `${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`}{' '}
-                    <span className="text-[11px] font-normal text-textSecondary">({percentage}%)</span>
+                    <span className="font-bold text-[#1C1C1E]">{catInfo.name}</span>
+                  </div>
+                  <span className="font-black text-[#1C1C1E] font-tabular">
+                    {isLocked ? '•••• ₺' : `${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`} ({percentage}%)
                   </span>
                 </div>
 
-                {/* Progress bar */}
-                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                {/* Progress Bar */}
+                <div className="h-2 rounded-full bg-[#F2F2F7] overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
@@ -127,6 +155,20 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* 1:1 Android SmartSettlementReportModal */}
+      {selectedOfferForReport && currentUser && (
+        <SmartSettlementReportModal
+          isOpen={selectedOfferForReport !== null}
+          onClose={() => setSelectedOfferForReport(null)}
+          offer={selectedOfferForReport}
+          currentUser={currentUser}
+          onOpenReceipt={(txId) => {
+            setSelectedOfferForReport(null);
+            if (onOpenReceipt) onOpenReceipt(txId);
+          }}
+        />
+      )}
     </div>
   );
 };
