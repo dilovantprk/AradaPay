@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { TopBar } from './components/TopBar';
 import { FinancialHeroCard } from './components/FinancialHeroCard';
