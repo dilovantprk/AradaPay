@@ -19,12 +19,12 @@ export interface User {
   email: string;
   username: string;
   fullName: string;
-  avatarUrl: string;
+  avatarUrl?: string | null;
   phone?: string | null;
   iban?: string | null;
   tag?: string | null; // e.g. 'Kaan#5674'
   defaultCurrency?: Currency;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface ExpenseSplit {

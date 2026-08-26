@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Users, Calculator, Percent, DollarSign, Plus, ArrowLeft } from 'lucide-react';
 import { User, Group, ExpenseCategory, SplitMethod, Expense } from '../types';
 
 interface AddExpenseModalProps {
@@ -14,9 +16,9 @@ interface AddExpenseModalProps {
 const CATEGORIES: { key: ExpenseCategory; label: string; icon: string }[] = [
   { key: 'DINING', label: 'Yemek & Kafe', icon: '🍽️' },
   { key: 'GROCERIES', label: 'Market', icon: '🛒' },
-  { key: 'TRAVEL', label: 'Seyahat', icon: '✈️' },
-  { key: 'HOUSING', label: 'Ev & Yaşam', icon: '🏠' },
-  { key: 'ENTERTAINMENT', label: 'Eğlence', icon: '🍿' },
+  { key: 'TRAVEL', label: 'Ulaşım & Seyahat', icon: '✈️' },
+  { key: 'HOUSING', label: 'Ev & Kira', icon: '🏠' },
+  { key: 'ENTERTAINMENT', label: 'Eğlence & Konser', icon: '🍿' },
   { key: 'UTILITIES', label: 'Faturalar', icon: '⚡' },
   { key: 'SHOPPING', label: 'Alışveriş', icon: '🛍️' },
   { key: 'OTHER', label: 'Diğer', icon: '📦' }
@@ -32,10 +34,15 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 }) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [paidBy, setPaidBy] = useState<string>(currentUser.id);
   const [category, setCategory] = useState<ExpenseCategory>('DINING');
   const [splitMethod, setSplitMethod] = useState<SplitMethod>('EQUAL');
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([currentUser.id]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([currentUser.id, users[1]?.id || 'u2']);
+
+  // Custom Split percentage and exact amounts maps
+  const [customPercentages, setCustomPercentages] = useState<{ [userId: string]: number }>({});
+  const [customAmounts, setCustomAmounts] = useState<{ [userId: string]: number }>({});
 
   if (!isOpen) return null;
 
@@ -67,26 +74,36 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     }
   };
 
+  const calculateUserSplit = (userId: string): number => {
+    if (splitMethod === 'EQUAL') {
+      return parseFloat((numAmount / selectedUserIds.length).toFixed(2));
+    }
+    if (splitMethod === 'PERCENTAGE') {
+      const pct = customPercentages[userId] ?? 100 / selectedUserIds.length;
+      return parseFloat(((numAmount * pct) / 100).toFixed(2));
+    }
+    if (splitMethod === 'EXACT') {
+      return customAmounts[userId] ?? parseFloat((numAmount / selectedUserIds.length).toFixed(2));
+    }
+    return 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
-
-    // Calculate splits
-    const splitCount = selectedUserIds.length;
-    const shareAmount = parseFloat((numAmount / splitCount).toFixed(2));
 
     const splits = selectedUserIds.map((userId) => ({
       id: `split_${Date.now()}_${userId}`,
       expenseId: '',
       userId,
-      amountOwed: shareAmount,
+      amountOwed: calculateUserSplit(userId),
       status: 'APPROVED' as const
     }));
 
     const newExpense: Expense = {
       id: `exp_${Date.now()}`,
       groupId: selectedGroupId || null,
-      paidBy: currentUser.id,
+      paidBy: paidBy,
       amount: numAmount,
       currency: 'TRY',
       description: description.trim(),
@@ -100,177 +117,250 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 
     onAddExpense(newExpense);
     onClose();
-    // Reset form
-    setDescription('');
-    setAmount('');
-    setSelectedGroupId('');
-    setSelectedUserIds([currentUser.id]);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-surfaceWhite w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-lg rounded-[28px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-surfaceBorder flex items-center justify-between">
-          <h2 className="text-[18px] font-bold text-textPrimary">Harcama Ekle</h2>
+        <div className="px-5 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-surfaceContainerLow flex items-center justify-center text-textSecondary hover:bg-slate-200 active:scale-95 transition"
+            className="w-10 h-10 rounded-[12px] bg-slate-100 flex items-center justify-center text-slate-800 hover:bg-slate-200 active:scale-95 transition"
           >
-            <X className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          <h3 className="text-[18px] font-black text-textPrimary tracking-tight">
+            Harcama Ekle
+          </h3>
+
+          <button
+            onClick={handleSubmit}
+            disabled={!isValid}
+            className={`w-10 h-10 rounded-[12px] flex items-center justify-center transition active:scale-95 ${
+              isValid
+                ? 'bg-primaryEmerald text-white hover:bg-[#00744d]'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            <Check className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
-        {/* Scrollable Form */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 space-y-5">
-          {/* Big Amount Input Card */}
-          <div className="flex flex-col items-center justify-center py-4 px-3 bg-surfaceContainerLow/50 rounded-[20px]">
-            <span className="text-[11px] font-semibold text-textSecondary tracking-wider uppercase mb-1">
-              TOPLAM TUTAR
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Tutar & Açıklama */}
+          <div className="p-5 rounded-[22px] bg-[#F8FAFC] border border-slate-200 text-center space-y-3">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">
+              HARCAMA TUTARI (₺)
             </span>
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-[32px] font-bold text-primaryEmerald">₺</span>
+
+            <div className="flex items-center justify-center">
               <input
-                type="text"
-                placeholder="0,00"
+                type="number"
+                step="0.01"
+                required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                autoFocus
-                className="w-48 text-[38px] font-extrabold text-textPrimary bg-transparent border-none outline-none text-center focus:ring-0 placeholder:text-slate-300"
+                placeholder="0.00"
+                className="text-[36px] font-black text-center text-textPrimary bg-transparent border-none focus:outline-none w-48 placeholder:text-slate-300 font-tabular"
               />
+              <span className="text-[28px] font-bold text-slate-400 ml-1">₺</span>
             </div>
 
-            {/* Quick Increment Chips */}
-            <div className="flex items-center gap-2 mt-3 flex-wrap justify-center">
-              {[50, 100, 250, 500].map((inc) => (
+            {/* Quick Inc buttons */}
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {[50, 100, 250, 500].map((val) => (
                 <button
-                  key={inc}
+                  key={val}
                   type="button"
-                  onClick={() => handleQuickAdd(inc)}
-                  className="px-3 py-1 rounded-full bg-white border border-slate-200 text-textSecondary text-[12px] font-bold hover:border-primaryEmerald hover:text-primaryEmerald active:scale-95 transition shadow-2xs"
+                  onClick={() => handleQuickAdd(val)}
+                  className="px-3 py-1 rounded-[10px] bg-white border border-slate-200 text-slate-700 text-[12px] font-bold hover:border-emerald-400 hover:text-primaryEmerald active:scale-95 transition shadow-2xs"
                 >
-                  +{inc} ₺
+                  +{val} ₺
+                </button>
+              ))}
+            </div>
+
+            {/* Description */}
+            <div className="pt-2">
+              <input
+                type="text"
+                required
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Ne için harcandı? (örn: Akşam Yemeği, Kahveler)"
+                className="w-full h-11 px-4 rounded-[14px] bg-white border border-slate-200 text-[14px] text-center text-textPrimary placeholder:text-slate-400 focus:outline-none focus:border-primaryEmerald transition"
+              />
+            </div>
+          </div>
+
+          {/* Kategori Seçici */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+              KATEGORİ
+            </span>
+            <div className="grid grid-cols-4 gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCategory(cat.key)}
+                  className={`p-2.5 rounded-[14px] border text-center transition flex flex-col items-center gap-1 active:scale-95 ${
+                    category === cat.key
+                      ? 'bg-emerald-50 border-primaryEmerald text-primaryEmerald font-bold shadow-2xs'
+                      : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-[20px]">{cat.icon}</span>
+                  <span className="text-[11px] leading-tight truncate w-full">{cat.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Description Input */}
-          <div>
-            <label className="block text-[12px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">
-              AÇIKLAMA
-            </label>
-            <input
-              type="text"
-              placeholder="Örn: Akşam Yemeği, Market, Uber..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-3 rounded-[14px] bg-white border border-slate-200 text-textPrimary text-[14px] font-medium outline-none focus:border-primaryEmerald focus:ring-2 focus:ring-primaryEmeraldContainer transition"
-            />
+          {/* Ödeyen Kişi Seçici */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+              ÖDEMEYİ YAPAN KİŞİ
+            </span>
+            <select
+              value={paidBy}
+              onChange={(e) => setPaidBy(e.target.value)}
+              className="w-full h-11 px-3.5 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-bold text-textPrimary focus:outline-none focus:border-primaryEmerald"
+            >
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.id === currentUser.id ? `Ben (${u.fullName})` : u.fullName}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Group Selector (Optional) */}
-          {groups.length > 0 && (
-            <div>
-              <label className="block text-[12px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">
-                GRUP (OPSİYONEL)
-              </label>
-              <select
-                value={selectedGroupId}
-                onChange={(e) => handleGroupSelect(e.target.value)}
-                className="w-full px-4 py-3 rounded-[14px] bg-white border border-slate-200 text-textPrimary text-[14px] font-medium outline-none focus:border-primaryEmerald focus:ring-2 focus:ring-primaryEmeraldContainer transition"
+          {/* Bölüşüm Tipi (M3 Segmented Control) */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+              BÖLÜŞÜM YÖNTEMİ
+            </span>
+            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-[16px]">
+              <button
+                type="button"
+                onClick={() => setSplitMethod('EQUAL')}
+                className={`py-2 rounded-[12px] text-[12px] font-bold transition flex items-center justify-center gap-1.5 ${
+                  splitMethod === 'EQUAL'
+                    ? 'bg-white text-textPrimary shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <option value="">Bireysel / Arkadaşlar Arası</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.emoji} {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+                <Calculator className="w-3.5 h-3.5" />
+                <span>Eşit Bölüşüm</span>
+              </button>
 
-          {/* Category Chips */}
-          <div>
-            <label className="block text-[12px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">
-              KATEGORİ
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {CATEGORIES.map((cat) => {
-                const isSelected = category === cat.key;
-                return (
-                  <button
-                    key={cat.key}
-                    type="button"
-                    onClick={() => setCategory(cat.key)}
-                    className={`px-3 py-2 rounded-[12px] text-[12px] font-semibold flex items-center gap-1.5 border transition ${
-                      isSelected
-                        ? 'bg-primaryEmeraldContainer border-primaryEmerald text-primaryEmerald font-bold'
-                        : 'bg-white border-slate-200 text-textSecondary hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{cat.icon}</span>
-                    <span className="truncate">{cat.label}</span>
-                  </button>
-                );
-              })}
+              <button
+                type="button"
+                onClick={() => setSplitMethod('PERCENTAGE')}
+                className={`py-2 rounded-[12px] text-[12px] font-bold transition flex items-center justify-center gap-1.5 ${
+                  splitMethod === 'PERCENTAGE'
+                    ? 'bg-white text-textPrimary shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Percent className="w-3.5 h-3.5" />
+                <span>Yüzdelik %</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSplitMethod('EXACT')}
+                className={`py-2 rounded-[12px] text-[12px] font-bold transition flex items-center justify-center gap-1.5 ${
+                  splitMethod === 'EXACT'
+                    ? 'bg-white text-textPrimary shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>Özel Tutar</span>
+              </button>
             </div>
           </div>
 
-          {/* Participants Selector */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[12px] font-bold text-textSecondary uppercase tracking-wider">
-                KİMLERLE BÖLÜŞÜLECEK ({selectedUserIds.length} kişi)
-              </label>
-              {numAmount > 0 && selectedUserIds.length > 0 && (
-                <span className="text-[12px] font-bold text-primaryEmerald">
-                  Kişi Başı: {(numAmount / selectedUserIds.length).toFixed(2)} ₺
-                </span>
-              )}
+          {/* Katılımcı Listesi ve Kişi Başı Pay */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                MASRAFI PAYLAŞANLAR ({selectedUserIds.length})
+              </span>
+              <span className="text-[11px] text-primaryEmerald font-bold">
+                Kişi Başı: {(numAmount / Math.max(selectedUserIds.length, 1)).toFixed(2)} ₺
+              </span>
             </div>
 
-            <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1">
-              {users.map((u) => {
-                const isSelected = selectedUserIds.includes(u.id);
-                const isMe = u.id === currentUser.id;
+            <div className="space-y-2">
+              {users.map((user) => {
+                const isSelected = selectedUserIds.includes(user.id);
                 return (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => toggleUser(u.id)}
-                    className={`px-3 py-1.5 rounded-full text-[13px] font-semibold flex items-center gap-2 border transition active:scale-95 ${
+                  <div
+                    key={user.id}
+                    onClick={() => toggleUser(user.id)}
+                    className={`p-3 rounded-[16px] border flex items-center justify-between cursor-pointer transition active:scale-[0.99] ${
                       isSelected
-                        ? 'bg-primaryEmerald text-white border-primaryEmerald shadow-sm'
-                        : 'bg-white text-textSecondary border-slate-200 hover:border-slate-300'
+                        ? 'bg-emerald-50/60 border-primaryEmerald/50'
+                        : 'bg-[#F8FAFC] border-slate-200 text-slate-400'
                     }`}
                   >
-                    <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
-                      {u.fullName.substring(0, 2).toUpperCase()}
-                    </span>
-                    <span>{isMe ? 'Sen (Ödeyen)' : u.fullName.split(' ')[0]}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5" />}
-                  </button>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-[13px] ${
+                          isSelected
+                            ? 'bg-primaryEmerald text-white'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {user.fullName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div
+                          className={`text-[14px] font-bold ${
+                            isSelected ? 'text-textPrimary' : 'text-slate-500'
+                          }`}
+                        >
+                          {user.id === currentUser.id ? 'Sen' : user.fullName}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          {user.tag || `@${user.username}`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-[13px] font-black text-textPrimary font-tabular">
+                        {calculateUserSplit(user.id)} ₺
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-medium">
+                        {splitMethod === 'EQUAL' ? 'Eşit Pay' : 'Pay'}
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           </div>
         </form>
 
-        {/* Footer CTA */}
-        <div className="p-4 border-t border-surfaceBorder bg-surfaceWhite">
+        {/* Submit Button in Footer */}
+        <div className="p-4 bg-white border-t border-slate-200">
           <button
-            type="button"
             onClick={handleSubmit}
             disabled={!isValid}
-            className={`w-full h-[52px] rounded-[16px] font-bold text-[15px] flex items-center justify-center gap-2 transition shadow-sm ${
+            className={`w-full h-12 rounded-[16px] font-black text-[15px] flex items-center justify-center gap-2 transition shadow-sm ${
               isValid
-                ? 'bg-primaryEmerald text-white hover:bg-[#00744d] active:scale-[0.98]'
+                ? 'bg-primaryEmerald text-white hover:bg-[#00744d] active:scale-95'
                 : 'bg-slate-100 text-slate-400 cursor-not-allowed'
             }`}
           >
-            <Check className="w-5 h-5" />
-            <span>Harcamayı Kaydet & Böl</span>
+            <Check className="w-5 h-5 stroke-[2.5]" />
+            <span>Harcamayı Kaydet ({numAmount.toFixed(2)} ₺)</span>
           </button>
         </div>
       </div>

@@ -12,12 +12,14 @@ import { SettleUpModal } from './components/SettleUpModal';
 import { RequestMoneyDrawer } from './components/RequestMoneyDrawer';
 import { SmartSettlementModal } from './components/SmartSettlementModal';
 import { MerkleReceiptModal } from './components/MerkleReceiptModal';
+import { AddFriendModal } from './components/AddFriendModal';
 import { LandingPage } from './components/LandingPage';
+import { AuthScreen } from './components/AuthScreen';
 import { GroupsView } from './views/GroupsView';
 import { FriendsView } from './views/FriendsView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { SettingsView } from './views/SettingsView';
-import { Smartphone, Download, ArrowLeft } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 import {
   User,
@@ -39,16 +41,10 @@ import { NetBalanceCalculator } from './algorithms/NetBalanceCalculator';
 import { CrossSettlementDfsEngine } from './algorithms/CrossSettlementDfsEngine';
 
 export function App() {
-  const [inWebApp, setInWebApp] = useState<boolean>(() => {
-    // If URL has ?app=true or previously opened, default to web app, else show landing page
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('app') === 'true';
-    }
-    return false;
-  });
+  // Navigation / View states
+  const [inWebApp, setInWebApp] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const [currentUser] = useState<User>(CURRENT_USER);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
@@ -64,6 +60,7 @@ export function App() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showSettleUp, setShowSettleUp] = useState(false);
   const [showRequestMoney, setShowRequestMoney] = useState(false);
+  const [showAddFriend, setShowAddFriend] = useState(false);
   const [selectedCrossOffer, setSelectedCrossOffer] = useState<CrossSettlementOffer | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<{
     txId: string;
@@ -71,6 +68,9 @@ export function App() {
     receiverName: string;
     amount: number;
   } | null>(null);
+
+  // Active user (default to CURRENT_USER if null in internal logic)
+  const activeUser = currentUser || CURRENT_USER;
 
   // Real-time Firestore Subscriptions
   useEffect(() => {
@@ -104,7 +104,7 @@ export function App() {
       }
     });
 
-    const unsubNudges = FirestoreService.subscribeNudges(currentUser.id, (liveNudges) => {
+    const unsubNudges = FirestoreService.subscribeNudges(activeUser.id, (liveNudges) => {
       setNudges(liveNudges);
     });
 
@@ -116,289 +116,314 @@ export function App() {
       unsubCross();
       unsubNudges();
     };
-  }, [currentUser.id]);
+  }, [activeUser.id]);
 
-  // Live calculation of net balance
-  const netBalances = useMemo(() => {
-    return NetBalanceCalculator.calculateNetBalances(expenses, settlements);
-  }, [expenses, settlements]);
-
-  const myNetBalance = netBalances.get(currentUser.id) || 0;
-
-  // Real-time DFS Cycle detection
+  // Run DFS Graph Algorithm to detect debt cycles dynamically
   useEffect(() => {
+    const usersMap = new Map<string, User>(users.map((u) => [u.id, u]));
     const pairwiseMatrix = new Map<string, number>();
 
+    // Compute bilateral debts from expenses
     expenses.forEach((exp) => {
-      if (exp.status === 'REJECTED') return;
-      const payerId = exp.paidBy;
-      exp.splits?.forEach((s) => {
-        if (s.userId !== payerId) {
-          const key = `${s.userId}_${payerId}`;
-          pairwiseMatrix.set(key, (pairwiseMatrix.get(key) || 0) + s.amountOwed);
+      exp.splits.forEach((split) => {
+        if (split.userId !== exp.paidBy && split.amountOwed > 0) {
+          const key = `${split.userId}_${exp.paidBy}`;
+          pairwiseMatrix.set(key, (pairwiseMatrix.get(key) || 0) + split.amountOwed);
         }
       });
     });
 
-    settlements.forEach((s) => {
-      if (s.status === 'REJECTED') return;
-      const key = `${s.payerId}_${s.receiverId}`;
-      pairwiseMatrix.set(key, Math.max(0, (pairwiseMatrix.get(key) || 0) - s.amount));
+    // Reduce by settlements
+    settlements.forEach((set) => {
+      const key = `${set.payerId}_${set.receiverId}`;
+      const current = pairwiseMatrix.get(key) || 0;
+      pairwiseMatrix.set(key, Math.max(0, current - set.amount));
     });
 
-    const usersMap = new Map(users.map((u) => [u.id, u]));
-    const detectedOffers = CrossSettlementDfsEngine.detectCrossSettlementCycles(usersMap, pairwiseMatrix);
+    const detectedOffers = CrossSettlementDfsEngine.detectCrossSettlementCycles(
+      usersMap,
+      pairwiseMatrix
+    );
 
     if (detectedOffers.length > 0) {
       setCrossOffers((prev) => {
-        const existingIds = new Set(prev.map((o) => o.id));
-        const newOnes = detectedOffers.filter((o) => !existingIds.has(o.id));
-        return [...prev, ...newOnes];
+        const newOnes = detectedOffers.filter(
+          (no) => !prev.some((po) => po.id === no.id || po.cycleAmount === no.cycleAmount)
+        );
+        return [...newOnes, ...prev];
       });
     }
-  }, [expenses, settlements, users]);
+  }, [expenses, settlements, users, activeUser.id]);
+
+  // Calculate Net Balances
+  const balanceSummary = useMemo(() => {
+    const netMap = NetBalanceCalculator.calculateNetBalances(expenses, settlements);
+    const myBalance = netMap.get(activeUser.id) || 0;
+
+    let receivable = 0;
+    let payable = 0;
+    if (myBalance > 0) {
+      receivable = myBalance;
+    } else {
+      payable = Math.abs(myBalance);
+    }
+
+    return {
+      netBalance: myBalance,
+      totalReceivable: receivable,
+      totalPayable: payable
+    };
+  }, [activeUser.id, expenses, settlements]);
 
   // Handlers
-  const handleDirectDownload = () => {
-    const link = document.createElement('a');
-    link.href = '/AradaPay.apk';
-    link.download = 'AradaPay.apk';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleAddExpense = async (newExpense: Expense) => {
+  const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prev) => [newExpense, ...prev]);
-    await FirestoreService.addExpense(newExpense);
+    FirestoreService.addExpense(newExpense).catch(console.error);
   };
 
-  const handleConfirmSettlement = async (settlement: Settlement) => {
-    setSettlements((prev) => [settlement, ...prev]);
-    await FirestoreService.addSettlement(settlement);
+  const handleConfirmSettlement = (newSettlement: Settlement) => {
+    setSettlements((prev) => [newSettlement, ...prev]);
+    FirestoreService.addSettlement(newSettlement).catch(console.error);
   };
 
-  const handleShowReceiptForSettlement = (settlement: Settlement) => {
-    const payer = users.find((u) => u.id === settlement.payerId);
-    const receiver = users.find((u) => u.id === settlement.receiverId);
-    setSelectedReceipt({
-      txId: settlement.id,
-      payerName: payer?.fullName || 'Dilovan Toprak',
-      receiverName: receiver?.fullName || 'Alıcı',
-      amount: settlement.amount
+  const handleAddFriend = (newFriendUser: User) => {
+    setUsers((prev) => {
+      if (!prev.some((u) => u.id === newFriendUser.id)) {
+        return [...prev, newFriendUser];
+      }
+      return prev;
     });
+    FirestoreService.saveUser(newFriendUser).catch(console.error);
   };
 
-  const handleExpenseClick = (expense: Expense) => {
-    const payer = users.find((u) => u.id === expense.paidBy);
-    setSelectedReceipt({
-      txId: expense.id,
-      payerName: payer?.fullName || 'Dilovan Toprak',
-      receiverName: `${expense.splits.length} Katılımcı`,
-      amount: expense.amount
-    });
+  const handleCreateGroup = (groupData: { name: string; memberIds: string[] }) => {
+    const memberUsers = users.filter((u) => groupData.memberIds.includes(u.id));
+    const newGroup: Group = {
+      id: `group_${Date.now()}`,
+      name: groupData.name,
+      emoji: '👥',
+      category: 'Genel',
+      createdBy: activeUser.id,
+      members: memberUsers.map((u) => ({
+        id: u.id,
+        name: u.fullName,
+        avatar: u.fullName.slice(0, 2).toUpperCase(),
+        tag: u.tag || `@${u.username}`,
+        balanceInGroup: 0
+      })),
+      createdAt: new Date().toISOString(),
+      userBalance: 0,
+      totalExpenses: 0
+    };
+    setGroups((prev) => [newGroup, ...prev]);
+    FirestoreService.saveGroup(newGroup).catch(console.error);
   };
 
-  const handleApproveCrossOffer = async (offerId: string) => {
+  const handleApproveCrossOffer = (offerId: string) => {
     setCrossOffers((prev) =>
-      prev.map((o) => {
-        if (o.id === offerId) {
-          const newApprovals = { ...o.approvals, [currentUser.id]: true };
-          const allApproved = Object.values(newApprovals).every(Boolean);
+      prev.map((offer) => {
+        if (offer.id === offerId) {
+          const updatedApprovals = {
+            ...offer.approvals,
+            [activeUser.id]: true
+          };
+          const allApproved = offer.participants.every((p) => updatedApprovals[p.id]);
+
           return {
-            ...o,
-            approvals: newApprovals,
+            ...offer,
+            approvals: updatedApprovals,
             status: allApproved ? 'APPROVED' : 'PENDING'
           };
         }
-        return o;
+        return offer;
       })
     );
-    await FirestoreService.updateCrossApproval(offerId, currentUser.id, true);
   };
 
-  const handleSendNudge = async (nudge: Nudge) => {
+  const handleSendNudge = (nudge: Nudge) => {
     setNudges((prev) => [nudge, ...prev]);
-    await FirestoreService.sendNudge(nudge);
-  };
-
-  const handleSaveGroup = async (group: Group) => {
-    setGroups((prev) => [group, ...prev]);
-    await FirestoreService.saveGroup(group);
+    FirestoreService.sendNudge(nudge).catch(console.error);
   };
 
   const handleWipeData = () => {
     setExpenses([]);
     setSettlements([]);
-    setGroups([]);
+    setCrossOffers([]);
     setNudges([]);
     localStorage.clear();
-    alert('Verileriniz KVKK m.11 kapsamında başarıyla sıfırlandı.');
-    setCurrentTab('dashboard');
   };
 
-  // If user is on landing page
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setInWebApp(false);
+  };
+
+  // 1. If not launched into web app, show high-converting Landing Page
   if (!inWebApp) {
     return <LandingPage onLaunchWebApp={() => setInWebApp(true)} />;
   }
 
+  // 2. If user clicked web app but not logged in, show AuthScreen (Welcome / Login / PIN pad / Demo selector)
+  if (!currentUser) {
+    return (
+      <AuthScreen
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+        }}
+        onBackToLanding={() => setInWebApp(false)}
+      />
+    );
+  }
+
+  // Active Pending Cross Offer
+  const pendingCrossOffer = crossOffers.find((o) => o.status === 'PENDING');
+
+  // 3. Authenticated 1:1 Android Web App Layout
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-textPrimary flex flex-col font-sans">
-      {/* Top Banner: Native Android App Download Prompt */}
+    <div className="min-h-screen bg-[#F8FAFC] text-textPrimary flex flex-col font-sans selection:bg-primaryEmeraldContainer selection:text-primaryEmerald">
+      {/* Top Banner: Native Android APK Prompter */}
       {!dismissAppBanner && (
-        <div className="bg-primaryEmerald text-white px-4 py-2 text-[12px] flex items-center justify-between shadow-xs">
-          <div className="max-w-2xl mx-auto flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4 flex-shrink-0" />
-              <span className="font-medium">
-                En iyi deneyim için <strong className="font-bold">Android Uygulamasını</strong> indirin
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleDirectDownload}
-                className="px-2.5 py-1 bg-white text-primaryEmerald rounded-lg font-bold text-[11px] flex items-center gap-1 hover:bg-slate-100 active:scale-95 transition"
-              >
-                <Download className="w-3 h-3" />
-                <span>APK İndir</span>
-              </button>
-              <button
-                onClick={() => setDismissAppBanner(true)}
-                className="text-white/80 hover:text-white text-[14px] px-1"
-                title="Kapat"
-              >
-                ✕
-              </button>
-            </div>
+        <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-[12px] shadow-sm z-30">
+          <div className="flex items-center gap-2 max-w-xl truncate">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+            <span className="font-semibold truncate">
+              🚀 <strong>AradaPay Android:</strong> 100ms Kamera QR & Parmak İzi Kasası için uygulamayı yükleyin!
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <a
+              href="/AradaPay.apk"
+              download="AradaPay.apk"
+              className="px-3 py-1 rounded-full bg-primaryEmerald text-white font-bold text-[11px] hover:bg-[#00744d] transition flex items-center gap-1 shadow-2xs"
+            >
+              <Download className="w-3 h-3" />
+              <span>APK İndir</span>
+            </a>
+            <button
+              onClick={() => setDismissAppBanner(true)}
+              className="text-slate-400 hover:text-white px-1.5 py-0.5 text-[14px]"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}
 
-      {/* Top Bar Header */}
-      <TopBar
-        user={currentUser}
-        onProfileClick={() => setCurrentTab('settings')}
-        onNotificationClick={() => setShowRequestMoney(true)}
-        hasNudges={nudges.length > 0}
-      />
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full bg-[#F8FAFC]">
+        {/* Top Bar */}
+        <TopBar
+          user={activeUser}
+          onProfileClick={() => setCurrentTab('settings')}
+          hasNudges={nudges.length > 0}
+        />
 
-      {/* Back to Landing Page floating button */}
-      <div className="max-w-2xl mx-auto w-full px-5 pt-2 flex items-center justify-between">
-        <button
-          onClick={() => setInWebApp(false)}
-          className="text-[12px] text-textSecondary hover:text-primaryEmerald font-semibold flex items-center gap-1 py-1"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Tanıtım & İndirme Sayfasına Dön</span>
-        </button>
+        {/* View Routing */}
+        <main className="flex-1">
+          {currentTab === 'dashboard' && (
+            <div className="space-y-4 pb-28">
+              {/* Financial Hero Card */}
+              <FinancialHeroCard
+                netBalance={balanceSummary.netBalance}
+                totalReceivable={balanceSummary.totalReceivable}
+                totalPayable={balanceSummary.totalPayable}
+                isLocked={isLocked}
+                onToggleLock={() => setIsLocked(!isLocked)}
+              />
 
-        <button
-          onClick={handleDirectDownload}
-          className="text-[12px] text-primaryEmerald font-bold hover:underline flex items-center gap-1 py-1"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>AradaPay.apk</span>
-        </button>
-      </div>
+              {/* Action Buttons Row */}
+              <ActionButtonsRow
+                onAddExpenseClick={() => setShowAddExpense(true)}
+                onSettleUpClick={() => setShowSettleUp(true)}
+                onRequestMoneyClick={() => setShowRequestMoney(true)}
+              />
 
-      {/* Main Tab Content */}
-      <main className="flex-1 w-full max-w-2xl mx-auto">
-        {currentTab === 'dashboard' && (
-          <div className="pb-24">
-            {/* 1. Net Bakiye Hero */}
-            <FinancialHeroCard
-              netBalance={myNetBalance}
+              {/* Smart Settlement Banner (DFS Cycle Detection) */}
+              <SmartSettlementBanner
+                offers={crossOffers}
+                currentUserId={activeUser.id}
+                onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
+              />
+
+              {/* Transactions List */}
+              <TransactionsList
+                expenses={expenses}
+                currentUserId={activeUser.id}
+                isLocked={isLocked}
+                onSeeAllClick={() => setCurrentTab('analytics')}
+                onExpenseClick={(exp) => {
+                  const payer = users.find((u) => u.id === exp.paidBy);
+                  setSelectedReceipt({
+                    txId: exp.id,
+                    payerName: payer?.fullName || 'Ödeyen',
+                    receiverName: activeUser.fullName,
+                    amount: exp.amount
+                  });
+                }}
+              />
+            </div>
+          )}
+
+          {currentTab === 'groups' && (
+            <GroupsView
+              groups={groups}
+              currentUser={activeUser}
+              users={users}
+              isLocked={isLocked}
+              onAddExpenseClick={() => setShowAddExpense(true)}
+              onSaveGroup={(newGroup) => {
+                setGroups((prev) => [newGroup, ...prev]);
+                FirestoreService.saveGroup(newGroup).catch(console.error);
+              }}
+            />
+          )}
+
+          {currentTab === 'friends' && (
+            <FriendsView
+              currentUser={activeUser}
+              users={users}
+              expenses={expenses}
+              settlements={settlements}
+              isLocked={isLocked}
+              onOpenSettleWithUser={() => setShowSettleUp(true)}
+              onOpenNudgeWithUser={() => setShowRequestMoney(true)}
+              onAddFriend={handleAddFriend}
+            />
+          )}
+
+          {currentTab === 'analytics' && (
+            <AnalyticsView
+              expenses={expenses}
+              settlements={settlements}
+              currentUserId={activeUser.id}
+              isLocked={isLocked}
+            />
+          )}
+
+          {currentTab === 'settings' && (
+            <SettingsView
+              currentUser={activeUser}
               isLocked={isLocked}
               onToggleLock={() => setIsLocked(!isLocked)}
+              onWipeData={handleWipeData}
+              onLogout={handleLogout}
             />
+          )}
+        </main>
+      </div>
 
-            {/* 2. Harcama Ekle & Öde Butonları */}
-            <ActionButtonsRow
-              onAddExpenseClick={() => setShowAddExpense(true)}
-              onSettleUpClick={() => setShowSettleUp(true)}
-              onRequestMoneyClick={() => setShowRequestMoney(true)}
-            />
+      {/* Material 3 Bottom Navigation Bar */}
+      <BottomNavBar
+        currentTab={currentTab}
+        onTabChange={(tab) => setCurrentTab(tab)}
+      />
 
-            {/* 3. DFS Akıllı Mahsuplaşma Teklifi Varsa Göster */}
-            <SmartSettlementBanner
-              offers={crossOffers}
-              currentUserId={currentUser.id}
-              onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
-            />
-
-            {/* 4. Son Hareketler Listesi */}
-            <TransactionsList
-              expenses={expenses}
-              currentUserId={currentUser.id}
-              isLocked={isLocked}
-              onSeeAllClick={() => setCurrentTab('analytics')}
-              onExpenseClick={handleExpenseClick}
-            />
-          </div>
-        )}
-
-        {currentTab === 'groups' && (
-          <GroupsView
-            groups={groups}
-            currentUser={currentUser}
-            users={users}
-            isLocked={isLocked}
-            onAddExpenseClick={() => setShowAddExpense(true)}
-            onSaveGroup={handleSaveGroup}
-          />
-        )}
-
-        {currentTab === 'friends' && (
-          <FriendsView
-            currentUser={currentUser}
-            users={users}
-            expenses={expenses}
-            settlements={settlements}
-            isLocked={isLocked}
-            onOpenSettleWithUser={(u) => setShowSettleUp(true)}
-            onOpenNudgeWithUser={(u) => setShowRequestMoney(true)}
-            onAddFriend={(tag) => {
-              const newUser: User = {
-                id: `user_${Date.now()}`,
-                email: `${tag.toLowerCase().replace('#', '')}@ardabank.com`,
-                username: tag.split('#')[0].toLowerCase(),
-                fullName: tag.split('#')[0],
-                avatarUrl: '',
-                tag,
-                createdAt: new Date().toISOString()
-              };
-              setUsers((prev) => [...prev, newUser]);
-            }}
-          />
-        )}
-
-        {currentTab === 'analytics' && (
-          <AnalyticsView
-            expenses={expenses}
-            settlements={settlements}
-            currentUserId={currentUser.id}
-            isLocked={isLocked}
-          />
-        )}
-
-        {currentTab === 'settings' && (
-          <SettingsView
-            currentUser={currentUser}
-            isLocked={isLocked}
-            onToggleLock={() => setIsLocked(!isLocked)}
-            onWipeData={handleWipeData}
-          />
-        )}
-      </main>
-
-      {/* Bottom Navigation Bar */}
-      <BottomNavBar currentTab={currentTab} onTabChange={setCurrentTab} />
-
-      {/* Modals & Dialogs */}
+      {/* Modals & Drawers */}
       <AddExpenseModal
         isOpen={showAddExpense}
         onClose={() => setShowAddExpense(false)}
-        currentUser={currentUser}
+        currentUser={activeUser}
         users={users}
         groups={groups}
         onAddExpense={handleAddExpense}
@@ -407,38 +432,52 @@ export function App() {
       <SettleUpModal
         isOpen={showSettleUp}
         onClose={() => setShowSettleUp(false)}
-        currentUser={currentUser}
+        currentUser={activeUser}
         users={users}
         onConfirmSettlement={handleConfirmSettlement}
-        onShowReceipt={handleShowReceiptForSettlement}
+        onShowReceipt={(settlement) => {
+          const receiver = users.find((u) => u.id === settlement.receiverId);
+          setSelectedReceipt({
+            txId: settlement.id,
+            payerName: activeUser.fullName,
+            receiverName: receiver?.fullName || 'Alıcı',
+            amount: settlement.amount
+          });
+        }}
       />
 
       <RequestMoneyDrawer
         isOpen={showRequestMoney}
         onClose={() => setShowRequestMoney(false)}
-        currentUser={currentUser}
+        currentUser={activeUser}
         users={users}
         onSendNudge={handleSendNudge}
       />
 
       <SmartSettlementModal
-        isOpen={!!selectedCrossOffer}
+        isOpen={selectedCrossOffer !== null}
         onClose={() => setSelectedCrossOffer(null)}
         offer={selectedCrossOffer}
-        currentUser={currentUser}
+        currentUser={activeUser}
         onApproveOffer={handleApproveCrossOffer}
       />
 
       <MerkleReceiptModal
-        isOpen={!!selectedReceipt}
+        isOpen={selectedReceipt !== null}
         onClose={() => setSelectedReceipt(null)}
         txId={selectedReceipt?.txId}
         payerName={selectedReceipt?.payerName}
         receiverName={selectedReceipt?.receiverName}
         amount={selectedReceipt?.amount}
       />
+
+      <AddFriendModal
+        isOpen={showAddFriend}
+        onClose={() => setShowAddFriend(false)}
+        existingFriends={users}
+        onFriendAdded={handleAddFriend}
+      />
     </div>
   );
 }
-
 export default App;

@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
-import { User, Shield, Lock, Trash2, CheckCircle2, Copy, Check } from 'lucide-react';
+import { User, Shield, Lock, Trash2, CheckCircle2, Copy, Check, LogOut, ArrowRight, UserCheck } from 'lucide-react';
 import { User as UserType } from '../types';
 
 interface SettingsViewProps {
@@ -7,13 +9,15 @@ interface SettingsViewProps {
   isLocked: boolean;
   onToggleLock: () => void;
   onWipeData: () => void;
+  onLogout: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   currentUser,
   isLocked,
   onToggleLock,
-  onWipeData
+  onWipeData,
+  onLogout
 }) => {
   const [copiedIban, setCopiedIban] = useState(false);
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
@@ -42,7 +46,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <div>
             <h3 className="text-[18px] font-bold text-textPrimary">{currentUser.fullName}</h3>
-            <p className="text-[13px] font-mono text-primaryEmerald font-bold">{currentUser.tag}</p>
+            <p className="text-[13px] font-mono text-primaryEmerald font-bold">{currentUser.tag || `@${currentUser.username}`}</p>
             <p className="text-[12px] text-textSecondary">{currentUser.email}</p>
           </div>
         </div>
@@ -50,18 +54,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* IBAN Card */}
         {currentUser.iban && (
           <div className="p-3 rounded-[14px] bg-[#F8FAFC] border border-slate-200 flex items-center justify-between">
-            <div>
+            <div className="truncate mr-2">
               <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">
                 KAYITLI FAST / IBAN NUMARASI
               </span>
-              <span className="text-[13px] font-mono font-bold text-textPrimary select-all">
+              <span className="text-[13px] font-mono font-bold text-textPrimary select-all truncate block">
                 {currentUser.iban}
               </span>
             </div>
 
             <button
               onClick={handleCopyIban}
-              className="p-2 rounded-lg bg-white border border-slate-200 text-textSecondary hover:text-textPrimary"
+              className="p-2 rounded-lg bg-white border border-slate-200 text-textSecondary hover:text-textPrimary flex-shrink-0"
               title="IBAN Kopyala"
             >
               {copiedIban ? <Check className="w-4 h-4 text-primaryEmerald" /> : <Copy className="w-4 h-4" />}
@@ -98,64 +102,69 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
 
         {/* SHA-256 PIN Vault Info */}
-        <div className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-primaryEmerald" />
-            <div>
-              <p className="text-[14px] font-semibold text-textPrimary">SHA-256 Finansal Kasa</p>
-              <p className="text-[12px] text-textSecondary">Tüm işlemler Merkle Tree zincirine bağlıdır</p>
-            </div>
-          </div>
-          <span className="text-[11px] font-bold text-primaryEmerald bg-primaryEmeraldContainer px-2 py-1 rounded-full">
-            Aktif
-          </span>
+        <div className="flex items-center gap-3 py-2 text-[13px] text-textSecondary">
+          <Shield className="w-5 h-5 text-primaryEmerald flex-shrink-0" />
+          <span>4 Haneli Finansal PIN Kodu ve SHA-256 Kasa aktif.</span>
         </div>
       </div>
 
-      {/* KVKK / GDPR Data Erasure */}
+      {/* Session Actions */}
+      <div className="p-5 rounded-[20px] bg-surfaceWhite border border-surfaceBorder shadow-xs space-y-3">
+        <h3 className="text-[13px] font-bold text-textSecondary uppercase tracking-wider">
+          OTURUM VE HESAP YÖNETİMİ
+        </h3>
+
+        <button
+          onClick={onLogout}
+          className="w-full py-3 rounded-[14px] bg-slate-100 text-slate-800 font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-slate-200 active:scale-95 transition"
+        >
+          <LogOut className="w-4 h-4 text-slate-600" />
+          <span>Oturumu Kapat / Hesap Değiştir</span>
+        </button>
+      </div>
+
+      {/* KVKK / GDPR Data Wipe */}
       <div className="p-5 rounded-[20px] bg-surfaceWhite border border-surfaceBorder shadow-xs space-y-3">
         <h3 className="text-[13px] font-bold text-accentRose uppercase tracking-wider">
-          KVKK MADDE 11 UNUTULMA HAKKI
+          KVKK M.11 UNUTULMA HAKKI
         </h3>
+
         <p className="text-[12px] text-textSecondary leading-relaxed">
-          KVKK m.11 ve GDPR standartları uyarınca, dilediğiniz an tek tıkla hesabınıza ait tüm harcama, grup ve bakiye geçmişini kalıcı olarak silebilirsiniz.
+          Tüm harcama geçmişinizi, grup üyeliklerinizi ve bakiye kayıtlarınızı cihazınızdan ve veritabanından kalıcı olarak silebilirsiniz.
         </p>
 
-        {showWipeConfirm ? (
-          <div className="p-3 rounded-xl bg-accentRoseContainer border border-accentRose/20 space-y-2">
-            <p className="text-[12px] font-bold text-accentRose">
-              Tüm verileriniz silinsin mi? Bu işlem geri alınamaz!
+        {!showWipeConfirm ? (
+          <button
+            onClick={() => setShowWipeConfirm(true)}
+            className="w-full py-2.5 rounded-[12px] border border-accentRose/30 text-accentRose text-[13px] font-bold hover:bg-rose-50 active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Tüm Verilerimi Kalıcı Olarak Temizle</span>
+          </button>
+        ) : (
+          <div className="p-4 rounded-[14px] bg-rose-50 border border-rose-200 space-y-3">
+            <p className="text-[12px] font-bold text-rose-800">
+              Emin misiniz? Bu işlem geri alınamaz ve tüm yerel & bulut verileriniz silinir.
             </p>
             <div className="flex items-center gap-2">
               <button
-                onClick={onWipeData}
-                className="px-3 py-1.5 rounded-lg bg-accentRose text-white text-[12px] font-bold"
+                onClick={() => {
+                  onWipeData();
+                  setShowWipeConfirm(false);
+                }}
+                className="flex-1 py-2 rounded-[10px] bg-accentRose text-white text-[12px] font-bold hover:bg-rose-700 transition"
               >
-                Evet, Kalıcı Olarak Sil
+                Evet, Hepsini Sil
               </button>
               <button
                 onClick={() => setShowWipeConfirm(false)}
-                className="px-3 py-1.5 rounded-lg bg-white text-textSecondary text-[12px] font-semibold"
+                className="flex-1 py-2 rounded-[10px] bg-white border border-slate-300 text-textPrimary text-[12px] font-bold hover:bg-slate-100 transition"
               >
-                İptal
+                Vazgeç
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => setShowWipeConfirm(true)}
-            className="px-4 py-2.5 rounded-[12px] bg-accentRoseContainer text-accentRose text-[13px] font-bold flex items-center gap-2 hover:bg-rose-100 active:scale-95 transition"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Tüm Verileri Sıfırla & Hesabı Temizle</span>
-          </button>
         )}
-      </div>
-
-      {/* App Version Info */}
-      <div className="text-center py-3 text-[11px] text-textSecondary">
-        <p className="font-semibold text-textPrimary">AradaPay Web Platformu v1.0</p>
-        <p>ArdaBank FinTech Ecosystem • Next-Gen Material 3</p>
       </div>
     </div>
   );
