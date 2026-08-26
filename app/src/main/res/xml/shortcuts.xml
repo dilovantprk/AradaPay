@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 1. Harcama Ekle -->
+    <shortcut
+        android:shortcutId="shortcut_add_expense"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutShortLabel="@string/shortcut_add_expense_short"
+        android:shortcutLongLabel="@string/shortcut_add_expense_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ardabank.aradapay"
+            android:targetClass="com.ardabank.aradapay.MainActivity"
+            android:data="aradapay://add_expense" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- 2. QR ile Öde -->
+    <shortcut
+        android:shortcutId="shortcut_qr_scan"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_qr"
+        android:shortcutShortLabel="@string/shortcut_qr_short"
+        android:shortcutLongLabel="@string/shortcut_qr_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ardabank.aradapay"
+            android:targetClass="com.ardabank.aradapay.MainActivity"
+            android:data="aradapay://qr_scan" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- 3. Hesap Kapat (Borç Öde) -->
+    <shortcut
+        android:shortcutId="shortcut_settle_up"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_settle"
+        android:shortcutShortLabel="@string/shortcut_settle_short"
+        android:shortcutLongLabel="@string/shortcut_settle_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ardabank.aradapay"
+            android:targetClass="com.ardabank.aradapay.MainActivity"
+            android:data="aradapay://settle_up" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- 4. Kişiler & Arkadaşlar -->
+    <shortcut
+        android:shortcutId="shortcut_friends"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_friends"
+        android:shortcutShortLabel="@string/shortcut_friends_short"
+        android:shortcutLongLabel="@string/shortcut_friends_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ardabank.aradapay"
+            android:targetClass="com.ardabank.aradapay.MainActivity"
+            android:data="aradapay://friends" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+</shortcuts>
