@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { Bell, ShieldCheck } from 'lucide-react';
 import { User } from '../types';
 
 interface TopBarProps {
@@ -23,34 +26,34 @@ export const TopBar: React.FC<TopBarProps> = ({
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 bg-surfaceWhite/95 backdrop-blur-md border-b border-surfaceBorder px-5 py-3 transition-colors">
-      <div className="max-w-2xl mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-30 apple-glass border-b border-black/[0.06] px-5 sm:px-8 py-3 transition-colors">
+      <div className="max-w-5xl mx-auto flex items-center justify-between">
         <div>
-          <p className="text-[12px] font-medium text-textSecondary tracking-normal">
+          <p className="text-[12px] font-semibold text-[#8E8E93] tracking-normal">
             Merhaba, {firstName}
           </p>
-          <h1 className="text-[26px] font-bold text-textPrimary tracking-[-0.5px] leading-tight">
-            AradaPay
+          <h1 className="text-[22px] sm:text-[26px] font-bold text-[#1C1C1E] tracking-tight leading-tight">
+            Arada<span className="text-[#00875A]">Pay</span>
           </h1>
         </div>
 
         <div className="flex items-center gap-3">
-          {hasNudges && (
-            <button
-              onClick={onNotificationClick}
-              className="relative p-2.5 rounded-full bg-primaryEmeraldContainer text-primaryEmerald hover:opacity-80 active:scale-95 transition"
-              title="Bildirimler"
-            >
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-accentRose rounded-full ring-2 ring-white animate-pulse" />
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
-          )}
+          {/* Notification Button */}
+          <button
+            onClick={onNotificationClick}
+            className="relative w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 active:scale-[0.95] transition flex items-center justify-center text-[#1C1C1E]"
+            title="Dürtmeler ve Bildirimler"
+          >
+            {hasNudges && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-[#D32F2F] rounded-full ring-2 ring-white animate-pulse" />
+            )}
+            <Bell className="w-4 h-4 text-[#1C1C1E]" />
+          </button>
 
+          {/* Profile Button */}
           <button
             onClick={onProfileClick}
-            className="w-11 h-11 rounded-full bg-primaryEmeraldContainer border-[1.5px] border-primaryEmerald flex items-center justify-center text-primaryEmerald font-bold text-[14px] active:scale-95 transition shadow-sm"
+            className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-[#00875A] font-bold text-[13px] active:scale-[0.95] transition shadow-apple-sm"
             title={`${user.fullName} (${user.tag || ''})`}
           >
             {user.avatarUrl ? (
@@ -60,7 +63,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              initials
+              <span>{initials}</span>
             )}
           </button>
         </div>

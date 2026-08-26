@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Plus, CreditCard, Send } from 'lucide-react';
 
@@ -13,35 +15,35 @@ export const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
   onRequestMoneyClick
 }) => {
   return (
-    <section className="bg-surfaceWhite px-5 py-3.5 border-b border-surfaceBorder">
-      <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-3">
-        {/* Harcama Ekle Butonu */}
+    <section className="px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        {/* Primary Action: Harcama Ekle */}
         <button
           onClick={onAddExpenseClick}
-          className="w-full sm:flex-1 h-[52px] rounded-[16px] bg-primaryEmerald text-white font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-[0.98] transition shadow-sm"
+          className="w-full sm:flex-1 h-12 rounded-[16px] bg-[#00875A] text-white font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-[0.98] transition shadow-sm shadow-emerald-800/20"
         >
-          <Plus className="w-[18px] h-[18px] stroke-[2.5]" />
+          <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Harcama Ekle</span>
         </button>
 
-        {/* Öde & Fitleş Butonu */}
+        {/* Secondary Action: Öde & Fitleş */}
         <button
           onClick={onSettleUpClick}
-          className="w-full sm:flex-1 h-[52px] rounded-[16px] bg-textPrimary text-white font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-[#1e293b] active:scale-[0.98] transition shadow-sm"
+          className="w-full sm:flex-1 h-12 rounded-[16px] bg-white border border-black/[0.08] text-[#1C1C1E] font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition shadow-apple-sm"
         >
-          <CreditCard className="w-[18px] h-[18px] stroke-[2.2]" />
+          <CreditCard className="w-4 h-4 text-[#8E8E93]" />
           <span>Öde & Fitleş</span>
         </button>
 
-        {/* Para İste & Dürt Butonu (Varsa) */}
+        {/* Nudge / Para İste */}
         {onRequestMoneyClick && (
           <button
             onClick={onRequestMoneyClick}
-            className="w-full sm:w-auto px-4 h-[52px] rounded-[16px] bg-surfaceContainerLow text-textPrimary font-semibold text-[13px] flex items-center justify-center gap-1.5 hover:bg-slate-200 active:scale-[0.98] transition"
-            title="Para İste & Hatırlat"
+            className="w-full sm:w-auto px-4 h-12 rounded-[16px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] font-semibold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] transition"
+            title="Dürt & Hatırlat"
           >
-            <Send className="w-4 h-4 text-textSecondary" />
-            <span className="hidden sm:inline">Para İste</span>
+            <Send className="w-3.5 h-3.5 text-[#8E8E93]" />
+            <span>Dürt</span>
           </button>
         )}
       </div>

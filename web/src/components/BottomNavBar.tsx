@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Home, Users, UserCheck, PieChart, Settings } from 'lucide-react';
 
@@ -18,7 +20,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentTab, onTabCha
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surfaceWhite/95 backdrop-blur-md border-t border-surfaceBorder px-2 py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 apple-glass border-t border-black/[0.06] px-2 py-1.5 lg:hidden select-none pb-[env(safe-area-inset-bottom,8px)]">
       <div className="max-w-md mx-auto flex items-center justify-around">
         {tabs.map((tab) => {
           const isActive = currentTab === tab.key;
@@ -26,21 +28,20 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentTab, onTabCha
             <button
               key={tab.key}
               onClick={() => onTabChange(tab.key)}
-              className="flex flex-col items-center justify-center flex-1 py-1 group active:scale-95 transition"
+              className="flex flex-col items-center justify-center flex-1 py-1 active:scale-[0.92] transition-transform duration-150"
             >
-              {/* M3 Active Indicator Pill */}
               <div
-                className={`w-14 h-8 rounded-full flex items-center justify-center transition-all ${
+                className={`w-10 h-7 rounded-full flex items-center justify-center transition-all ${
                   isActive
-                    ? 'bg-primaryEmeraldContainer text-primaryEmerald'
-                    : 'text-textSecondary group-hover:text-textPrimary'
+                    ? 'text-[#00875A]'
+                    : 'text-[#8E8E93] hover:text-[#1C1C1E]'
                 }`}
               >
                 {tab.icon}
               </div>
               <span
-                className={`text-[11px] font-medium mt-0.5 transition-colors ${
-                  isActive ? 'font-bold text-textPrimary' : 'text-textSecondary'
+                className={`text-[10px] font-medium transition-colors ${
+                  isActive ? 'font-bold text-[#00875A]' : 'text-[#8E8E93]'
                 }`}
               >
                 {tab.label}

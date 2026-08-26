@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { TopBar } from './components/TopBar';
+import { DesktopSidebar } from './components/DesktopSidebar';
 import { FinancialHeroCard } from './components/FinancialHeroCard';
 import { ActionButtonsRow } from './components/ActionButtonsRow';
 import { SmartSettlementBanner } from './components/SmartSettlementBanner';
@@ -19,7 +20,7 @@ import { GroupsView } from './views/GroupsView';
 import { FriendsView } from './views/FriendsView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { SettingsView } from './views/SettingsView';
-import { Download } from 'lucide-react';
+import { Download, Sparkles } from 'lucide-react';
 
 import {
   User,
@@ -196,29 +197,6 @@ export function App() {
     FirestoreService.saveUser(newFriendUser).catch(console.error);
   };
 
-  const handleCreateGroup = (groupData: { name: string; memberIds: string[] }) => {
-    const memberUsers = users.filter((u) => groupData.memberIds.includes(u.id));
-    const newGroup: Group = {
-      id: `group_${Date.now()}`,
-      name: groupData.name,
-      emoji: '👥',
-      category: 'Genel',
-      createdBy: activeUser.id,
-      members: memberUsers.map((u) => ({
-        id: u.id,
-        name: u.fullName,
-        avatar: u.fullName.slice(0, 2).toUpperCase(),
-        tag: u.tag || `@${u.username}`,
-        balanceInGroup: 0
-      })),
-      createdAt: new Date().toISOString(),
-      userBalance: 0,
-      totalExpenses: 0
-    };
-    setGroups((prev) => [newGroup, ...prev]);
-    FirestoreService.saveGroup(newGroup).catch(console.error);
-  };
-
   const handleApproveCrossOffer = (offerId: string) => {
     setCrossOffers((prev) =>
       prev.map((offer) => {
@@ -258,7 +236,7 @@ export function App() {
     setInWebApp(false);
   };
 
-  // 1. If not launched into web app, show high-converting Landing Page
+  // 1. If not launched into web app, show high-converting Apple HIG Landing Page
   if (!inWebApp) {
     return <LandingPage onLaunchWebApp={() => setInWebApp(true)} />;
   }
@@ -275,93 +253,116 @@ export function App() {
     );
   }
 
-  // Active Pending Cross Offer
-  const pendingCrossOffer = crossOffers.find((o) => o.status === 'PENDING');
-
-  // 3. Authenticated 1:1 Android Web App Layout
+  // 3. Authenticated Apple HIG macOS / iOS Web App Layout
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-textPrimary flex flex-col font-sans selection:bg-primaryEmeraldContainer selection:text-primaryEmerald">
-      {/* Top Banner: Native Android APK Prompter */}
-      {!dismissAppBanner && (
-        <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-[12px] shadow-sm z-30">
-          <div className="flex items-center gap-2 max-w-xl truncate">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-            <span className="font-semibold truncate">
-              🚀 <strong>AradaPay Android:</strong> 100ms Kamera QR & Parmak İzi Kasası için uygulamayı yükleyin!
-            </span>
-          </div>
+    <div className="min-h-screen bg-[#F2F2F7] text-[#1C1C1E] flex flex-row font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      {/* ========================================================================= */}
+      {/* A. DESKTOP macOS SIDEBAR (Hidden on mobile < 1024px) */}
+      {/* ========================================================================= */}
+      <DesktopSidebar
+        currentTab={currentTab}
+        onTabChange={(tab) => setCurrentTab(tab)}
+        currentUser={activeUser}
+        onOpenAddExpense={() => setShowAddExpense(true)}
+        onOpenSettleUp={() => setShowSettleUp(true)}
+        onLogout={handleLogout}
+      />
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <a
-              href="/AradaPay.apk"
-              download="AradaPay.apk"
-              className="px-3 py-1 rounded-full bg-primaryEmerald text-white font-bold text-[11px] hover:bg-[#00744d] transition flex items-center gap-1 shadow-2xs"
-            >
-              <Download className="w-3 h-3" />
-              <span>APK İndir</span>
-            </a>
-            <button
-              onClick={() => setDismissAppBanner(true)}
-              className="text-slate-400 hover:text-white px-1.5 py-0.5 text-[14px]"
-            >
-              ✕
-            </button>
+      {/* ========================================================================= */}
+      {/* B. MAIN VIEWPORT & WORKSPACE */}
+      {/* ========================================================================= */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        {/* Top Banner (Native APK Prompter) */}
+        {!dismissAppBanner && (
+          <div className="bg-[#1C1C1E] text-white px-4 sm:px-8 py-2 flex items-center justify-between text-[12px] z-30">
+            <div className="flex items-center gap-2 truncate">
+              <span className="w-2 h-2 rounded-full bg-[#00875A] animate-pulse flex-shrink-0" />
+              <span className="font-semibold truncate text-[12px]">
+                📱 <strong>AradaPay Android:</strong> 100ms Kamera QR & Parmak İzi Kasası için uygulamayı yükleyin!
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <a
+                href="/AradaPay.apk"
+                download="AradaPay.apk"
+                className="px-3 py-1 rounded-full bg-[#00875A] text-white font-bold text-[11px] hover:bg-[#00744d] transition flex items-center gap-1 shadow-apple-sm"
+              >
+                <Download className="w-3 h-3" />
+                <span>APK İndir</span>
+              </a>
+              <button
+                onClick={() => setDismissAppBanner(true)}
+                className="text-[#8E8E93] hover:text-white px-1.5 py-0.5 text-[14px]"
+              >
+                ✕
+              </button>
+            </div>
           </div>
+        )}
+
+        {/* Mobile / Tablet Top Bar (Hidden on desktop if preferred, or provides global identity) */}
+        <div className="lg:hidden">
+          <TopBar
+            user={activeUser}
+            onProfileClick={() => setCurrentTab('settings')}
+            hasNudges={nudges.length > 0}
+          />
         </div>
-      )}
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full bg-[#F8FAFC]">
-        {/* Top Bar */}
-        <TopBar
-          user={activeUser}
-          onProfileClick={() => setCurrentTab('settings')}
-          hasNudges={nudges.length > 0}
-        />
-
-        {/* View Routing */}
-        <main className="flex-1">
+        {/* Main Content Area */}
+        <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-8 py-6 pb-28 lg:pb-12 space-y-6">
           {currentTab === 'dashboard' && (
-            <div className="space-y-4 pb-28">
-              {/* Financial Hero Card */}
-              <FinancialHeroCard
-                netBalance={balanceSummary.netBalance}
-                totalReceivable={balanceSummary.totalReceivable}
-                totalPayable={balanceSummary.totalPayable}
-                isLocked={isLocked}
-                onToggleLock={() => setIsLocked(!isLocked)}
-              />
+            <div className="space-y-6">
+              {/* Responsive Grid on Desktop */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left Column: Balance & Primary Actions */}
+                <div className="lg:col-span-7 space-y-6">
+                  {/* Financial Hero Card */}
+                  <FinancialHeroCard
+                    netBalance={balanceSummary.netBalance}
+                    totalReceivable={balanceSummary.totalReceivable}
+                    totalPayable={balanceSummary.totalPayable}
+                    isLocked={isLocked}
+                    onToggleLock={() => setIsLocked(!isLocked)}
+                  />
 
-              {/* Action Buttons Row */}
-              <ActionButtonsRow
-                onAddExpenseClick={() => setShowAddExpense(true)}
-                onSettleUpClick={() => setShowSettleUp(true)}
-                onRequestMoneyClick={() => setShowRequestMoney(true)}
-              />
+                  {/* Action Buttons Row (Mobile/Tablet visible, desktop quick trigger) */}
+                  <div className="lg:hidden">
+                    <ActionButtonsRow
+                      onAddExpenseClick={() => setShowAddExpense(true)}
+                      onSettleUpClick={() => setShowSettleUp(true)}
+                      onRequestMoneyClick={() => setShowRequestMoney(true)}
+                    />
+                  </div>
 
-              {/* Smart Settlement Banner (DFS Cycle Detection) */}
-              <SmartSettlementBanner
-                offers={crossOffers}
-                currentUserId={activeUser.id}
-                onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
-              />
+                  {/* Smart Settlement Banner (DFS Cycle Detection) */}
+                  <SmartSettlementBanner
+                    offers={crossOffers}
+                    currentUserId={activeUser.id}
+                    onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
+                  />
+                </div>
 
-              {/* Transactions List */}
-              <TransactionsList
-                expenses={expenses}
-                currentUserId={activeUser.id}
-                isLocked={isLocked}
-                onSeeAllClick={() => setCurrentTab('analytics')}
-                onExpenseClick={(exp) => {
-                  const payer = users.find((u) => u.id === exp.paidBy);
-                  setSelectedReceipt({
-                    txId: exp.id,
-                    payerName: payer?.fullName || 'Ödeyen',
-                    receiverName: activeUser.fullName,
-                    amount: exp.amount
-                  });
-                }}
-              />
+                {/* Right Column: Transactions List */}
+                <div className="lg:col-span-5 space-y-6">
+                  <TransactionsList
+                    expenses={expenses}
+                    currentUserId={activeUser.id}
+                    isLocked={isLocked}
+                    onSeeAllClick={() => setCurrentTab('analytics')}
+                    onExpenseClick={(exp) => {
+                      const payer = users.find((u) => u.id === exp.paidBy);
+                      setSelectedReceipt({
+                        txId: exp.id,
+                        payerName: payer?.fullName || 'Ödeyen',
+                        receiverName: activeUser.fullName,
+                        amount: exp.amount
+                      });
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -413,13 +414,17 @@ export function App() {
         </main>
       </div>
 
-      {/* Material 3 Bottom Navigation Bar */}
+      {/* ========================================================================= */}
+      {/* C. MOBILE iOS BOTTOM TAB BAR (Hidden on desktop lg:hidden) */}
+      {/* ========================================================================= */}
       <BottomNavBar
         currentTab={currentTab}
         onTabChange={(tab) => setCurrentTab(tab)}
       />
 
-      {/* Modals & Drawers */}
+      {/* ========================================================================= */}
+      {/* D. APPLE HIG MODALS & SHEETS */}
+      {/* ========================================================================= */}
       <AddExpenseModal
         isOpen={showAddExpense}
         onClose={() => setShowAddExpense(false)}
