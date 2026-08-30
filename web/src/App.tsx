@@ -23,7 +23,7 @@ import { GroupsView } from './views/GroupsView';
 import { FriendsView } from './views/FriendsView';
 import { GroupDetailView } from './views/GroupDetailView';
 import { FriendDetailView } from './views/FriendDetailView';
-import { AnalyticsView } from './views/AnalyticsView';
+import { ActivityView } from './views/ActivityView';
 import { SettingsView } from './views/SettingsView';
 import { Download, Bell, Plus, CreditCard, Send, Sparkles, Shield, Eye, EyeOff } from 'lucide-react';
 
@@ -353,10 +353,10 @@ export function App() {
                 : currentTab === 'groups'
                 ? 'Gruplarım'
                 : currentTab === 'friends'
-                ? 'Arkadaşlarım'
-                : currentTab === 'analytics'
-                ? 'Finansal Analiz & DFS Raporu'
-                : 'Ayarlar & Güvenlik Kasası'}
+                ? 'Arkadaşlar'
+                : currentTab === 'activity'
+                ? 'Hareketler'
+                : 'Ayarlar'}
             </span>
           </div>
 
@@ -398,7 +398,7 @@ export function App() {
 
             {/* Notification Badge */}
             <button
-              onClick={() => handleTabChange('analytics')}
+              onClick={() => handleTabChange('activity')}
               className="relative p-2 rounded-[8px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] transition"
               title="Dürtmeler ve Bildirimler"
             >
@@ -520,7 +520,7 @@ export function App() {
                         expenses={expenses}
                         currentUserId={activeUser.id}
                         isLocked={isLocked}
-                        onSeeAllClick={() => handleTabChange('analytics')}
+                        onSeeAllClick={() => handleTabChange('activity')}
                         onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
                       />
                     </div>
@@ -566,22 +566,27 @@ export function App() {
                 />
               )}
 
-              {currentTab === 'analytics' && (
-                <AnalyticsView
+              {currentTab === 'activity' && (
+                <ActivityView
                   expenses={expenses}
                   settlements={settlements}
-                  currentUserId={activeUser.id}
-                  isLocked={isLocked}
-                  crossOffers={crossOffers}
+                  nudges={nudges}
                   currentUser={activeUser}
                   users={users}
-                  onOpenReceipt={(txId) => {
+                  isLocked={isLocked}
+                  onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
+                  onReceiptClick={(txId) => {
                     setSelectedReceipt({
                       txId,
                       payerName: activeUser.fullName,
-                      receiverName: 'Mahsuplaşma Grubu',
-                      amount: crossOffers[0]?.cycleAmount || 0
+                      receiverName: 'Alıcı',
+                      amount: 0
                     });
+                  }}
+                  onSettleClick={(targetUser, amount) => {
+                    setSettlePreselectedUser(targetUser);
+                    setSettleInitialAmount(amount);
+                    setShowSettleUp(true);
                   }}
                 />
               )}

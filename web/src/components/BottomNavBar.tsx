@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, Users, UserCheck, PieChart, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, Receipt, Settings } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'groups' | 'friends' | 'analytics' | 'settings';
+export type NavTab = 'dashboard' | 'groups' | 'friends' | 'activity' | 'settings';
 
 interface BottomNavBarProps {
   currentTab: NavTab;
@@ -12,15 +12,15 @@ interface BottomNavBarProps {
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentTab, onTabChange }) => {
   const tabs: { key: NavTab; label: string; icon: React.ReactNode }[] = [
-    { key: 'dashboard', label: 'Ana Panel', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { key: 'dashboard', label: 'Ana Sayfa', icon: <LayoutDashboard className="w-5 h-5" /> },
     { key: 'groups', label: 'Gruplar', icon: <Users className="w-5 h-5" /> },
     { key: 'friends', label: 'Arkadaşlar', icon: <UserCheck className="w-5 h-5" /> },
-    { key: 'analytics', label: 'Analiz', icon: <PieChart className="w-5 h-5" /> },
-    { key: 'settings', label: 'Kasa', icon: <Settings className="w-5 h-5" /> },
+    { key: 'activity', label: 'Hareketler', icon: <Receipt className="w-5 h-5" /> },
+    { key: 'settings', label: 'Ayarlar', icon: <Settings className="w-5 h-5" /> },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 ios-tab-bar border-t border-black/[0.08] px-2 pt-2 lg:hidden select-none pb-[max(env(safe-area-inset-bottom),10px)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 ios-tab-bar border-t border-black/[0.08] px-2 pt-2 md:hidden select-none pb-[max(env(safe-area-inset-bottom),10px)]">
       <div className="max-w-md mx-auto flex items-center justify-around">
         {tabs.map((tab) => {
           const isActive = currentTab === tab.key;

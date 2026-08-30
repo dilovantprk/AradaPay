@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Users,
   UserCheck,
-  PieChart,
+  Receipt,
   Settings,
   Plus,
   CreditCard,
@@ -15,8 +15,7 @@ import {
   ShieldCheck,
   Sparkles,
   Command,
-  Search,
-  Receipt
+  Search
 } from 'lucide-react';
 import { NavTab } from './BottomNavBar';
 import { User } from '../types';
@@ -42,27 +41,27 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     {
       section: 'GENEL BAKIŞ',
       items: [
-        { id: 'dashboard' as NavTab, label: 'Ana Panel', icon: LayoutDashboard, badge: null }
+        { id: 'dashboard' as NavTab, label: 'Ana Sayfa', icon: LayoutDashboard, badge: null }
       ]
     },
     {
       section: 'SOSYAL FİNANS',
       items: [
-        { id: 'groups' as NavTab, label: 'Gruplarım', icon: Users, badge: null },
+        { id: 'groups' as NavTab, label: 'Gruplar', icon: Users, badge: null },
         { id: 'friends' as NavTab, label: 'Arkadaşlar', icon: UserCheck, badge: null }
       ]
     },
     {
-      section: 'ANALİZ & GÜVENLİK',
+      section: 'İŞLEMLER & GÜVENLİK',
       items: [
-        { id: 'analytics' as NavTab, label: 'Finansal Analiz', icon: PieChart, badge: 'DFS' },
-        { id: 'settings' as NavTab, label: 'Ayarlar & Kasa', icon: Settings, badge: null }
+        { id: 'activity' as NavTab, label: 'Hareketler', icon: Receipt, badge: 'FAST' },
+        { id: 'settings' as NavTab, label: 'Ayarlar', icon: Settings, badge: null }
       ]
     }
   ];
 
   return (
-    <aside className="hidden lg:flex w-72 h-screen sticky top-0 flex-col bg-[#EEEEF0]/80 backdrop-blur-3xl border-r border-black/[0.08] select-none z-40">
+    <aside className="hidden md:flex w-72 h-screen sticky top-0 flex-col bg-[#EEEEF0]/80 backdrop-blur-3xl border-r border-black/[0.08] select-none z-40">
       {/* 1. macOS Window Traffic Lights & App Brand Header */}
       <div className="p-5 pb-3">
         <div className="flex items-center gap-2 mb-4">
