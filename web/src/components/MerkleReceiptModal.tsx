@@ -67,10 +67,10 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-surfaceWhite w-full max-w-md rounded-[28px] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+      <div className="bg-surfaceWhite w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-md rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-surfaceBorder flex items-center justify-between">
+        <div className="px-6 pt-[max(env(safe-area-inset-top),16px)] pb-4 border-b border-surfaceBorder flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="w-8 h-8 rounded-full bg-primaryEmeraldContainer flex items-center justify-center text-primaryEmerald font-bold text-[12px]">
               AP

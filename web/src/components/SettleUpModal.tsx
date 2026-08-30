@@ -116,10 +116,10 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white w-full max-w-lg rounded-[28px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-white">
+        <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-4 border-b border-slate-200 flex items-center justify-between bg-white flex-shrink-0">
           <button
             onClick={onClose}
             className="w-10 h-10 rounded-[12px] bg-slate-100 flex items-center justify-center text-slate-800 hover:bg-slate-200 active:scale-95 transition"

@@ -57,10 +57,10 @@ export const RequestMoneyDrawer: React.FC<RequestMoneyDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-surfaceWhite w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+      <div className="bg-surfaceWhite w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-surfaceBorder flex items-center justify-between">
+        <div className="px-6 pt-[max(env(safe-area-inset-top),16px)] pb-4 border-b border-surfaceBorder flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <Send className="w-5 h-5 text-primaryEmerald" />
             <h2 className="text-[18px] font-bold text-textPrimary">Para İste & Hatırlat</h2>

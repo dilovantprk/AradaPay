@@ -207,11 +207,9 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
 
       {/* Create Group Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-white w-full max-w-lg rounded-t-[32px] sm:rounded-[28px] shadow-apple-modal border border-black/[0.08] overflow-hidden flex flex-col max-h-[92vh] animate-appleSheet">
-            <div className="w-12 h-1.5 bg-black/15 rounded-full mx-auto mt-3 sm:hidden" />
-
-            <div className="px-5 py-3.5 border-b border-black/[0.06] flex items-center justify-between bg-white/80 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-apple-modal border-0 sm:border border-black/[0.08] overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
+            <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-3.5 border-b border-black/[0.06] flex items-center justify-between bg-white/80 backdrop-blur-md flex-shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-[#1C1C1E]"
