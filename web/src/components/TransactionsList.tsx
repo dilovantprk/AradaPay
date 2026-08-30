@@ -53,7 +53,7 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
     <section className="px-4 sm:px-0 space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-[12px] font-bold text-[#8E8E93] tracking-[0.05em] uppercase">
+        <span className="text-[12px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
           SON HAREKETLER & MASRAFLAR
         </span>
         <button
@@ -64,81 +64,79 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
         </button>
       </div>
 
-      {/* Grouped Inset Card */}
-      <div className="apple-card overflow-hidden">
+      {/* Grouped Inset Stream */}
+      <div className="bg-white rounded-[20px] border border-slate-200/80 divide-y divide-slate-100 overflow-hidden shadow-sm">
         {expenses.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <CheckCircle2 className="w-10 h-10 text-[#00875A] mb-2 stroke-[2]" />
-            <p className="text-[15px] font-bold text-[#1C1C1E]">
+            <p className="text-[15px] font-bold text-[#0F172A]">
               Bekleyen Ödeme Yok
             </p>
-            <p className="text-[13px] text-[#8E8E93] mt-0.5 max-w-xs">
+            <p className="text-[13px] text-[#64748B] mt-0.5 max-w-xs">
               Tüm grup masrafları dengede ve fitleşildi.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-black/[0.04]">
-            {expenses.slice(0, 6).map((expense) => {
-              const isPayer = expense.paidBy === currentUserId;
-              const mySplit = expense.splits.find((s) => s.userId === currentUserId);
-              const myAmount = isPayer
-                ? expense.amount - (mySplit?.amountOwed || 0)
-                : mySplit?.amountOwed || (expense.amount / Math.max(1, expense.splits.length));
+          expenses.slice(0, 6).map((expense) => {
+            const isPayer = expense.paidBy === currentUserId;
+            const mySplit = expense.splits.find((s) => s.userId === currentUserId);
+            const myAmount = isPayer
+              ? expense.amount - (mySplit?.amountOwed || 0)
+              : mySplit?.amountOwed || (expense.amount / Math.max(1, expense.splits.length));
 
-              const isPositive = isPayer;
+            const isPositive = isPayer;
 
-              return (
-                <div
-                  key={expense.id}
-                  onClick={() => onExpenseClick(expense)}
-                  className="flex items-center justify-between p-4 hover:bg-black/[0.02] active:bg-black/[0.04] cursor-pointer transition select-none"
-                >
-                  {/* Left: Category Icon & Details */}
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-10 h-10 rounded-[14px] bg-[#F2F2F7] flex items-center justify-center flex-shrink-0">
-                      {getCategoryIcon(expense.category)}
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="text-[15px] font-semibold text-[#1C1C1E] truncate">
-                        {expense.description}
-                      </p>
-                      <p className="text-[12px] text-[#8E8E93] truncate">
-                        {expense.date || new Date(expense.createdAt).toLocaleDateString('tr-TR')} • {expense.splits.length} kişi
-                      </p>
-                    </div>
+            return (
+              <div
+                key={expense.id}
+                onClick={() => onExpenseClick(expense)}
+                className="flex items-center justify-between p-4 hover:bg-slate-50 active:bg-slate-100 cursor-pointer transition select-none"
+              >
+                {/* Left: Category Icon & Details */}
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-[12px] bg-[#F1F5F9] flex items-center justify-center flex-shrink-0">
+                    {getCategoryIcon(expense.category)}
                   </div>
 
-                  {/* Right: Amount & Status */}
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                    <div className="text-right">
-                      <span
-                        className={`text-[11px] font-semibold block ${
-                          isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
-                        }`}
-                      >
-                        {isPositive ? 'alacaklısın' : 'borçlusun'}
-                      </span>
-                      <span
-                        className={`text-[14px] font-black font-tabular block ${
-                          isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
-                        }`}
-                      >
-                        {isLocked
-                          ? '•••• ₺'
-                          : `${isPositive ? '+' : '-'} ${myAmount.toLocaleString('tr-TR', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })} ₺`}
-                      </span>
-                    </div>
-
-                    <ChevronRight className="w-4 h-4 text-[#C7C7CC]" />
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold text-[#0F172A] truncate">
+                      {expense.description}
+                    </p>
+                    <p className="text-[12px] text-[#64748B] truncate">
+                      {expense.date || new Date(expense.createdAt).toLocaleDateString('tr-TR')} • {expense.splits.length} kişi
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Right: Amount & Status */}
+                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                  <div className="text-right">
+                    <span
+                      className={`text-[10px] font-semibold block uppercase tracking-wider ${
+                        isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
+                      }`}
+                    >
+                      {isPositive ? 'alacaklısın' : 'borçlusun'}
+                    </span>
+                    <span
+                      className={`text-[15px] font-black font-tabular block ${
+                        isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
+                      }`}
+                    >
+                      {isLocked
+                        ? '•••• ₺'
+                        : `${isPositive ? '+' : '-'} ${myAmount.toLocaleString('tr-TR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })} ₺`}
+                    </span>
+                  </div>
+
+                  <ChevronRight className="w-4 h-4 text-[#94A3B8]" />
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </section>

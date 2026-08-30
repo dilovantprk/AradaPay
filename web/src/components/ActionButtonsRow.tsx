@@ -16,33 +16,32 @@ export const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
 }) => {
   return (
     <section className="px-4 sm:px-0">
-      <div className="flex flex-col sm:flex-row items-center gap-3">
+      <div className="grid grid-cols-3 gap-2.5">
         {/* Primary Action: Harcama Ekle */}
         <button
           onClick={onAddExpenseClick}
-          className="w-full sm:flex-1 h-12 rounded-[16px] bg-[#00875A] text-white font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-[0.98] transition shadow-sm shadow-emerald-800/20"
+          className="h-12 rounded-[14px] bg-[#00875A] text-white font-bold text-[13px] flex items-center justify-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-900/10"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Harcama Ekle</span>
+          <span>Harcama</span>
         </button>
 
         {/* Secondary Action: Öde & Fitleş */}
         <button
           onClick={onSettleUpClick}
-          className="w-full sm:flex-1 h-12 rounded-[16px] bg-white border border-black/[0.08] text-[#1C1C1E] font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition shadow-apple-sm"
+          className="h-12 rounded-[14px] bg-white border border-slate-200 text-[#0F172A] font-bold text-[13px] flex items-center justify-center gap-1.5 hover:bg-slate-50 active:scale-95 transition shadow-2xs"
         >
-          <CreditCard className="w-4 h-4 text-[#8E8E93]" />
-          <span>Öde & Fitleş</span>
+          <CreditCard className="w-4 h-4 text-[#00875A]" />
+          <span>Fitleş</span>
         </button>
 
         {/* Nudge / Para İste */}
         {onRequestMoneyClick && (
           <button
             onClick={onRequestMoneyClick}
-            className="w-full sm:w-auto px-4 h-12 rounded-[16px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] font-semibold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] transition"
-            title="Dürt & Hatırlat"
+            className="h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-slate-200 text-[#0F172A] font-bold text-[13px] flex items-center justify-center gap-1.5 active:scale-95 transition"
           >
-            <Send className="w-3.5 h-3.5 text-[#8E8E93]" />
+            <Send className="w-3.5 h-3.5 text-[#64748B]" />
             <span>Dürt</span>
           </button>
         )}

@@ -193,32 +193,32 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
     <div className="space-y-5 text-left animate-fadeIn">
       {/* Header */}
       <div className="px-1">
-        <h2 className="text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">Hareketler</h2>
-        <p className="text-[13px] text-[#8E8E93]">Tüm harcama, FAST fitleşme ve ödeme hatırlatma geçmişi</p>
+        <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Hareketler</h2>
+        <p className="text-[13px] text-[#64748B]">Tüm harcama, FAST fitleşme ve ödeme hatırlatma geçmişi</p>
       </div>
 
-      {/* Search & Filter Bar (With Clean Icons on all Chips) */}
+      {/* Search & Filter Bar */}
       <div className="space-y-3">
         {/* Search */}
         <div className="relative">
-          <Search className="w-4 h-4 text-[#8E8E93] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="İşlem veya kişi ara..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-black/[0.08] text-[13px] font-medium text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
+            className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-slate-200 text-[13px] font-medium text-[#0F172A] focus:outline-none focus:border-[#00875A]"
           />
         </div>
 
-        {/* Filter Pills with Icons and zero visible scrollbars */}
+        {/* Filter Pills with Icons */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button
             onClick={() => setFilter('ALL')}
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'ALL'
                 ? 'bg-[#00875A] text-white shadow-2xs'
-                : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
+                : 'bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50'
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
@@ -230,7 +230,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'RECEIVABLES'
                 ? 'bg-[#00875A] text-white shadow-2xs'
-                : 'bg-white border border-black/[0.08] text-[#00875A] hover:bg-slate-50'
+                : 'bg-white border border-slate-200 text-[#00875A] hover:bg-slate-50'
             }`}
           >
             <ArrowDownLeft className="w-3.5 h-3.5" />
@@ -242,7 +242,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'PAYABLES'
                 ? 'bg-[#D32F2F] text-white shadow-2xs'
-                : 'bg-white border border-black/[0.08] text-[#D32F2F] hover:bg-slate-50'
+                : 'bg-white border border-slate-200 text-[#D32F2F] hover:bg-slate-50'
             }`}
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -254,7 +254,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'SETTLEMENTS'
                 ? 'bg-[#00875A] text-white shadow-2xs'
-                : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
+                : 'bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50'
             }`}
           >
             <CreditCard className="w-3.5 h-3.5 text-[#00875A]" />
@@ -266,7 +266,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'REQUESTS'
                 ? 'bg-[#6366F1] text-white shadow-2xs'
-                : 'bg-white border border-black/[0.08] text-[#6366F1] hover:bg-slate-50'
+                : 'bg-white border border-slate-200 text-[#6366F1] hover:bg-slate-50'
             }`}
           >
             <Bell className="w-3.5 h-3.5 text-[#6366F1]" />
@@ -275,16 +275,16 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
         </div>
       </div>
 
-      {/* Activity Timeline Items */}
-      <div className="space-y-3">
-        {filteredActivities.length === 0 ? (
-          <div className="apple-card p-10 text-center space-y-2">
-            <History className="w-8 h-8 text-[#8E8E93] mx-auto opacity-50" />
-            <p className="text-[14px] font-semibold text-[#1C1C1E]">Kayıtlı hareket bulunamadı</p>
-            <p className="text-[12px] text-[#8E8E93]">Seçilen filtre kriterlerine uygun işlem kaydı yok.</p>
-          </div>
-        ) : (
-          filteredActivities.map((act) => {
+      {/* Activity Timeline (Unified Grouped Stream - NO card-in-card!) */}
+      {filteredActivities.length === 0 ? (
+        <div className="bg-white rounded-[20px] border border-slate-200/80 p-10 text-center space-y-2 shadow-sm">
+          <History className="w-8 h-8 text-[#94A3B8] mx-auto opacity-50" />
+          <p className="text-[14px] font-semibold text-[#0F172A]">Kayıtlı hareket bulunamadı</p>
+          <p className="text-[12px] text-[#64748B]">Seçilen filtre kriterlerine uygun işlem kaydı yok.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-[20px] border border-slate-200/80 divide-y divide-slate-100 overflow-hidden shadow-sm">
+          {filteredActivities.map((act) => {
             const formattedDate = new Date(act.date).toLocaleDateString('tr-TR', {
               day: 'numeric',
               month: 'short',
@@ -302,10 +302,10 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
                     onReceiptClick(act.rawSettlement.id);
                   }
                 }}
-                className="apple-card p-4 hover:border-black/[0.1] active:scale-[0.99] cursor-pointer transition flex items-center justify-between"
+                className="p-4 hover:bg-slate-50 active:bg-slate-100 cursor-pointer transition flex items-center justify-between"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-[16px] bg-[#F2F2F7] border border-black/[0.04] flex items-center justify-center text-[18px] shadow-2xs flex-shrink-0">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-[12px] bg-[#F1F5F9] flex items-center justify-center text-[18px] flex-shrink-0">
                     {act.type === 'EXPENSE' ? (
                       getCategoryIcon(act.category || 'OTHER')
                     ) : act.type === 'SETTLEMENT' ? (
@@ -315,15 +315,15 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
                     )}
                   </div>
 
-                  <div>
-                    <h3 className="text-[15px] font-bold text-[#1C1C1E] line-clamp-1">{act.title}</h3>
-                    <p className="text-[12px] text-[#8E8E93] mt-0.5 line-clamp-1">
+                  <div className="min-w-0">
+                    <h3 className="text-[14px] font-bold text-[#0F172A] truncate">{act.title}</h3>
+                    <p className="text-[12px] text-[#64748B] mt-0.5 truncate">
                       {formattedDate} • {act.subtitle}
                     </p>
                   </div>
                 </div>
 
-                <div className="text-right flex items-center gap-3 flex-shrink-0 ml-2">
+                <div className="text-right flex items-center gap-3 flex-shrink-0 ml-3">
                   <div>
                     {act.type !== 'NUDGE' ? (
                       <>
@@ -339,23 +339,23 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
                                 maximumFractionDigits: 2
                               })} ₺`}
                         </span>
-                        <span className="text-[10px] text-[#8E8E93] block capitalize">
+                        <span className="text-[10px] text-[#64748B] block capitalize">
                           {act.statusText}
                         </span>
                       </>
                     ) : (
-                      <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold">
+                      <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">
                         Dürtme
                       </span>
                     )}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#C7C7CC]" />
+                  <ChevronRight className="w-4 h-4 text-[#94A3B8]" />
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 };

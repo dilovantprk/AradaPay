@@ -15,7 +15,7 @@ interface GroupsViewProps {
   onSaveGroup: (group: Group) => void;
 }
 
-const GROUP_CATEGORIES = ['Tümü', 'Ev & Yaşam', 'Tatil & Seyahat', 'Yemek & Kafe', 'Etkinlik', 'Genel'];
+const GROUP_CATEGORIES = ['Tümü', 'Ev & Yaşam', 'Tatil & Seyahat', 'Yemek & Kafe', 'Etkinlik & Festival', 'Genel'];
 
 export const GroupsView: React.FC<GroupsViewProps> = ({
   groups,
@@ -30,6 +30,8 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Form State
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupEmoji, setNewGroupEmoji] = useState('🏠');
   const [newGroupCategory, setNewGroupCategory] = useState('Ev & Yaşam');
@@ -38,10 +40,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   const filteredGroups = useMemo(() => {
     return groups.filter((g) => {
       const matchesCat = selectedCategory === 'Tümü' || g.category === selectedCategory;
-      const matchesSearch = searchQuery
-        ? g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (g.category && g.category.toLowerCase().includes(searchQuery.toLowerCase()))
-        : true;
+      const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCat && matchesSearch;
     });
   }, [groups, selectedCategory, searchQuery]);
@@ -50,34 +49,34 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
     e.preventDefault();
     if (!newGroupName.trim()) return;
 
-    const groupMembers = selectedMemberIds.map((id) => {
-      const u = users.find((user) => user.id === id);
+    const newGroupMembers = selectedMemberIds.map((id) => {
+      const u = users.find((user) => user.id === id) || currentUser;
       return {
-        id,
-        name: u?.fullName || id,
-        avatar: u?.fullName.substring(0, 2).toUpperCase() || 'AP',
-        tag: u?.tag || '',
-        balanceInGroup: 0.0
+        id: u.id,
+        name: u.fullName,
+        avatar: u.avatarUrl || '',
+        tag: u.tag || '@' + u.username,
+        balanceInGroup: 0
       };
     });
 
     const newGroup: Group = {
       id: `group_${Date.now()}`,
       name: newGroupName.trim(),
-      emoji: newGroupEmoji,
+      emoji: newGroupEmoji || '👥',
       category: newGroupCategory,
+      members: newGroupMembers,
       createdBy: currentUser.id,
       createdAt: new Date().toISOString(),
-      userBalance: 0.0,
-      totalExpenses: 0.0,
-      members: groupMembers
+      userBalance: 0,
+      totalExpenses: 0
     };
 
     onSaveGroup(newGroup);
     setShowCreateModal(false);
     setNewGroupName('');
+    setNewGroupEmoji('🏠');
     setSelectedMemberIds([currentUser.id]);
-    onSelectGroup(newGroup);
   };
 
   return (
@@ -85,34 +84,34 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div>
-          <h2 className="text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">Gruplar</h2>
-          <p className="text-[13px] text-[#8E8E93]">Ortak ev, tatil, yemek ve arkadaş harcamaları</p>
+          <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Gruplar</h2>
+          <p className="text-[13px] text-[#64748B]">Ortak ev, tatil, yemek ve arkadaş harcamaları</p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 rounded-full bg-[#00875A] text-white text-[13px] font-bold flex items-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-800/20"
+          className="px-4 py-2 rounded-[12px] bg-[#00875A] text-white text-[13px] font-bold flex items-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-900/10"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Grup Kur</span>
         </button>
       </div>
 
-      {/* Search & Category Filter Bar (1:1 Android GroupsScreen.kt) */}
+      {/* Search & Category Filter Bar */}
       <div className="space-y-3">
         {/* Search */}
         <div className="relative">
-          <Search className="w-4 h-4 text-[#8E8E93] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Grup ara (örn: Kadıköy Evi)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-black/[0.08] text-[13px] font-medium text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
+            className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-slate-200 text-[13px] font-medium text-[#0F172A] focus:outline-none focus:border-[#00875A]"
           />
         </div>
 
-        {/* Category Pills with Icons and zero visible scrollbar */}
+        {/* Category Pills with Icons */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {GROUP_CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat;
@@ -140,7 +139,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
                   isSelected
                     ? 'bg-[#00875A] text-white shadow-2xs'
-                    : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
+                    : 'bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50'
                 }`}
               >
                 {getIcon()}
@@ -151,21 +150,21 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
         </div>
       </div>
 
-      {/* Groups Grid / List */}
-      <div className="space-y-3">
-        {filteredGroups.length === 0 ? (
-          <div className="apple-card p-10 text-center space-y-3">
-            <p className="text-[14px] text-[#8E8E93]">Aranan kriterlere uygun grup bulunamadı.</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 rounded-full bg-[#00875A] text-white text-[13px] font-bold inline-flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Yeni Grup Kur</span>
-            </button>
-          </div>
-        ) : (
-          filteredGroups.map((group) => {
+      {/* Groups List (Unified Grouped Stream - NO card-in-card!) */}
+      {filteredGroups.length === 0 ? (
+        <div className="bg-white rounded-[20px] border border-slate-200/80 p-10 text-center space-y-3 shadow-sm">
+          <p className="text-[14px] text-[#64748B]">Aranan kriterlere uygun grup bulunamadı.</p>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 rounded-[12px] bg-[#00875A] text-white text-[13px] font-bold inline-flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Yeni Grup Kur</span>
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-[20px] border border-slate-200/80 divide-y divide-slate-100 overflow-hidden shadow-sm">
+          {filteredGroups.map((group) => {
             const groupExp = expenses.filter((e) => e.groupId === group.id);
             const totalSpend = groupExp.reduce((sum, e) => sum + e.amount, 0);
 
@@ -187,44 +186,45 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
               <div
                 key={group.id}
                 onClick={() => onSelectGroup(group)}
-                className="apple-card p-5 hover:border-black/[0.1] active:scale-[0.99] cursor-pointer transition flex items-center justify-between"
+                className="p-4 hover:bg-slate-50 active:bg-slate-100 cursor-pointer transition flex items-center justify-between"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-13 h-13 rounded-[18px] bg-[#F2F2F7] border border-black/[0.04] flex items-center justify-center text-[26px] shadow-2xs">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-11 h-11 rounded-[14px] bg-slate-100 border border-slate-200/60 flex items-center justify-center text-[22px] shadow-2xs flex-shrink-0">
                     {group.emoji}
                   </div>
-                  <div>
-                    <h3 className="text-[16px] font-bold text-[#1C1C1E]">{group.name}</h3>
-                    <p className="text-[12px] text-[#8E8E93] mt-0.5">
+                  <div className="min-w-0">
+                    <h3 className="text-[14px] font-bold text-[#0F172A] truncate">{group.name}</h3>
+                    <p className="text-[12px] text-[#64748B] mt-0.5 truncate">
                       {group.category || 'Genel'} • {group.members.length} üye • {totalSpend.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ harcama
                     </p>
                   </div>
                 </div>
 
-                <div className="text-right flex items-center gap-3">
+                <div className="text-right flex items-center gap-3 flex-shrink-0 ml-3">
                   <div>
                     <span
-                      className={`text-[14px] font-black font-tabular block ${
+                      className={`text-[15px] font-black font-tabular block ${
                         isPos ? 'text-[#00875A]' : 'text-[#D32F2F]'
                       }`}
                     >
                       {isLocked
                         ? '•••• ₺'
                         : `${isPos ? '+' : ''}${myBal.toLocaleString('tr-TR', {
-                            minimumFractionDigits: 2
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
                           })} ₺`}
                     </span>
-                    <span className="text-[10px] text-[#8E8E93]">
-                      {Math.abs(myBal) < 0.01 ? 'Denk' : isPos ? 'Alacaklı' : 'Borçlu'}
+                    <span className="text-[10px] text-[#64748B] block">
+                      {Math.abs(myBal) < 0.01 ? 'Denk' : isPos ? 'Alacaklısın' : 'Borçlusun'}
                     </span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#C7C7CC]" />
+                  <ChevronRight className="w-4 h-4 text-[#94A3B8]" />
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       {/* Create Group Modal */}
       {showCreateModal && (
