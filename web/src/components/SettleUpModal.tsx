@@ -5,11 +5,9 @@ import {
   ArrowLeft,
   Copy,
   Check,
-  QrCode,
   CheckCircle2,
   Building2,
   ExternalLink,
-  Sparkles,
   ChevronDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -91,8 +89,8 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const [selectedUserId, setSelectedUserId] = useState<string>(initialTargetUser?.id || otherUsers[0]?.id || '');
   const [amountText, setAmountText] = useState<string>(initialAmount ? initialAmount.toFixed(2) : '320.00');
   const [selectedBankId, setSelectedBankId] = useState<string>('garanti');
+  const [copiedName, setCopiedName] = useState<boolean>(false);
   const [copiedIban, setCopiedIban] = useState<boolean>(false);
-  const [copiedDesc, setCopiedDesc] = useState<boolean>(false);
   const [bankOpeningStatus, setBankOpeningStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -109,18 +107,17 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const selectedUser = users.find((u) => u.id === selectedUserId) || otherUsers[0];
   const numAmount = parseFloat(amountText.replace(',', '.')) || 0;
   const iban = selectedUser?.iban || 'TR33 0006 1005 1978 4567 1000 01';
-  const descriptionCode = `AradaPay ${selectedUser?.fullName || ''} Fitleşme`;
+
+  const handleCopyName = () => {
+    navigator.clipboard.writeText(selectedUser.fullName);
+    setCopiedName(true);
+    setTimeout(() => setCopiedName(false), 2000);
+  };
 
   const handleCopyIban = () => {
     navigator.clipboard.writeText(iban.replace(/\s+/g, ''));
     setCopiedIban(true);
     setTimeout(() => setCopiedIban(false), 2000);
-  };
-
-  const handleCopyDesc = () => {
-    navigator.clipboard.writeText(descriptionCode);
-    setCopiedDesc(true);
-    setTimeout(() => setCopiedDesc(false), 2000);
   };
 
   const handleQuickAdd = (val: number) => {
@@ -253,20 +250,34 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
             </div>
           </div>
 
-          {/* 3. FAST & IBAN Bilgileri (Single Flat Grouped Block) */}
+          {/* 3. FAST & IBAN Bilgileri (Alıcı Adı Kopyalanabilir, Açıklama Kaldırıldı) */}
           <div className="px-5 py-4 space-y-3 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               FAST & HAVALE BİLGİLERİ
             </span>
 
             <div className="divide-y divide-slate-100 text-[13px]">
-              {/* Alıcı Adı */}
+              {/* Alıcı Adı (Kopyalanabilir) */}
               <div className="py-2.5 flex items-center justify-between">
-                <span className="text-[#64748B]">Alıcı Adı:</span>
-                <span className="font-bold text-[#0F172A]">{selectedUser.fullName}</span>
+                <div>
+                  <span className="text-[10px] font-bold text-[#64748B] uppercase block">ALICI ADI</span>
+                  <span className="text-[13px] font-bold text-[#0F172A] block">{selectedUser.fullName}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyName}
+                  className={`px-3 py-1.5 rounded-[8px] text-[11px] font-bold flex items-center gap-1 transition ${
+                    copiedName
+                      ? 'bg-emerald-100 text-[#00875A]'
+                      : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-slate-200'
+                  }`}
+                >
+                  {copiedName ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedName ? 'Kopyalandı' : 'Kopyala'}</span>
+                </button>
               </div>
 
-              {/* IBAN */}
+              {/* IBAN (Kopyalanabilir) */}
               <div className="py-2.5 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-[#64748B] uppercase block">FAST IBAN</span>
@@ -287,30 +298,10 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                   <span>{copiedIban ? 'Kopyalandı' : 'Kopyala'}</span>
                 </button>
               </div>
-
-              {/* Açıklama Kodu */}
-              <div className="py-2.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-[#64748B] uppercase block">Açıklama</span>
-                  <span className="font-semibold text-[#0F172A] block">{descriptionCode}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyDesc}
-                  className={`px-3 py-1.5 rounded-[8px] text-[11px] font-bold flex items-center gap-1 transition ${
-                    copiedDesc
-                      ? 'bg-emerald-100 text-[#00875A]'
-                      : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-slate-200'
-                  }`}
-                >
-                  {copiedDesc ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedDesc ? 'Kopyalandı' : 'Kopyala'}</span>
-                </button>
-              </div>
             </div>
           </div>
 
-          {/* 4. Banka Uygulamasını Aç & Yönlendir (Fully Functional!) */}
+          {/* 4. Banka Uygulamasına Git */}
           <div className="px-5 py-4 space-y-2 bg-white">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
