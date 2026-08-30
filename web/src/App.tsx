@@ -25,7 +25,7 @@ import { GroupDetailView } from './views/GroupDetailView';
 import { FriendDetailView } from './views/FriendDetailView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { SettingsView } from './views/SettingsView';
-import { Download } from 'lucide-react';
+import { Download, Bell, Plus, CreditCard, Send, Sparkles, Shield, Eye, EyeOff } from 'lucide-react';
 
 import {
   User,
@@ -63,7 +63,6 @@ export function App() {
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
 
   const [isLocked, setIsLocked] = useState<boolean>(false);
-  const [dismissAppBanner, setDismissAppBanner] = useState(false);
 
   // Active user (default to CURRENT_USER if null in internal logic)
   const activeUser = currentUser || CURRENT_USER;
@@ -305,9 +304,9 @@ export function App() {
 
   // 3. Authenticated Apple HIG macOS / iOS Web App Layout
   return (
-    <div className="min-h-screen bg-[#F2F2F7] text-[#1C1C1E] flex flex-row font-sans selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen bg-[#F2F2F7] text-[#1C1C1E] flex flex-row font-sans selection:bg-emerald-100 selection:text-emerald-900 overflow-x-hidden">
       {/* ========================================================================= */}
-      {/* A. DESKTOP macOS SIDEBAR (Hidden on mobile < 1024px) */}
+      {/* A. DESKTOP macOS SIDEBAR (Visible on md: >= 768px) */}
       {/* ========================================================================= */}
       <DesktopSidebar
         currentTab={currentTab}
@@ -328,38 +327,9 @@ export function App() {
       {/* ========================================================================= */}
       {/* B. MAIN VIEWPORT & WORKSPACE */}
       {/* ========================================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Top Banner (Native APK Prompter) */}
-        {!dismissAppBanner && (
-          <div className="bg-[#1C1C1E] text-white px-4 sm:px-8 py-2 flex items-center justify-between text-[12px] z-30">
-            <div className="flex items-center gap-2 truncate">
-              <span className="w-2 h-2 rounded-full bg-[#00875A] animate-pulse flex-shrink-0" />
-              <span className="font-semibold truncate text-[12px]">
-                📱 <strong>AradaPay Android:</strong> 100ms Kamera QR & Parmak İzi Kasası için uygulamayı yükleyin!
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <a
-                href="/AradaPay.apk"
-                download="AradaPay.apk"
-                className="px-3 py-1 rounded-full bg-[#00875A] text-white font-bold text-[11px] hover:bg-[#00744d] transition flex items-center gap-1 shadow-apple-sm"
-              >
-                <Download className="w-3 h-3" />
-                <span>APK İndir</span>
-              </a>
-              <button
-                onClick={() => setDismissAppBanner(true)}
-                className="text-[#8E8E93] hover:text-white px-1.5 py-0.5 text-[14px]"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Top Bar */}
-        <div className="lg:hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#F6F6F6]">
+        {/* Mobile iOS Top Bar (Visible only on mobile < 768px) */}
+        <div className="md:hidden">
           <TopBar
             user={activeUser}
             onProfileClick={() => handleTabChange('settings')}
@@ -367,13 +337,13 @@ export function App() {
           />
         </div>
 
-        {/* Desktop macOS Toolbar (Visible only on lg: >= 1024px) */}
-        <header className="hidden lg:flex items-center justify-between px-8 py-3.5 bg-white/70 backdrop-blur-2xl border-b border-black/[0.06] sticky top-0 z-30">
+        {/* Desktop macOS Toolbar (Visible only on md: >= 768px) */}
+        <header className="hidden md:flex items-center justify-between px-8 py-3 bg-[#FFFFFF]/80 backdrop-blur-2xl border-b border-black/[0.08] sticky top-0 z-30 select-none">
           {/* Breadcrumb Navigation */}
           <div className="flex items-center gap-2 text-[13px]">
             <span className="font-semibold text-[#8E8E93]">AradaPay</span>
-            <span className="text-[#8E8E93]">/</span>
-            <span className="font-bold text-[#1C1C1E] capitalize">
+            <span className="text-[#C7C7CC]">/</span>
+            <span className="font-bold text-[#1C1C1E]">
               {selectedGroupId
                 ? `Gruplar / ${groups.find((g) => g.id === selectedGroupId)?.name || 'Grup'}`
                 : selectedFriendId
@@ -385,38 +355,63 @@ export function App() {
                 : currentTab === 'friends'
                 ? 'Arkadaşlarım'
                 : currentTab === 'analytics'
-                ? 'Finansal Analiz & DFS'
-                : 'Ayarlar & Kasa'}
+                ? 'Finansal Analiz & DFS Raporu'
+                : 'Ayarlar & Güvenlik Kasası'}
             </span>
           </div>
 
-          {/* macOS Toolbar Actions */}
+          {/* macOS Desktop Toolbar Actions */}
           <div className="flex items-center gap-3">
-            {/* Balance Masking Quick Toggle */}
+            {/* Quick Action Button */}
+            <button
+              onClick={() => {
+                setPreselectedGroupForExpense(undefined);
+                setShowAddExpense(true);
+              }}
+              className="px-3.5 py-1.5 rounded-[8px] bg-[#00875A] hover:bg-[#00744d] text-white text-[12px] font-bold flex items-center gap-1.5 transition shadow-sm shadow-emerald-900/10"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Harcama Ekle</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setSettlePreselectedUser(null);
+                setSettleInitialAmount(undefined);
+                setShowSettleUp(true);
+              }}
+              className="px-3.5 py-1.5 rounded-[8px] bg-white border border-black/[0.1] hover:bg-slate-50 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 transition shadow-2xs"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-[#00875A]" />
+              <span>Öde & Fitleş</span>
+            </button>
+
+            {/* Privacy Eye Toggle */}
             <button
               onClick={() => setIsLocked(!isLocked)}
               className="px-3 py-1.5 rounded-[8px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 transition"
               title="Bakiye Maskesini Aç/Kapat"
             >
-              <span>{isLocked ? '🙈 Gizli Bakiye' : '👁️ Bakiye Açık'}</span>
+              {isLocked ? <EyeOff className="w-3.5 h-3.5 text-[#8E8E93]" /> : <Eye className="w-3.5 h-3.5 text-[#00875A]" />}
+              <span>{isLocked ? 'Gizli' : 'Görünür'}</span>
             </button>
 
             {/* Notification Badge */}
             <button
               onClick={() => handleTabChange('analytics')}
               className="relative p-2 rounded-[8px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] transition"
-              title="Bildirimler & Mahsuplaşma"
+              title="Dürtmeler ve Bildirimler"
             >
               {nudges.length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D32F2F] ring-2 ring-white animate-pulse" />
               )}
-              <span className="text-[13px]">🔔</span>
+              <Bell className="w-3.5 h-3.5 text-[#1C1C1E]" />
             </button>
 
             {/* Profile Avatar Capsule */}
             <div
               onClick={() => handleTabChange('settings')}
-              className="flex items-center gap-2 px-2.5 py-1 rounded-[10px] bg-black/5 hover:bg-black/10 cursor-pointer transition select-none"
+              className="flex items-center gap-2 px-2.5 py-1 rounded-[8px] bg-black/5 hover:bg-black/10 cursor-pointer transition select-none"
             >
               <div className="w-6 h-6 rounded-full bg-[#00875A] text-white font-extrabold text-[10px] flex items-center justify-center">
                 {activeUser.fullName.slice(0, 2).toUpperCase()}
@@ -429,7 +424,7 @@ export function App() {
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-8 py-6 pb-28 lg:pb-12 space-y-6">
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-6 pb-28 md:pb-12 space-y-6">
           {/* 1. DEDICATED GROUP DETAIL PAGE */}
           {selectedGroupId ? (
             <GroupDetailView
@@ -482,10 +477,10 @@ export function App() {
             <>
               {currentTab === 'dashboard' && (
                 <div className="space-y-6">
-                  {/* Responsive Grid on Desktop */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    {/* Left Column: Balance & Primary Actions */}
-                    <div className="lg:col-span-7 space-y-6">
+                  {/* macOS 2-Column Responsive Layout */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                    {/* Left Column: Balance, Actions, DFS Smart Settlement */}
+                    <div className="md:col-span-7 space-y-6">
                       {/* Financial Hero Card */}
                       <FinancialHeroCard
                         netBalance={balanceSummary.netBalance}
@@ -495,8 +490,8 @@ export function App() {
                         onToggleLock={() => setIsLocked(!isLocked)}
                       />
 
-                      {/* Action Buttons Row */}
-                      <div className="lg:hidden">
+                      {/* Action Buttons Row (Mobile only) */}
+                      <div className="md:hidden">
                         <ActionButtonsRow
                           onAddExpenseClick={() => {
                             setPreselectedGroupForExpense(undefined);
@@ -519,8 +514,8 @@ export function App() {
                       />
                     </div>
 
-                    {/* Right Column: Transactions List */}
-                    <div className="lg:col-span-5 space-y-6">
+                    {/* Right Column: Recent Transactions & Proofs */}
+                    <div className="md:col-span-5 space-y-6">
                       <TransactionsList
                         expenses={expenses}
                         currentUserId={activeUser.id}
@@ -606,7 +601,7 @@ export function App() {
       </div>
 
       {/* ========================================================================= */}
-      {/* C. MOBILE iOS BOTTOM TAB BAR (Hidden on desktop lg:hidden) */}
+      {/* C. MOBILE iOS BOTTOM TAB BAR (Visible ONLY on mobile < 768px) */}
       {/* ========================================================================= */}
       <BottomNavBar
         currentTab={currentTab}
@@ -614,7 +609,7 @@ export function App() {
       />
 
       {/* ========================================================================= */}
-      {/* D. APPLE HIG MODALS & DRAWERS (100% Mobile Android Parity) */}
+      {/* D. APPLE HIG MODALS & DRAWERS */}
       {/* ========================================================================= */}
       <AddExpenseModal
         isOpen={showAddExpense}
