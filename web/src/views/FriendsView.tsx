@@ -150,7 +150,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
             onClick={() => setBalanceFilter('zero')}
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               balanceFilter === 'zero'
-                ? 'bg-slate-900 text-white shadow-2xs'
+                ? 'bg-[#00875A] text-white shadow-2xs'
                 : 'bg-white border border-slate-200 text-[#64748B] hover:bg-slate-50'
             }`}
           >

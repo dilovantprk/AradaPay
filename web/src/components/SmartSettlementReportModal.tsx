@@ -139,7 +139,7 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
               Bu mahsuplaşma, DFS Directed Cycle Reduction algoritması ile çözülmüş ve AradaPay L2 defterine işlenmiştir.
             </p>
 
-            <div className="p-2.5 rounded-[10px] bg-slate-900 text-[#34C759] font-mono text-[10px] break-all select-all">
+            <div className="p-3 rounded-[12px] bg-[#F8FAFC] text-[#475569] font-mono text-[11px] break-all select-all border border-slate-200">
               {mockHash}
             </div>
           </div>

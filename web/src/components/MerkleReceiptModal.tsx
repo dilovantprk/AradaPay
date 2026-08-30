@@ -84,7 +84,7 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
           <div className="w-10" />
         </div>
 
-        {/* Receipt Body (Flat & De-nested) */}
+        {/* Receipt Body (Flat, Light & De-nested) */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100 text-left">
           {/* 1. Hero Amount */}
           <div className="px-6 py-6 text-center space-y-1 bg-white">
@@ -128,42 +128,42 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Cryptographic SHA-256 Merkle Proof */}
-          <div className="px-6 py-4 space-y-3 bg-slate-900 text-white">
+          {/* 3. Cryptographic SHA-256 Merkle Proof (Light & Clean Theme) */}
+          <div className="px-6 py-4 space-y-3 bg-white">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-[#34C759]" />
-                <span className="text-[12px] font-bold">SHA-256 Merkle İmzası</span>
+              <div className="flex items-center gap-1.5">
+                <Lock className="w-4 h-4 text-[#00875A]" />
+                <span className="text-[12px] font-bold text-[#0F172A]">SHA-256 Merkle İmzası</span>
               </div>
               <button
                 onClick={handleCopyHash}
-                className="text-[11px] text-[#34C759] hover:underline flex items-center gap-1 font-bold"
+                className="text-[11px] text-[#00875A] hover:underline flex items-center gap-1 font-bold"
               >
                 {copiedHash ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 <span>{copiedHash ? 'Kopyalandı' : 'Kopyala'}</span>
               </button>
             </div>
 
-            <p className="font-mono text-[10px] text-slate-300 break-all bg-black/40 p-2.5 rounded-[10px] leading-relaxed border border-white/10">
+            <p className="font-mono text-[11px] text-[#475569] break-all bg-[#F8FAFC] p-3 rounded-[12px] leading-relaxed border border-slate-200">
               {receiptData.txHash}
             </p>
 
-            <div className="pt-1">
+            <div>
               <button
                 onClick={handleVerify}
                 disabled={isVerifying}
-                className="w-full py-2.5 rounded-[10px] bg-white/10 hover:bg-white/20 active:scale-98 text-white text-[12px] font-bold flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2.5 rounded-[12px] bg-[#F1F5F9] hover:bg-slate-200 active:scale-98 text-[#0F172A] text-[12px] font-bold flex items-center justify-center gap-1.5 transition"
               >
                 {isVerifying ? (
                   <span>Doğrulanıyor...</span>
                 ) : verificationResult === true ? (
-                  <span className="text-[#34C759] flex items-center gap-1">
+                  <span className="text-[#00875A] flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     Merkle Ağacı Onaylı ✓
                   </span>
                 ) : (
                   <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#34C759]" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#00875A]" />
                     Matematiksel Kanıtı Doğrula
                   </span>
                 )}
