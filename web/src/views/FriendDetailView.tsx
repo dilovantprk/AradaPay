@@ -177,16 +177,16 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Hero Friend Profile & Bilateral Balance Card */}
-      <div className="apple-card p-6 sm:p-8 space-y-6 bg-white/90">
+      {/* Hero Friend Profile & Bilateral Balance Card (Single Flat Layer) */}
+      <div className="bg-white rounded-[24px] border border-slate-200/80 p-6 sm:p-7 space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-100 text-[#00875A] border-2 border-emerald-300 flex items-center justify-center font-extrabold text-[22px] sm:text-[26px] shadow-apple-sm">
+            <div className="w-16 h-16 rounded-[20px] bg-emerald-50 text-[#00875A] border border-emerald-200 flex items-center justify-center font-extrabold text-[22px] shadow-2xs">
               {friend.fullName.slice(0, 2).toUpperCase()}
             </div>
 
             <div>
-              <h1 className="text-[24px] sm:text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">
+              <h1 className="text-[22px] sm:text-[26px] font-extrabold text-[#0F172A] tracking-tight">
                 {friend.fullName}
               </h1>
               <p className="text-[13px] font-mono text-[#00875A] font-bold mt-0.5">
@@ -195,11 +195,11 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Action Pill Buttons */}
+          {/* Action Pill Buttons */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => onOpenSettleUp(friend, Math.abs(balance))}
-              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-full bg-[#00875A] text-white text-[13px] font-bold flex items-center justify-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-800/20"
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-[12px] bg-[#00875A] text-white text-[13px] font-bold flex items-center justify-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-900/10"
             >
               <CreditCard className="w-4 h-4" />
               <span>Fitleş / FAST Öde</span>
@@ -207,76 +207,63 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
 
             <button
               onClick={() => onOpenNudge(friend)}
-              className="px-3.5 py-2.5 rounded-full bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[13px] font-bold flex items-center justify-center gap-1.5 active:scale-95 transition"
+              className="px-4 py-2.5 rounded-[12px] bg-[#F1F5F9] hover:bg-slate-200 text-[#0F172A] text-[13px] font-bold flex items-center justify-center gap-1.5 active:scale-95 transition"
             >
-              <Send className="w-4 h-4 text-[#8E8E93]" />
+              <Send className="w-4 h-4 text-[#64748B]" />
               <span>Dürt</span>
             </button>
           </div>
         </div>
 
-        {/* Balance Metric Highlights */}
-        <div className="p-6 rounded-[24px] bg-[#F2F2F7] border border-black/[0.04] text-center space-y-2">
-          <span
-            className={`text-[12px] font-bold uppercase tracking-wider block ${
-              isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
-            }`}
-          >
-            {!hasBalance
-              ? 'FİTLEŞİLDİ (HESAPLAR TAMAMEN DENK)'
-              : isPositive
-              ? `${friend.fullName.toUpperCase()} SANA BORÇLU`
-              : `${friend.fullName.toUpperCase()}'A BORCUN VAR`}
-          </span>
-
-          <div
-            className={`text-[36px] sm:text-[44px] font-black font-tabular tracking-tight ${
-              isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
-            }`}
-          >
-            {isLocked
-              ? '•••• ₺'
-              : `${isPositive ? '+' : ''}${balance.toLocaleString('tr-TR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                })} ₺`}
+        {/* Clean Flat Balance Section */}
+        <div className="pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <span
+              className={`text-[11px] font-bold uppercase tracking-wider block ${
+                isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
+              }`}
+            >
+              {!hasBalance
+                ? 'FİTLEŞİLDİ (HESAPLAR TAMAMEN DENK)'
+                : isPositive
+                ? `${friend.fullName.toUpperCase()} SANA BORÇLU`
+                : `${friend.fullName.toUpperCase()}'A BORCUN VAR`}
+            </span>
+            <div
+              className={`text-[36px] sm:text-[42px] font-extrabold font-tabular tracking-tight leading-tight ${
+                isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
+              }`}
+            >
+              {isLocked
+                ? '•••• ₺'
+                : `${isPositive ? '+' : ''}${balance.toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })} ₺`}
+            </div>
           </div>
 
-          <p className="text-[13px] text-[#8E8E93]">
-            {!hasBalance
-              ? 'Geçmiş tüm harcamalar ve transferler eşitlendi.'
-              : isPositive
-              ? 'Arkadaşından tahsil etmen gereken net bakiye.'
-              : 'Arkadaşına FAST ile göndermen gereken net bakiye.'}
-          </p>
-        </div>
-
-        {/* FAST IBAN & Bank Card */}
-        {friend.iban && (
-          <div className="p-4 rounded-[18px] bg-white border border-black/[0.06] flex items-center justify-between">
-            <div className="flex items-center gap-3 truncate mr-2">
-              <div className="w-10 h-10 rounded-[12px] bg-emerald-50 text-[#00875A] flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div className="truncate">
-                <span className="text-[10px] font-bold text-[#8E8E93] uppercase block">
+          {friend.iban && (
+            <div className="flex items-center gap-3 pt-2 sm:pt-0">
+              <div className="text-left sm:text-right">
+                <span className="text-[10px] font-bold text-[#64748B] uppercase block">
                   {detectBank(friend.iban)} • FAST IBAN
                 </span>
-                <span className="text-[14px] font-mono font-bold text-[#1C1C1E] select-all truncate block">
+                <span className="text-[13px] font-mono font-bold text-[#0F172A] select-all">
                   {friend.iban}
                 </span>
               </div>
-            </div>
 
-            <button
-              onClick={handleCopyIban}
-              className="px-3.5 py-1.5 rounded-full bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 transition flex-shrink-0"
-            >
-              {copiedIban ? <Check className="w-3.5 h-3.5 text-[#00875A]" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedIban ? 'Kopyalandı' : 'IBAN Kopyala'}</span>
-            </button>
-          </div>
-        )}
+              <button
+                onClick={handleCopyIban}
+                className="px-3 py-1.5 rounded-[10px] bg-[#F1F5F9] hover:bg-slate-200 text-[#0F172A] text-[12px] font-bold flex items-center gap-1.5 transition flex-shrink-0"
+              >
+                {copiedIban ? <Check className="w-3.5 h-3.5 text-[#00875A]" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedIban ? 'Kopyalandı' : 'Kopyala'}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Segmented Control Tabs */}

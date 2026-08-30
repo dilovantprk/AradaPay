@@ -159,23 +159,23 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Hero Group Profile & Financial Card */}
-      <div className="apple-card p-6 sm:p-8 space-y-6 bg-white/90">
+      {/* Hero Group Profile & Financial Card (Single Flat Layer) */}
+      <div className="bg-white rounded-[24px] border border-slate-200/80 p-6 sm:p-7 space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[22px] bg-[#F2F2F7] border border-black/[0.06] flex items-center justify-center text-[34px] sm:text-[40px] shadow-apple-sm">
+            <div className="w-16 h-16 rounded-[20px] bg-slate-100 border border-slate-200 flex items-center justify-center text-[32px] shadow-2xs">
               {group.emoji || '👥'}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-[24px] sm:text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">
+                <h1 className="text-[22px] sm:text-[26px] font-extrabold text-[#0F172A] tracking-tight">
                   {group.name}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#00875A] border border-emerald-200 text-[11px] font-bold">
                   {group.category || 'Genel'}
                 </span>
               </div>
-              <p className="text-[13px] text-[#8E8E93] mt-1">
+              <p className="text-[13px] text-[#64748B] mt-0.5">
                 {group.members.length} Katılımcı • {expenses.filter((e) => e.groupId === group.id).length} Harcama Kaydı
               </p>
             </div>
@@ -183,28 +183,26 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({
 
           <button
             onClick={() => setShowAddMemberModal(true)}
-            className="px-3.5 py-2 rounded-full bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 active:scale-95 transition"
+            className="px-4 py-2 rounded-[12px] bg-[#F1F5F9] hover:bg-slate-200 text-[#0F172A] text-[12px] font-bold flex items-center gap-1.5 active:scale-95 transition"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Üye Ekle</span>
           </button>
         </div>
 
-        {/* Balance Metric Highlights */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          {/* Total Spend */}
-          <div className="p-4 rounded-[20px] bg-[#F2F2F7] border border-black/[0.04] space-y-1">
-            <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-wider block">
+        {/* Clean Flat Metric Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-5 border-t border-slate-100">
+          <div>
+            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
               TOPLAM GRUP HARCAMASI
             </span>
-            <div className="text-[26px] sm:text-[30px] font-black text-[#1C1C1E] font-tabular tracking-tight">
+            <div className="text-[28px] sm:text-[32px] font-extrabold text-[#0F172A] font-tabular tracking-tight leading-tight">
               {totalGroupSpend.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
             </div>
-            <span className="text-[11px] text-[#8E8E93]">Tüm grup üyelerinin ortak harcamaları</span>
+            <span className="text-[12px] text-[#64748B]">Tüm grup üyelerinin ortak masrafı</span>
           </div>
 
-          {/* User Net Balance in Group */}
-          <div className="p-4 rounded-[20px] bg-[#F2F2F7] border border-black/[0.04] space-y-1">
+          <div>
             <span
               className={`text-[11px] font-bold uppercase tracking-wider block ${
                 isMyBalancePositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
@@ -213,7 +211,7 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({
               SENİN GRUP BAKİYEN
             </span>
             <div
-              className={`text-[26px] sm:text-[30px] font-black font-tabular tracking-tight ${
+              className={`text-[28px] sm:text-[32px] font-extrabold font-tabular tracking-tight leading-tight ${
                 isMyBalancePositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
               }`}
             >
@@ -223,9 +221,9 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({
                     minimumFractionDigits: 2
                   })} ₺`}
             </div>
-            <span className="text-[11px] text-[#8E8E93]">
+            <span className="text-[12px] text-[#64748B]">
               {Math.abs(myGroupBalance) < 0.01
-                ? 'Grupta tüm hesapların denk (0 ₺)'
+                ? 'Grupta hesapların denk (0 ₺)'
                 : isMyBalancePositive
                 ? 'Gruptan alacağın var'
                 : 'Gruba ödemen gereken borcun var'}

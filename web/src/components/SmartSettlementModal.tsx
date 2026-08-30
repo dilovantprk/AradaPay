@@ -59,68 +59,66 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
           <div className="w-10" />
         </div>
 
-        {/* Content */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5 text-left">
-          {/* Amount Badge */}
-          <div className="text-center py-5 px-4 bg-emerald-50 rounded-[22px] border border-emerald-200">
-            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+        {/* Content Body (Flat, De-nested Layout) */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 text-left">
+          {/* 1. Hero Amount (Flat) */}
+          <div className="px-6 py-6 text-center space-y-1 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               OTOMATİK SIFIRLANACAK DÖNGÜSEL TUTAR
             </span>
-            <p className="text-[38px] font-black text-[#00875A] tracking-tight mt-0.5 font-tabular">
+            <p className="text-[44px] font-black text-[#00875A] tracking-tight font-tabular">
               {offer.cycleAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
             </p>
-            <p className="text-[12px] text-emerald-900 font-medium mt-1">
-              Hiç kimse para transferi yapmadan döngüsel borçlar karşılıklı düşürülür.
+            <p className="text-[12px] text-[#64748B]">
+              Hiç kimse banka transferi yapmadan döngüsel borçlar karşılıklı sıfırlanır.
             </p>
           </div>
 
-          {/* Directed Cycle Steps Flow */}
-          <div>
-            <label className="block text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase mb-2">
+          {/* 2. Directed Cycle Steps Flow */}
+          <div className="px-6 py-4 space-y-3 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               TESPİT EDİLEN BORÇ DÖNGÜSÜ (DFS ZİNCİRİ)
-            </label>
+            </span>
 
             <div className="space-y-2">
-              {offer.steps.map((step, idx) => {
-                return (
-                  <div
-                    key={idx}
-                    className="p-3.5 rounded-[16px] bg-[#F8FAFC] border border-slate-200 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-6 h-6 rounded-full bg-white border border-slate-300 flex items-center justify-center text-[11px] font-bold text-[#0F172A]">
-                        {idx + 1}
-                      </span>
-                      <span className="text-[13px] font-bold text-[#0F172A] truncate">
-                        {step.fromUserName}
-                      </span>
-                      <ArrowRight className="w-3.5 h-3.5 text-[#8E8E93] flex-shrink-0" />
-                      <span className="text-[13px] font-bold text-[#0F172A] truncate">
-                        {step.toUserName}
-                      </span>
-                    </div>
-
-                    <span className="text-[13px] font-extrabold text-[#00875A] font-tabular flex-shrink-0 ml-2">
-                      -{step.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+              {offer.steps.map((step, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between py-2 border-b border-slate-50 last:border-none"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold text-[#0F172A]">
+                      {idx + 1}
+                    </span>
+                    <span className="text-[13px] font-bold text-[#0F172A] truncate">
+                      {step.fromUserName}
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] flex-shrink-0" />
+                    <span className="text-[13px] font-bold text-[#0F172A] truncate">
+                      {step.toUserName}
                     </span>
                   </div>
-                );
-              })}
+
+                  <span className="text-[13px] font-extrabold text-[#00875A] font-tabular flex-shrink-0 ml-2">
+                    -{step.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Approvals Checklist */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
+          {/* 3. Approvals Checklist */}
+          <div className="px-6 py-4 space-y-3 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
                 KATILIMCI ONAYLARI
-              </label>
+              </span>
               <span className="text-[12px] font-extrabold text-[#00875A]">
                 {approvedCount} / {totalCount} Onaylandı
               </span>
             </div>
 
-            <div className="rounded-[18px] bg-[#F8FAFC] border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+            <div className="divide-y divide-slate-50">
               {offer.participants.map((participant) => {
                 const isApproved = offer.approvals[participant.id] === true;
                 const isMe = participant.id === currentUser.id;
@@ -128,10 +126,10 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
                 return (
                   <div
                     key={participant.id}
-                    className="p-3 flex items-center justify-between"
+                    className="py-2.5 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#00875A] flex items-center justify-center font-bold text-[12px]">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#00875A] flex items-center justify-center font-bold text-[12px]">
                         {participant.name.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
@@ -145,12 +143,12 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
                     </div>
 
                     {isApproved ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-[#00875A] text-[11px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-[#00875A] text-[11px] font-bold">
                         <Check className="w-3 h-3 stroke-[3]" />
                         <span>Onayladı</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-bold">
                         <span>Bekliyor</span>
                       </span>
                     )}
@@ -172,8 +170,8 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
               <span>Mahsuplaşmayı Onayla ({offer.cycleAmount.toFixed(0)} ₺ Düşsün)</span>
             </button>
           ) : (
-            <div className="h-12 rounded-[14px] bg-emerald-100 text-[#00875A] text-center font-bold text-[14px] flex items-center justify-center gap-2">
-              <Check className="w-5 h-5" />
+            <div className="h-12 rounded-[14px] bg-emerald-50 text-[#00875A] text-center font-bold text-[14px] flex items-center justify-center gap-2">
+              <Check className="w-5 h-5 stroke-[2.5]" />
               <span>Onayınız Kaydedildi (Diğerleri Bekleniyor)</span>
             </div>
           )}

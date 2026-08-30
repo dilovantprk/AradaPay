@@ -61,46 +61,40 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
           <div className="w-10" />
         </div>
 
-        {/* Modal Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5 text-left">
-          {/* Savings Hero Banner */}
-          <div className="p-6 rounded-[24px] bg-gradient-to-br from-emerald-50 via-[#F0FDF4] to-emerald-100/50 border border-emerald-200 text-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-[#00875A] text-white flex items-center justify-center mx-auto shadow-md shadow-emerald-900/20">
-              <Repeat className="w-7 h-7" />
+        {/* Modal Body (Flat & De-nested) */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 text-left">
+          {/* 1. Savings Hero Banner */}
+          <div className="px-6 py-6 text-center space-y-2 bg-white">
+            <span className="text-[11px] font-bold text-[#00875A] uppercase tracking-wider block">
+              SIFIR TRANSFERLE BORÇ İTFASI
+            </span>
+            <div className="text-[40px] font-extrabold text-[#0F172A] font-tabular tracking-tight">
+              {offer.cycleAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
             </div>
+            <p className="text-[13px] text-[#64748B]">
+              {offer.participants.length} kişi arasındaki döngüsel borç tamamen sıfırlandı.
+            </p>
 
-            <div>
-              <span className="text-[11px] font-bold text-[#00875A] uppercase tracking-wider block">
-                SIFIR TRANSFERLE BORÇ İTFASI
-              </span>
-              <div className="text-[34px] font-extrabold text-[#0F172A] font-tabular tracking-tight">
-                {offer.cycleAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-              </div>
-              <p className="text-[13px] text-[#64748B]">
-                {offer.participants.length} kişi arasındaki döngüsel borç tamamen sıfırlandı.
-              </p>
-            </div>
-
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-200/60 text-[#00875A] text-[11px] font-bold">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#00875A] text-[11px] font-bold mt-1">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Tasarruf Edilen EFT/FAST Komisyonu: ~{savedFee} ₺</span>
             </div>
           </div>
 
-          {/* Mahsuplaşma Katılımcıları */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block px-1">
+          {/* 2. Mahsuplaşma Katılımcıları */}
+          <div className="px-6 py-4 space-y-3 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               MAHSUPLAŞMAYA DAHİL KİŞİLER
             </span>
 
-            <div className="space-y-2">
+            <div className="divide-y divide-slate-50">
               {offer.participants.map((p) => (
                 <div
                   key={p.id}
-                  className="p-3.5 rounded-[16px] bg-[#F8FAFC] border border-slate-200 flex items-center justify-between"
+                  className="py-2.5 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-[12px] bg-white border border-slate-200 text-[#00875A] font-extrabold text-[12px] flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-[10px] bg-emerald-50 text-[#00875A] font-extrabold text-[12px] flex items-center justify-center">
                       {p.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
@@ -113,7 +107,7 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
                     </div>
                   </div>
 
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-[#00875A] text-[11px] font-bold">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-[#00875A] text-[11px] font-bold">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Onaylandı</span>
                   </span>
@@ -122,8 +116,8 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
             </div>
           </div>
 
-          {/* Cryptographic L2 Proof Certificate */}
-          <div className="p-4 rounded-[18px] bg-[#F8FAFC] border border-slate-200 space-y-2">
+          {/* 3. Cryptographic L2 Proof Certificate */}
+          <div className="px-6 py-4 space-y-2 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#00875A]" />
@@ -142,7 +136,7 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
             </div>
 
             <p className="text-[11px] text-[#64748B]">
-              Bu mahsuplaşma, DFS Directed Cycle Reduction algoritması ile çözülmüş ve AradaPay L2 kriptografik defterine değişmez olarak işlenmiştir.
+              Bu mahsuplaşma, DFS Directed Cycle Reduction algoritması ile çözülmüş ve AradaPay L2 defterine işlenmiştir.
             </p>
 
             <div className="p-2.5 rounded-[10px] bg-slate-900 text-[#34C759] font-mono text-[10px] break-all select-all">

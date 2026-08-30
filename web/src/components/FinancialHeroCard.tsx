@@ -28,22 +28,22 @@ export const FinancialHeroCard: React.FC<FinancialHeroCardProps> = ({
 
   return (
     <section className="px-4 sm:px-0 pt-4">
-      <div className="apple-card p-6 sm:p-7 space-y-4">
+      <div className="bg-white rounded-[24px] border border-slate-200/80 p-6 sm:p-7 space-y-4 shadow-sm">
         {/* Top Header */}
         <div className="flex items-center justify-between">
-          <span className="text-[12px] font-bold text-[#8E8E93] tracking-[0.05em] uppercase">
+          <span className="text-[12px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
             NET BAKİYE & HESAP ÖZETİ
           </span>
 
           <button
             onClick={onToggleLock}
-            className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 active:scale-[0.92] transition flex items-center justify-center text-[#8E8E93] hover:text-[#1C1C1E]"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.92] transition flex items-center justify-center text-[#64748B] hover:text-[#0F172A]"
             title={isLocked ? 'Bakiyeyi Göster' : 'Bakiyeyi Gizle'}
           >
             {isLocked ? (
-              <EyeOff className="w-4 h-4 text-[#8E8E93]" />
+              <EyeOff className="w-4 h-4" />
             ) : (
-              <Eye className="w-4 h-4 text-[#8E8E93]" />
+              <Eye className="w-4 h-4" />
             )}
           </button>
         </div>
@@ -53,7 +53,7 @@ export const FinancialHeroCard: React.FC<FinancialHeroCardProps> = ({
           <p
             className={`text-[40px] sm:text-[48px] font-extrabold tracking-[-0.03em] leading-none font-tabular ${
               isLocked
-                ? 'text-[#8E8E93] tracking-[0.2em]'
+                ? 'text-[#94A3B8] tracking-[0.2em]'
                 : isPositive
                 ? 'text-[#00875A]'
                 : 'text-[#D32F2F]'
@@ -63,27 +63,35 @@ export const FinancialHeroCard: React.FC<FinancialHeroCardProps> = ({
           </p>
         </div>
 
-        {/* Alacak vs Borç Status Chips (Apple HIG Style) */}
+        {/* Clean, Flat Alacak & Borç Metric Rows (No nested card-in-card boxes!) */}
         {(totalReceivable > 0 || totalPayable > 0) && (
-          <div className="flex items-center gap-3 pt-3 border-t border-black/[0.04]">
-            <div className="flex-1 p-3 rounded-[14px] bg-[#E8F5E9] border border-[#C8E6C9] flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#00875A]">
-                <ArrowDownLeft className="w-3.5 h-3.5" />
-                <span>Alacaklısın</span>
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#00875A] flex items-center justify-center flex-shrink-0">
+                <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
               </div>
-              <span className="text-[13px] font-black text-[#00875A] font-tabular">
-                {isLocked ? '•••• ₺' : `+${totalReceivable.toFixed(2)} ₺`}
-              </span>
+              <div className="min-w-0">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block truncate">
+                  Alacaklarım
+                </span>
+                <span className="text-[15px] font-extrabold text-[#00875A] font-tabular block truncate">
+                  {isLocked ? '•••• ₺' : `+${totalReceivable.toFixed(2)} ₺`}
+                </span>
+              </div>
             </div>
 
-            <div className="flex-1 p-3 rounded-[14px] bg-[#FFEBEE] border border-[#FFCDD2] flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#D32F2F]">
-                <ArrowUpRight className="w-3.5 h-3.5" />
-                <span>Borçlusun</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-rose-50 text-[#D32F2F] flex items-center justify-center flex-shrink-0">
+                <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
               </div>
-              <span className="text-[13px] font-black text-[#D32F2F] font-tabular">
-                {isLocked ? '•••• ₺' : `-${totalPayable.toFixed(2)} ₺`}
-              </span>
+              <div className="min-w-0">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block truncate">
+                  Borçlarım
+                </span>
+                <span className="text-[15px] font-extrabold text-[#D32F2F] font-tabular block truncate">
+                  {isLocked ? '•••• ₺' : `-${totalPayable.toFixed(2)} ₺`}
+                </span>
+              </div>
             </div>
           </div>
         )}

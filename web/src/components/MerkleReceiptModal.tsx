@@ -84,33 +84,33 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
           <div className="w-10" />
         </div>
 
-        {/* Receipt Ticket Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-left">
-          {/* Main Hero Amount in Receipt */}
-          <div className="text-center py-5 px-3 bg-[#F8FAFC] rounded-[20px] border border-slate-200">
+        {/* Receipt Body (Flat & De-nested) */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 text-left">
+          {/* 1. Hero Amount */}
+          <div className="px-6 py-6 text-center space-y-1 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               İŞLEM TUTARI
             </span>
-            <p className="text-[36px] font-extrabold text-[#00875A] font-tabular tracking-tight">
+            <p className="text-[40px] font-extrabold text-[#00875A] font-tabular tracking-tight">
               {amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {currency}
             </p>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-[#00875A] text-[11px] font-bold mt-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#00875A] text-[11px] font-bold mt-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>FAST ile Başarıyla Fitleşildi</span>
             </div>
           </div>
 
-          {/* Key Details Rows */}
-          <div className="p-4 rounded-[18px] bg-[#F8FAFC] border border-slate-200 space-y-2.5 text-[13px]">
-            <div className="flex items-center justify-between">
+          {/* 2. Key Details List */}
+          <div className="px-6 py-4 space-y-3 bg-white text-[13px]">
+            <div className="flex items-center justify-between py-1">
               <span className="text-[#64748B]">Gönderen:</span>
               <span className="font-bold text-[#0F172A]">{payerName}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <span className="text-[#64748B]">Alıcı:</span>
               <span className="font-bold text-[#0F172A]">{receiverName}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <span className="text-[#64748B]">Tarih:</span>
               <span className="font-semibold text-[#0F172A]">
                 {new Date(receiptData.timestamp).toLocaleDateString('tr-TR', {
@@ -122,14 +122,14 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
                 })}
               </span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <span className="text-[#64748B]">İşlem ID:</span>
               <span className="font-mono text-[11px] text-[#64748B]">{txId}</span>
             </div>
           </div>
 
-          {/* Cryptographic SHA-256 Merkle Proof */}
-          <div className="p-4 rounded-[18px] bg-slate-900 text-white space-y-3 shadow-sm">
+          {/* 3. Cryptographic SHA-256 Merkle Proof */}
+          <div className="px-6 py-4 space-y-3 bg-slate-900 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-[#34C759]" />
