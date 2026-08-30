@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus, Users, ArrowRight, ArrowLeft, UserPlus, ChevronRight, X, Check, Sparkles } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Users, ArrowRight, ArrowLeft, UserPlus, ChevronRight, X, Check, Sparkles, Search } from 'lucide-react';
 import { Group, User, Expense } from '../types';
 
 interface GroupsViewProps {
@@ -15,6 +15,8 @@ interface GroupsViewProps {
   onSaveGroup: (group: Group) => void;
 }
 
+const GROUP_CATEGORIES = ['Tümü', 'Ev & Yaşam', 'Tatil & Seyahat', 'Yemek & Kafe', 'Etkinlik', 'Genel'];
+
 export const GroupsView: React.FC<GroupsViewProps> = ({
   groups,
   currentUser,
@@ -25,11 +27,24 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   onAddExpenseClick,
   onSaveGroup
 }) => {
+  const [selectedCategory, setSelectedCategory] = useState('Tümü');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupEmoji, setNewGroupEmoji] = useState('🏠');
   const [newGroupCategory, setNewGroupCategory] = useState('Ev & Yaşam');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([currentUser.id]);
+
+  const filteredGroups = useMemo(() => {
+    return groups.filter((g) => {
+      const matchesCat = selectedCategory === 'Tümü' || g.category === selectedCategory;
+      const matchesSearch = searchQuery
+        ? g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (g.category && g.category.toLowerCase().includes(searchQuery.toLowerCase()))
+        : true;
+      return matchesCat && matchesSearch;
+    });
+  }, [groups, selectedCategory, searchQuery]);
 
   const handleCreateGroup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,12 +81,12 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   };
 
   return (
-    <div className="space-y-4 text-left animate-fadeIn">
+    <div className="space-y-5 text-left animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div>
-          <h2 className="text-[26px] font-bold text-[#1C1C1E] tracking-tight">Gruplar</h2>
-          <p className="text-[13px] text-[#8E8E93]">Ortak ev, tatil ve etkinlik harcamaları</p>
+          <h2 className="text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">Gruplar</h2>
+          <p className="text-[13px] text-[#8E8E93]">Ortak ev, tatil, yemek ve arkadaş harcamaları</p>
         </div>
 
         <button
@@ -83,40 +98,111 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
         </button>
       </div>
 
-      {/* Groups Inset List */}
+      {/* Search & Category Filter Bar (1:1 Android GroupsScreen.kt) */}
       <div className="space-y-3">
-        {groups.map((group) => {
-          const groupExp = expenses.filter((e) => e.groupId === group.id);
-          const totalSpend = groupExp.reduce((sum, e) => sum + e.amount, 0);
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-[#8E8E93] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Grup ara (örn: Kadıköy Evi)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-black/[0.08] text-[13px] font-medium text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
+          />
+        </div>
 
-          return (
-            <div
-              key={group.id}
-              onClick={() => onSelectGroup(group)}
-              className="apple-card p-5 hover:border-black/[0.1] active:scale-[0.99] cursor-pointer transition flex items-center justify-between"
+        {/* Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          {GROUP_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+                selectedCategory === cat
+                  ? 'bg-[#00875A] text-white shadow-2xs'
+                  : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
+              }`}
             >
-              <div className="flex items-center gap-3.5">
-                <div className="w-13 h-13 rounded-[18px] bg-[#F2F2F7] border border-black/[0.04] flex items-center justify-center text-[26px] shadow-2xs">
-                  {group.emoji}
-                </div>
-                <div>
-                  <h3 className="text-[16px] font-bold text-[#1C1C1E]">{group.name}</h3>
-                  <p className="text-[12px] text-[#8E8E93]">
-                    {group.category || 'Genel'} • {group.members.length} üye • {totalSpend.toFixed(2)} ₺ harcama
-                  </p>
-                </div>
-              </div>
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
 
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <span className="text-[11px] font-semibold text-[#8E8E93] block">Grup Detayı</span>
-                  <span className="text-[13px] font-bold text-[#00875A]">İncele ➔</span>
+      {/* Groups Grid / List */}
+      <div className="space-y-3">
+        {filteredGroups.length === 0 ? (
+          <div className="apple-card p-10 text-center space-y-3">
+            <p className="text-[14px] text-[#8E8E93]">Aranan kriterlere uygun grup bulunamadı.</p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 rounded-full bg-[#00875A] text-white text-[13px] font-bold inline-flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Yeni Grup Kur</span>
+            </button>
+          </div>
+        ) : (
+          filteredGroups.map((group) => {
+            const groupExp = expenses.filter((e) => e.groupId === group.id);
+            const totalSpend = groupExp.reduce((sum, e) => sum + e.amount, 0);
+
+            // Compute user balance inside this group
+            let myBal = 0;
+            groupExp.forEach((e) => {
+              if (e.paidBy === currentUser.id) {
+                const mySp = e.splits.find((s) => s.userId === currentUser.id);
+                myBal += e.amount - (mySp?.amountOwed || 0);
+              } else {
+                const mySp = e.splits.find((s) => s.userId === currentUser.id);
+                if (mySp) myBal -= mySp.amountOwed;
+              }
+            });
+
+            const isPos = myBal >= 0;
+
+            return (
+              <div
+                key={group.id}
+                onClick={() => onSelectGroup(group)}
+                className="apple-card p-5 hover:border-black/[0.1] active:scale-[0.99] cursor-pointer transition flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-13 h-13 rounded-[18px] bg-[#F2F2F7] border border-black/[0.04] flex items-center justify-center text-[26px] shadow-2xs">
+                    {group.emoji}
+                  </div>
+                  <div>
+                    <h3 className="text-[16px] font-bold text-[#1C1C1E]">{group.name}</h3>
+                    <p className="text-[12px] text-[#8E8E93] mt-0.5">
+                      {group.category || 'Genel'} • {group.members.length} üye • {totalSpend.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ harcama
+                    </p>
+                  </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#C7C7CC]" />
+
+                <div className="text-right flex items-center gap-3">
+                  <div>
+                    <span
+                      className={`text-[14px] font-black font-tabular block ${
+                        isPos ? 'text-[#00875A]' : 'text-[#D32F2F]'
+                      }`}
+                    >
+                      {isLocked
+                        ? '•••• ₺'
+                        : `${isPos ? '+' : ''}${myBal.toLocaleString('tr-TR', {
+                            minimumFractionDigits: 2
+                          })} ₺`}
+                    </span>
+                    <span className="text-[10px] text-[#8E8E93]">
+                      {Math.abs(myBal) < 0.01 ? 'Denk' : isPos ? 'Alacaklı' : 'Borçlu'}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#C7C7CC]" />
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Create Group Modal */}
@@ -157,6 +243,22 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                     className="flex-1 h-12 px-4 rounded-[14px] bg-[#F2F2F7] border border-black/[0.06] text-[14px] font-bold text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
                   />
                 </div>
+              </div>
+
+              {/* Category selector */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-[#8E8E93] uppercase">KATEGORİ</label>
+                <select
+                  value={newGroupCategory}
+                  onChange={(e) => setNewGroupCategory(e.target.value)}
+                  className="w-full h-12 px-4 rounded-[14px] bg-[#F2F2F7] border border-black/[0.06] text-[14px] font-bold text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
+                >
+                  <option value="Ev & Yaşam">Ev & Yaşam</option>
+                  <option value="Tatil & Seyahat">Tatil & Seyahat</option>
+                  <option value="Yemek & Kafe">Yemek & Kafe</option>
+                  <option value="Etkinlik & Festival">Etkinlik & Festival</option>
+                  <option value="Genel">Genel</option>
+                </select>
               </div>
 
               {/* Members Selection */}

@@ -574,6 +574,7 @@ export function App() {
                   isLocked={isLocked}
                   crossOffers={crossOffers}
                   currentUser={activeUser}
+                  users={users}
                   onOpenReceipt={(txId) => {
                     setSelectedReceipt({
                       txId,

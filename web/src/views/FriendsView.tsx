@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { UserPlus, Send, CreditCard, Check, Search, X, CheckCircle2, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { UserPlus, Send, CreditCard, Check, Search, X, CheckCircle2, ChevronRight, Phone } from 'lucide-react';
 import { User, Expense, Settlement, Group } from '../types';
 import { AddFriendModal } from '../components/AddFriendModal';
 
@@ -31,7 +31,10 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
   onAddFriend
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
-  const friends = users.filter((u) => u.id !== currentUser.id);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'positive' | 'negative' | 'zero'>('all');
+
+  const friends = useMemo(() => users.filter((u) => u.id !== currentUser.id), [users, currentUser.id]);
 
   // Compute bilateral balance with each friend
   const getBalanceWithFriend = (friendId: string) => {
@@ -57,13 +60,32 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
     return balance;
   };
 
+  const filteredFriends = useMemo(() => {
+    return friends.filter((f) => {
+      const bal = getBalanceWithFriend(f.id);
+      const matchesSearch = searchQuery
+        ? f.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (f.tag && f.tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (f.username && f.username.toLowerCase().includes(searchQuery.toLowerCase()))
+        : true;
+
+      const matchesFilter =
+        balanceFilter === 'all' ||
+        (balanceFilter === 'positive' && bal > 0.01) ||
+        (balanceFilter === 'negative' && bal < -0.01) ||
+        (balanceFilter === 'zero' && Math.abs(bal) <= 0.01);
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [friends, searchQuery, balanceFilter, expenses, settlements]);
+
   return (
-    <div className="space-y-4 text-left animate-fadeIn">
+    <div className="space-y-5 text-left animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div>
-          <h2 className="text-[26px] font-bold text-[#1C1C1E] tracking-tight">Arkadaşlar</h2>
-          <p className="text-[13px] text-[#8E8E93]">Bireysel borç ve alacak takibi</p>
+          <h2 className="text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">Arkadaşlar</h2>
+          <p className="text-[13px] text-[#8E8E93]">Bireysel borç ve alacak takibi, FAST transferleri</p>
         </div>
 
         <button
@@ -75,21 +97,80 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
         </button>
       </div>
 
+      {/* Search & Filter Bar (1:1 Android FriendsScreen.kt) */}
+      <div className="space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-[#8E8E93] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Arkadaş ara (Ad, @tag veya telefon)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-11 pl-10 pr-4 rounded-[14px] bg-white border border-black/[0.08] text-[13px] font-medium text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
+          />
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <button
+            onClick={() => setBalanceFilter('all')}
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+              balanceFilter === 'all'
+                ? 'bg-[#00875A] text-white shadow-2xs'
+                : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
+            }`}
+          >
+            Tümü ({friends.length})
+          </button>
+          <button
+            onClick={() => setBalanceFilter('positive')}
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+              balanceFilter === 'positive'
+                ? 'bg-[#00875A] text-white shadow-2xs'
+                : 'bg-white border border-black/[0.08] text-[#00875A] hover:bg-slate-50'
+            }`}
+          >
+            Alacaklı Olduklarım (+₺)
+          </button>
+          <button
+            onClick={() => setBalanceFilter('negative')}
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+              balanceFilter === 'negative'
+                ? 'bg-[#D32F2F] text-white shadow-2xs'
+                : 'bg-white border border-black/[0.08] text-[#D32F2F] hover:bg-slate-50'
+            }`}
+          >
+            Borçlu Olduklarım (-₺)
+          </button>
+          <button
+            onClick={() => setBalanceFilter('zero')}
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+              balanceFilter === 'zero'
+                ? 'bg-black/10 text-[#1C1C1E] shadow-2xs'
+                : 'bg-white border border-black/[0.08] text-[#8E8E93] hover:bg-slate-50'
+            }`}
+          >
+            Fitleşilenler (0₺)
+          </button>
+        </div>
+      </div>
+
       {/* Friends List */}
       <div className="space-y-3">
-        {friends.length === 0 ? (
-          <div className="apple-card p-8 text-center space-y-3">
-            <p className="text-[14px] text-[#8E8E93]">Henüz eklenmiş arkadaşın yok.</p>
+        {filteredFriends.length === 0 ? (
+          <div className="apple-card p-10 text-center space-y-3">
+            <p className="text-[14px] text-[#8E8E93]">Aranan kritere uygun arkadaş bulunamadı.</p>
             <button
               onClick={() => setShowAddModal(true)}
               className="px-4 py-2 rounded-full bg-[#00875A] text-white text-[13px] font-bold inline-flex items-center gap-1.5"
             >
               <UserPlus className="w-4 h-4" />
-              <span>İlk Arkadaşını Ekle</span>
+              <span>Yeni Arkadaş Ekle</span>
             </button>
           </div>
         ) : (
-          friends.map((friend) => {
+          filteredFriends.map((friend) => {
             const balance = getBalanceWithFriend(friend.id);
             const isPositive = balance >= 0;
             const hasBalance = Math.abs(balance) > 0.01;

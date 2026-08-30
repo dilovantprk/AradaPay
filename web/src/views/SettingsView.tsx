@@ -12,7 +12,10 @@ import {
   LogOut,
   ArrowRight,
   UserCheck,
-  Edit3
+  Edit3,
+  Coins,
+  Smartphone,
+  Fingerprint
 } from 'lucide-react';
 import { User as UserType } from '../types';
 import { EditProfileModal } from '../components/EditProfileModal';
@@ -37,6 +40,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [copiedIban, setCopiedIban] = useState(false);
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [currency, setCurrency] = useState<'TRY' | 'USD' | 'EUR'>('TRY');
+  const [haptics, setHaptics] = useState(true);
+  const [biometrics, setBiometrics] = useState(true);
 
   const handleCopyIban = () => {
     if (currentUser.iban) {
@@ -47,11 +53,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="space-y-4 text-left">
+    <div className="space-y-6 text-left animate-fadeIn">
       {/* Header */}
       <div className="px-1">
-        <h2 className="text-[26px] font-bold text-[#1C1C1E] tracking-tight">Ayarlar & Profil</h2>
-        <p className="text-[13px] text-[#8E8E93]">Hesap, güvenlik ve gizlilik tercihleri</p>
+        <h2 className="text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">Ayarlar & Güvenlik</h2>
+        <p className="text-[13px] text-[#8E8E93]">Hesap tercihleri, FAST tanımlamaları ve güvenlik kasası</p>
       </div>
 
       {/* User Profile Card */}
@@ -72,44 +78,69 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           <button
             onClick={() => setShowEditProfile(true)}
-            className="px-3 py-1.5 rounded-full bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 active:scale-95 transition"
+            className="px-4 py-2 rounded-full bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 active:scale-95 transition"
           >
             <Edit3 className="w-3.5 h-3.5" />
-            <span>Düzenle</span>
+            <span>Profili Düzenle</span>
           </button>
         </div>
 
         {/* IBAN Card */}
         {currentUser.iban && (
-          <div className="p-3.5 rounded-[16px] bg-[#F2F2F7] border border-black/[0.04] flex items-center justify-between">
+          <div className="p-4 rounded-[16px] bg-[#F2F2F7] border border-black/[0.04] flex items-center justify-between">
             <div className="truncate mr-2">
               <span className="text-[10px] font-bold text-[#8E8E93] uppercase tracking-wider block">
                 KAYITLI FAST / IBAN NUMARASI
               </span>
-              <span className="text-[13px] font-mono font-bold text-[#1C1C1E] select-all truncate block">
+              <span className="text-[14px] font-mono font-bold text-[#1C1C1E] select-all truncate block">
                 {currentUser.iban}
               </span>
             </div>
 
             <button
               onClick={handleCopyIban}
-              className="p-2 rounded-xl bg-white border border-black/[0.06] text-[#8E8E93] hover:text-[#1C1C1E] flex-shrink-0"
+              className="px-3.5 py-1.5 rounded-full bg-white border border-black/[0.08] text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 flex-shrink-0"
               title="IBAN Kopyala"
             >
-              {copiedIban ? <Check className="w-4 h-4 text-[#00875A]" /> : <Copy className="w-4 h-4" />}
+              {copiedIban ? <Check className="w-3.5 h-3.5 text-[#00875A]" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedIban ? 'Kopyalandı' : 'Kopyala'}</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* Security & Privacy */}
+      {/* Currency Preferences (1:1 Android SettingsScreen.kt) */}
       <div className="apple-card p-6 space-y-3">
+        <h3 className="text-[12px] font-bold text-[#8E8E93] uppercase tracking-wider">
+          VARSAYILAN PARA BİRİMİ
+        </h3>
+
+        <div className="grid grid-cols-3 gap-2">
+          {(['TRY', 'USD', 'EUR'] as const).map((curr) => (
+            <button
+              key={curr}
+              onClick={() => setCurrency(curr)}
+              className={`py-2.5 rounded-[12px] text-[13px] font-bold transition flex items-center justify-center gap-1.5 ${
+                currency === curr
+                  ? 'bg-[#00875A] text-white shadow-2xs'
+                  : 'bg-[#F2F2F7] text-[#1C1C1E] hover:bg-[#E5E5EA]'
+              }`}
+            >
+              <Coins className="w-4 h-4" />
+              <span>{curr === 'TRY' ? 'Türk Lirası (₺)' : curr === 'USD' ? 'Dolar ($)' : 'Euro (€)'}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Security & Privacy */}
+      <div className="apple-card p-6 space-y-4">
         <h3 className="text-[12px] font-bold text-[#8E8E93] uppercase tracking-wider">
           GÜVENLİK VE GİZLİLİK
         </h3>
 
         {/* Balance Privacy Toggle */}
-        <div className="flex items-center justify-between py-2 border-b border-black/[0.04]">
+        <div className="flex items-center justify-between py-1 border-b border-black/[0.04]">
           <div>
             <p className="text-[14px] font-semibold text-[#1C1C1E]">Bakiye Gizliliği (Maskeleme)</p>
             <p className="text-[12px] text-[#8E8E93]">Toplu alanlarda bakiyeleri '•••• ₺' olarak gizler</p>
@@ -129,10 +160,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
         </div>
 
-        {/* SHA-256 PIN Vault Info */}
-        <div className="flex items-center gap-3 py-2 text-[13px] text-[#8E8E93]">
-          <Shield className="w-5 h-5 text-[#00875A] flex-shrink-0" />
-          <span>4 Haneli Finansal PIN Kodu ve SHA-256 Kasa aktif.</span>
+        {/* Biometric FaceID / Fingerprint toggle */}
+        <div className="flex items-center justify-between py-1 border-b border-black/[0.04]">
+          <div>
+            <p className="text-[14px] font-semibold text-[#1C1C1E]">Biyometrik Kasa (Touch ID / Face ID)</p>
+            <p className="text-[12px] text-[#8E8E93]">Girişte biyometrik parmak izi onayı iste</p>
+          </div>
+
+          <button
+            onClick={() => setBiometrics(!biometrics)}
+            className={`w-12 h-7 rounded-full transition-colors relative p-1 ${
+              biometrics ? 'bg-[#00875A]' : 'bg-slate-300'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                biometrics ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Haptics toggle */}
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p className="text-[14px] font-semibold text-[#1C1C1E]">Haptik Titreşim & Dokunsal Geri Bildirim</p>
+            <p className="text-[12px] text-[#8E8E93]">Buton ve kaydırma hareketlerinde Apple titreşimi</p>
+          </div>
+
+          <button
+            onClick={() => setHaptics(!haptics)}
+            className={`w-12 h-7 rounded-full transition-colors relative p-1 ${
+              haptics ? 'bg-[#00875A]' : 'bg-slate-300'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                haptics ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
@@ -147,7 +214,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           className="w-full py-3 rounded-[14px] bg-[#F2F2F7] text-[#1C1C1E] font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-[#E5E5EA] active:scale-95 transition"
         >
           <LogOut className="w-4 h-4 text-[#8E8E93]" />
-          <span>Oturumu Kapat / Hesap Değiştir</span>
+          <span>Oturumu Kapat / Farklı Hesapla Giriş Yap</span>
         </button>
       </div>
 
@@ -164,7 +231,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {!showWipeConfirm ? (
           <button
             onClick={() => setShowWipeConfirm(true)}
-            className="w-full py-2.5 rounded-[12px] border border-[#D32F2F]/30 text-[#D32F2F] text-[13px] font-bold hover:bg-rose-50 active:scale-95 transition flex items-center justify-center gap-1.5"
+            className="w-full py-3 rounded-[14px] border border-[#D32F2F]/30 text-[#D32F2F] text-[13px] font-bold hover:bg-rose-50 active:scale-95 transition flex items-center justify-center gap-1.5"
           >
             <Trash2 className="w-4 h-4" />
             <span>Tüm Verilerimi Kalıcı Olarak Temizle</span>
@@ -180,13 +247,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   onWipeData();
                   setShowWipeConfirm(false);
                 }}
-                className="flex-1 py-2 rounded-[10px] bg-[#D32F2F] text-white text-[12px] font-bold hover:bg-rose-700 transition"
+                className="flex-1 py-2.5 rounded-[10px] bg-[#D32F2F] text-white text-[12px] font-bold hover:bg-rose-700 transition"
               >
                 Evet, Hepsini Sil
               </button>
               <button
                 onClick={() => setShowWipeConfirm(false)}
-                className="flex-1 py-2 rounded-[10px] bg-white border border-slate-300 text-[#1C1C1E] text-[12px] font-bold hover:bg-slate-100 transition"
+                className="flex-1 py-2.5 rounded-[10px] bg-white border border-slate-300 text-[#1C1C1E] text-[12px] font-bold hover:bg-slate-100 transition"
               >
                 Vazgeç
               </button>
