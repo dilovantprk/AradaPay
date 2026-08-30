@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { SmartAppBanner } from './components/SmartAppBanner';
 import { TopBar } from './components/TopBar';
 import { DesktopSidebar } from './components/DesktopSidebar';
 import { FinancialHeroCard } from './components/FinancialHeroCard';
@@ -330,6 +331,7 @@ export function App() {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#F6F6F6]">
         {/* Mobile iOS Top Bar (Visible only on mobile < 768px) */}
         <div className="md:hidden">
+          <SmartAppBanner />
           <TopBar
             user={activeUser}
             onProfileClick={() => handleTabChange('settings')}
