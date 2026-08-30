@@ -1,18 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  X,
+  ArrowLeft,
   Copy,
   Check,
   QrCode,
-  ArrowRight,
-  ShieldCheck,
   CheckCircle2,
   Building2,
   ExternalLink,
-  ArrowLeft,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User, Settlement } from '../types';
@@ -51,25 +49,24 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
 }) => {
   const otherUsers = users.filter((u) => u.id !== currentUser.id);
   const [selectedUserId, setSelectedUserId] = useState<string>(initialTargetUser?.id || otherUsers[0]?.id || '');
-  const [amount, setAmount] = useState<string>(initialAmount ? initialAmount.toFixed(2) : '320.00');
+  const [amountText, setAmountText] = useState<string>(initialAmount ? initialAmount.toFixed(2) : '320.00');
   const [selectedBankId, setSelectedBankId] = useState<string>('garanti');
   const [copiedIban, setCopiedIban] = useState<boolean>(false);
   const [copiedDesc, setCopiedDesc] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'fast' | 'qr'>('fast');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialTargetUser) {
       setSelectedUserId(initialTargetUser.id);
     }
     if (initialAmount !== undefined && initialAmount > 0) {
-      setAmount(initialAmount.toFixed(2));
+      setAmountText(initialAmount.toFixed(2));
     }
   }, [initialTargetUser, initialAmount, isOpen]);
 
   if (!isOpen) return null;
 
   const selectedUser = users.find((u) => u.id === selectedUserId) || otherUsers[0];
-  const numAmount = parseFloat(amount.replace(',', '.')) || 0;
+  const numAmount = parseFloat(amountText.replace(',', '.')) || 0;
   const iban = selectedUser?.iban || 'TR33 0006 1005 1978 4567 1000 01';
   const descriptionCode = `AradaPay ${selectedUser?.fullName || ''} Fitleşme`;
 
@@ -83,6 +80,12 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
     navigator.clipboard.writeText(descriptionCode);
     setCopiedDesc(true);
     setTimeout(() => setCopiedDesc(false), 2000);
+  };
+
+  const handleQuickAdd = (val: number) => {
+    const current = parseFloat(amountText.replace(',', '.')) || 0;
+    const next = current + val;
+    setAmountText(next % 1 === 0 ? next.toString() : next.toFixed(2));
   };
 
   const handleConfirm = () => {
@@ -99,202 +102,196 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
       note: 'FAST / Havale ile ödendi ve fitleşildi'
     };
 
-    // Celebration confetti
     try {
       confetti({
-        particleCount: 100,
+        particleCount: 80,
         spread: 70,
-        origin: { y: 0.6 }
+        origin: { y: 0.6 },
+        colors: ['#00875A', '#34C759', '#30B0C7']
       });
     } catch {
       // ignore
     }
 
     onConfirmSettlement(settlement);
-    onShowReceipt(settlement);
     onClose();
+    onShowReceipt(settlement);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
       <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
-        {/* Header */}
-        <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-4 border-b border-slate-200 flex items-center justify-between bg-white flex-shrink-0">
+        {/* Top Bar (1:1 Android SettleUpScreen.kt) */}
+        <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-3 bg-white border-b border-slate-100 flex items-center justify-between flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-[12px] bg-slate-100 flex items-center justify-center text-slate-800 hover:bg-slate-200 active:scale-95 transition"
+            className="w-10 h-10 rounded-[12px] bg-[#F1F5F9] flex items-center justify-center text-[#0F172A] hover:bg-slate-200 active:scale-95 transition"
+            title="Geri"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
           </button>
 
-          <div className="flex items-center gap-2">
-            <h3 className="text-[18px] font-black text-textPrimary tracking-tight">Öde & Fitleş</h3>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-primaryEmerald text-[11px] font-bold">
-              FAST 7/24
-            </span>
-          </div>
+          <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
+            Fitleş & FAST Ödeme
+          </h3>
 
           <div className="w-10" />
         </div>
 
-        {/* Tab Switcher: FAST Transfer vs QR Okut */}
-        <div className="p-3 bg-[#F8FAFC] border-b border-slate-200">
-          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-200/70 rounded-[16px]">
-            <button
-              onClick={() => setActiveTab('fast')}
-              className={`py-2 rounded-[12px] text-[13px] font-bold transition flex items-center justify-center gap-1.5 ${
-                activeTab === 'fast' ? 'bg-white text-textPrimary shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              <span>FAST & Havale</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('qr')}
-              className={`py-2 rounded-[12px] text-[13px] font-bold transition flex items-center justify-center gap-1.5 ${
-                activeTab === 'qr' ? 'bg-white text-textPrimary shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              <QrCode className="w-4 h-4" />
-              <span>TR-Karekod</span>
-            </button>
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {/* 1. Kime Ödenecek (Seçici) */}
+          <div className="px-5 py-4 space-y-2 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
+              ÖDEME YAPILACAK KİŞİ
+            </span>
+
+            <div className="relative">
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full h-12 px-4 pr-10 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-bold text-[#0F172A] focus:outline-none focus:border-[#00875A] appearance-none"
+              >
+                {otherUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName} ({u.tag || `@${u.username}`})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#8E8E93] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* 2. Tutar Girişi (Büyük Kahraman Tutar + Hızlı Çipler) */}
+          <div className="px-5 py-4 space-y-3 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
+              ÖDENECEK TUTAR
+            </span>
+
+            <div className="flex items-center">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={amountText}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.,]/g, '');
+                  setAmountText(val);
+                }}
+                className="text-[40px] font-extrabold text-[#00875A] bg-transparent border-none focus:outline-none w-48 font-tabular tracking-tight placeholder:text-slate-200"
+              />
+              <span className="text-[32px] font-bold text-[#00875A] ml-1">₺</span>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              {[50, 100, 250, 500].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => handleQuickAdd(val)}
+                  className="px-3.5 py-1.5 rounded-[10px] bg-[#F1F5F9] hover:bg-slate-200 text-[#475569] text-[12px] font-bold active:scale-95 transition"
+                >
+                  +{val} ₺
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. FAST & IBAN Bilgileri Kartı (1:1 Android) */}
+          <div className="px-5 py-4 space-y-3 bg-[#F8FAFC]">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
+              FAST & HAVALE BİLGİLERİ
+            </span>
+
+            <div className="apple-card p-4 space-y-3 bg-white">
+              {/* Alıcı Adı */}
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-[#8E8E93]">Alıcı Adı:</span>
+                <span className="text-[13px] font-bold text-[#0F172A]">{selectedUser.fullName}</span>
+              </div>
+
+              {/* IBAN */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <div>
+                  <span className="text-[10px] font-bold text-[#8E8E93] uppercase block">FAST IBAN</span>
+                  <span className="text-[13px] font-mono font-bold text-[#0F172A] tracking-wider block">
+                    {iban}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyIban}
+                  className={`px-3 py-1.5 rounded-[8px] text-[11px] font-bold flex items-center gap-1 transition ${
+                    copiedIban
+                      ? 'bg-emerald-100 text-[#00875A]'
+                      : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-slate-200'
+                  }`}
+                >
+                  {copiedIban ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedIban ? 'Kopyalandı' : 'Kopyala'}</span>
+                </button>
+              </div>
+
+              {/* Açıklama Kodu */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <div>
+                  <span className="text-[10px] font-bold text-[#8E8E93] uppercase block">Açıklama</span>
+                  <span className="text-[12px] font-semibold text-[#0F172A] block">{descriptionCode}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyDesc}
+                  className={`px-3 py-1.5 rounded-[8px] text-[11px] font-bold flex items-center gap-1 transition ${
+                    copiedDesc
+                      ? 'bg-emerald-100 text-[#00875A]'
+                      : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-slate-200'
+                  }`}
+                >
+                  {copiedDesc ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedDesc ? 'Kopyalandı' : 'Kopyala'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Banka Seçici */}
+          <div className="px-5 py-4 space-y-2 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
+              BANKA UYGULAMASINI SEÇ
+            </span>
+            <div className="grid grid-cols-4 gap-2">
+              {SUPPORTED_BANKS.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setSelectedBankId(b.id)}
+                  className={`p-2.5 rounded-[12px] border text-center transition flex flex-col items-center gap-1 ${
+                    selectedBankId === b.id
+                      ? 'border-[#00875A] bg-emerald-50 text-[#00875A] font-bold'
+                      : 'border-slate-100 bg-[#F8FAFC] text-[#0F172A] hover:border-slate-300'
+                  }`}
+                >
+                  <Building2 className="w-5 h-5 opacity-80" />
+                  <span className="text-[10px] font-semibold truncate w-full">{b.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-5 overflow-y-auto flex-1 space-y-5">
-          {activeTab === 'fast' ? (
-            <>
-              {/* Alıcı Seçici */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
-                  KİME ÖDEME YAPACAKSIN?
-                </span>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="w-full h-12 px-3.5 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-bold text-textPrimary focus:outline-none focus:border-primaryEmerald"
-                >
-                  {otherUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.fullName} ({u.tag || `@${u.username}`})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Tutar Girişi */}
-              <div className="p-4 rounded-[20px] bg-[#F8FAFC] border border-slate-200 text-center space-y-2">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">
-                  FİTLEŞME TUTARI (₺)
-                </span>
-                <div className="flex items-center justify-center">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="text-[32px] font-black text-center text-textPrimary bg-transparent border-none focus:outline-none w-44 font-tabular"
-                  />
-                  <span className="text-[24px] font-bold text-slate-400 ml-1">₺</span>
-                </div>
-              </div>
-
-              {/* Banka Seçici */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
-                  ALICININ BANKASI
-                </span>
-                <div className="grid grid-cols-4 gap-2">
-                  {SUPPORTED_BANKS.map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => setSelectedBankId(b.id)}
-                      className={`p-2.5 rounded-[14px] border text-center transition flex flex-col items-center justify-center ${
-                        selectedBankId === b.id
-                          ? 'bg-emerald-50 border-primaryEmerald text-primaryEmerald font-bold shadow-2xs'
-                          : 'bg-[#F8FAFC] border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <Building2 className="w-4 h-4 mb-1" style={{ color: b.color }} />
-                      <span className="text-[10px] font-bold leading-tight truncate w-full">
-                        {b.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* IBAN Kopyalama Kartı */}
-              <div className="p-4 rounded-[20px] bg-slate-900 text-white space-y-3 shadow-md">
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                  <span>ALICI IBAN NUMARASI</span>
-                  <span className="text-emerald-400 font-mono">BKM / FAST Uyumlu</span>
-                </div>
-
-                <div className="flex items-center justify-between bg-slate-800/80 p-3 rounded-[14px] border border-slate-700">
-                  <span className="font-mono font-bold text-[13px] text-emerald-300 tracking-wider select-all truncate mr-2">
-                    {iban}
-                  </span>
-                  <button
-                    onClick={handleCopyIban}
-                    className="px-3 py-1.5 rounded-[10px] bg-primaryEmerald text-white text-[12px] font-bold flex items-center gap-1 hover:bg-[#00744d] active:scale-95 transition flex-shrink-0"
-                  >
-                    {copiedIban ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedIban ? 'Kopyalandı' : 'Kopyala'}</span>
-                  </button>
-                </div>
-
-                {/* Açıklama Kodu */}
-                <div className="flex items-center justify-between bg-slate-800/80 p-3 rounded-[14px] border border-slate-700">
-                  <div className="truncate mr-2">
-                    <span className="text-[10px] text-slate-400 block font-semibold">HAVALE AÇIKLAMASI</span>
-                    <span className="text-[12px] text-slate-200 font-bold truncate block">
-                      {descriptionCode}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleCopyDesc}
-                    className="px-3 py-1.5 rounded-[10px] bg-slate-700 text-slate-200 text-[12px] font-bold flex items-center gap-1 hover:bg-slate-600 active:scale-95 transition flex-shrink-0"
-                  >
-                    {copiedDesc ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedDesc ? 'Kopyalandı' : 'Kopyala'}</span>
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            /* TR-Karekod Sekmesi */
-            <div className="text-center space-y-4 py-4">
-              <div className="p-4 bg-[#F8FAFC] rounded-[24px] border border-slate-200 inline-block shadow-xs">
-                <div className="w-56 h-56 bg-slate-900 rounded-2xl p-4 flex flex-col items-center justify-center text-white">
-                  <QrCode className="w-36 h-36 text-white stroke-[1.5]" />
-                  <span className="text-[10px] font-mono text-emerald-400 mt-2">
-                    FAST://{iban.replace(/\s+/g, '')}/{numAmount}TRY
-                  </span>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-[15px] font-bold text-textPrimary">
-                  {selectedUser?.fullName} için Karekod
-                </h4>
-                <p className="text-[12px] text-slate-500 max-w-xs mx-auto mt-1">
-                  Banka uygulamanızın QR/Karekod menüsünden bu kodu okutarak <strong>{numAmount} ₺</strong> tutarını anında transfer edin.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-3">
+        {/* Bottom Fixed Action Button (1:1 Android) */}
+        <div className="p-4 bg-white border-t border-slate-100 pb-[max(env(safe-area-inset-bottom),16px)]">
           <button
+            type="button"
             onClick={handleConfirm}
-            className="w-full h-12 rounded-[16px] bg-primaryEmerald text-white font-black text-[15px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-95 transition shadow-sm"
+            disabled={numAmount <= 0}
+            className={`w-full h-12 rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-sm ${
+              numAmount > 0
+                ? 'bg-[#00875A] hover:bg-[#00744d] text-white shadow-emerald-900/20'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            }`}
           >
-            <Sparkles className="w-4 h-4" />
-            <span>Ödemeyi Bildir & Dekont Al</span>
+            <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
+            <span>Ödemeyi Yaptım, Fitleş ({numAmount.toFixed(2)} ₺)</span>
           </button>
         </div>
       </div>

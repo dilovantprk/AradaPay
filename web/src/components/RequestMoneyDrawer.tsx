@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
-import { X, Send, Search, CheckCircle2, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { ArrowLeft, Send, Search, CheckCircle2, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import { User, Nudge } from '../types';
 
 interface RequestMoneyDrawerProps {
@@ -21,7 +23,7 @@ export const RequestMoneyDrawer: React.FC<RequestMoneyDrawerProps> = ({
   const [selectedUser, setSelectedUser] = useState<User | null>(otherUsers[0] || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [amount, setAmount] = useState('150.00');
+  const [amountText, setAmountText] = useState('150.00');
   const [note, setNote] = useState('');
   const [sentSuccess, setSentSuccess] = useState(false);
 
@@ -33,8 +35,14 @@ export const RequestMoneyDrawer: React.FC<RequestMoneyDrawerProps> = ({
       (u.tag && u.tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const numAmount = parseFloat(amount.replace(',', '.')) || 0;
+  const numAmount = parseFloat(amountText.replace(',', '.')) || 0;
   const isValid = selectedUser && numAmount > 0;
+
+  const handleQuickAdd = (val: number) => {
+    const current = parseFloat(amountText.replace(',', '.')) || 0;
+    const next = current + val;
+    setAmountText(next % 1 === 0 ? next.toString() : next.toFixed(2));
+  };
 
   const handleSend = () => {
     if (!isValid || !selectedUser) return;
@@ -53,180 +61,130 @@ export const RequestMoneyDrawer: React.FC<RequestMoneyDrawerProps> = ({
     setTimeout(() => {
       setSentSuccess(false);
       onClose();
-    }, 1500);
+    }, 1200);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-      <div className="bg-surfaceWhite w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
-        {/* Header */}
-        <div className="px-6 pt-[max(env(safe-area-inset-top),16px)] pb-4 border-b border-surfaceBorder flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Send className="w-5 h-5 text-primaryEmerald" />
-            <h2 className="text-[18px] font-bold text-textPrimary">Para İste & Hatırlat</h2>
-          </div>
+      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
+        {/* Top Bar (1:1 Android Style) */}
+        <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-3 bg-white border-b border-slate-100 flex items-center justify-between flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-surfaceContainerLow flex items-center justify-center text-textSecondary hover:bg-slate-200 active:scale-95 transition"
+            className="w-10 h-10 rounded-[12px] bg-[#F1F5F9] flex items-center justify-center text-[#0F172A] hover:bg-slate-200 active:scale-95 transition"
+            title="Geri"
           >
-            <X className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
           </button>
+
+          <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
+            Para İste & Hatırlat (Dürt)
+          </h3>
+
+          <div className="w-10" />
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-5">
-          {/* Recipient Selection Bar */}
-          <div>
-            <label className="block text-[12px] font-bold text-textSecondary uppercase tracking-wider mb-2">
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {/* 1. Kimden İstenecek */}
+          <div className="px-5 py-4 space-y-2 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               KİMDEN İSTENECEK?
-            </label>
+            </span>
 
-            <div className="flex items-center gap-2 p-2 rounded-[16px] bg-[#F8FAFC] border border-slate-200">
-              {selectedUser ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primaryEmeraldContainer border border-primaryEmerald text-primaryEmerald text-[13px] font-bold">
-                  <span className="w-5 h-5 rounded-full bg-primaryEmerald text-white text-[10px] flex items-center justify-center font-bold">
-                    {selectedUser.fullName.substring(0, 2).toUpperCase()}
-                  </span>
-                  <span>{selectedUser.fullName.split(' ')[0]}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedUser(null);
-                      setIsDropdownOpen(true);
-                    }}
-                    className="hover:text-primaryEmeraldDark"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : null}
-
-              <input
-                type="text"
-                placeholder={selectedUser ? 'Değiştirmek için ara...' : 'Kişi ara veya seç...'}
-                value={searchQuery}
-                onFocus={() => setIsDropdownOpen(true)}
+            <div className="relative">
+              <select
+                value={selectedUser?.id || ''}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setIsDropdownOpen(true);
+                  const u = otherUsers.find((user) => user.id === e.target.value);
+                  setSelectedUser(u || null);
                 }}
-                className="flex-1 bg-transparent border-none outline-none text-[14px] text-textPrimary font-medium placeholder:text-slate-400 min-w-[120px]"
-              />
-
-              <button
-                type="button"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="p-1.5 rounded-lg text-textSecondary hover:bg-slate-200"
+                className="w-full h-12 px-4 pr-10 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-bold text-[#0F172A] focus:outline-none focus:border-[#00875A] appearance-none"
               >
-                {isDropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
+                {otherUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName} ({u.tag || `@${u.username}`})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#8E8E93] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-
-            {/* Dropdown list */}
-            {isDropdownOpen && (
-              <div className="mt-2 border border-slate-200 rounded-[14px] bg-white divide-y divide-slate-100 max-h-48 overflow-y-auto shadow-sm">
-                {filteredUsers.map((u) => {
-                  const isChecked = selectedUser?.id === u.id;
-                  return (
-                    <div
-                      key={u.id}
-                      onClick={() => {
-                        setSelectedUser(u);
-                        setIsDropdownOpen(false);
-                        setSearchQuery('');
-                      }}
-                      className={`p-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition ${
-                        isChecked ? 'bg-primaryEmeraldContainer/40' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-surfaceContainerLow flex items-center justify-center text-[12px] font-bold text-textPrimary">
-                          {u.fullName.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-[13px] font-semibold text-textPrimary">{u.fullName}</p>
-                          <p className="text-[11px] text-textSecondary">{u.tag || '@' + u.username}</p>
-                        </div>
-                      </div>
-                      {isChecked && <Check className="w-4 h-4 text-primaryEmerald" />}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
-          {/* Amount Card */}
-          <div className="flex flex-col items-center justify-center py-4 px-3 bg-surfaceContainerLow/50 rounded-[20px]">
-            <span className="text-[11px] font-semibold text-textSecondary tracking-wider uppercase mb-1">
-              TALEP EDİLECEK TUTAR
+          {/* 2. Talep Tutarı */}
+          <div className="px-5 py-4 space-y-3 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
+              TALEP TUTARI
             </span>
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-[32px] font-bold text-primaryEmerald">₺</span>
+
+            <div className="flex items-center">
               <input
                 type="text"
-                placeholder="0,00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-48 text-[38px] font-extrabold text-textPrimary bg-transparent border-none outline-none text-center focus:ring-0"
+                inputMode="decimal"
+                value={amountText}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.,]/g, '');
+                  setAmountText(val);
+                }}
+                className="text-[40px] font-extrabold text-[#00875A] bg-transparent border-none focus:outline-none w-48 font-tabular tracking-tight placeholder:text-slate-200"
               />
+              <span className="text-[32px] font-bold text-[#00875A] ml-1">₺</span>
             </div>
 
-            {/* Quick Increment Chips */}
-            <div className="flex items-center gap-2 mt-3 flex-wrap justify-center">
-              {[50, 100, 250, 500].map((inc) => (
+            <div className="flex items-center gap-2 pt-1">
+              {[50, 100, 250, 500].map((val) => (
                 <button
-                  key={inc}
+                  key={val}
                   type="button"
-                  onClick={() => {
-                    const curr = parseFloat(amount.replace(',', '.')) || 0;
-                    setAmount((curr + inc).toString());
-                  }}
-                  className="px-3 py-1 rounded-full bg-white border border-slate-200 text-textSecondary text-[12px] font-bold hover:border-primaryEmerald hover:text-primaryEmerald active:scale-95 transition shadow-2xs"
+                  onClick={() => handleQuickAdd(val)}
+                  className="px-3.5 py-1.5 rounded-[10px] bg-[#F1F5F9] hover:bg-slate-200 text-[#475569] text-[12px] font-bold active:scale-95 transition"
                 >
-                  +{inc} ₺
+                  +{val} ₺
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Note / Message */}
-          <div>
-            <label className="block text-[12px] font-bold text-textSecondary uppercase tracking-wider mb-1.5">
-              HATIRLATMA NOTU
-            </label>
+          {/* 3. Açıklama & Not */}
+          <div className="px-5 py-4 space-y-2 bg-white">
+            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
+              HATIRLATMA MESAJI (OPSİYONEL)
+            </span>
+
             <input
               type="text"
-              placeholder="Örn: Geçen haftaki akşam yemeği payı..."
+              placeholder="örn: Dünkü yemek payı, kahve ücreti..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full px-4 py-3 rounded-[14px] bg-white border border-slate-200 text-textPrimary text-[14px] font-medium outline-none focus:border-primaryEmerald focus:ring-2 focus:ring-primaryEmeraldContainer transition"
+              className="w-full h-12 px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-semibold text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:border-[#00875A] transition"
             />
           </div>
         </div>
 
-        {/* Footer CTA */}
-        <div className="p-4 border-t border-surfaceBorder bg-surfaceWhite">
+        {/* Footer Action Button */}
+        <div className="p-4 bg-white border-t border-slate-100 pb-[max(env(safe-area-inset-bottom),16px)]">
           <button
-            type="button"
             onClick={handleSend}
-            disabled={!isValid || sentSuccess}
-            className={`w-full h-[52px] rounded-[16px] font-bold text-[15px] flex items-center justify-center gap-2 transition shadow-sm ${
-              sentSuccess
-                ? 'bg-primaryEmerald text-white'
-                : isValid
-                ? 'bg-primaryEmerald text-white hover:bg-[#00744d] active:scale-[0.98]'
+            disabled={!isValid}
+            className={`w-full h-12 rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-sm ${
+              isValid
+                ? 'bg-[#00875A] hover:bg-[#00744d] text-white shadow-emerald-900/20'
                 : 'bg-slate-100 text-slate-400 cursor-not-allowed'
             }`}
           >
             {sentSuccess ? (
               <>
-                <CheckCircle2 className="w-5 h-5" />
-                <span>Hatırlatma (Dürtme) Gönderildi!</span>
+                <Check className="w-5 h-5" />
+                <span>İstek Gönderildi ✓</span>
               </>
             ) : (
               <>
-                <Send className="w-5 h-5" />
-                <span>Para Talebini & Dürtmeyi Gönder</span>
+                <Send className="w-4 h-4" />
+                <span>
+                  {numAmount > 0
+                    ? `Dürt & Para İste (${numAmount.toFixed(2)} ₺)`
+                    : 'Dürt & Para İste'}
+                </span>
               </>
             )}
           </button>

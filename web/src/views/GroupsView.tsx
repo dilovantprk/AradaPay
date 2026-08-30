@@ -208,29 +208,30 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
       {/* Create Group Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-apple-modal border-0 sm:border border-black/[0.08] overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
-            <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-3.5 border-b border-black/[0.06] flex items-center justify-between bg-white/80 backdrop-blur-md flex-shrink-0">
+          <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
+            <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-3 bg-white border-b border-slate-100 flex items-center justify-between flex-shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-[#1C1C1E]"
+                className="w-10 h-10 rounded-[12px] bg-[#F1F5F9] flex items-center justify-center text-[#0F172A] hover:bg-slate-200 active:scale-95 transition"
+                title="Geri"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
               </button>
-              <h3 className="text-[17px] font-bold text-[#1C1C1E]">Yeni Grup Kur</h3>
-              <div className="w-9" />
+              <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">Yeni Grup Kur</h3>
+              <div className="w-10" />
             </div>
 
-            <form onSubmit={handleCreateGroup} className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+            <form onSubmit={handleCreateGroup} className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-left">
               {/* Emoji & Name */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#8E8E93] uppercase">GRUP ADI VE İKON</label>
+                <label className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">GRUP ADI VE İKON</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     maxLength={2}
                     value={newGroupEmoji}
                     onChange={(e) => setNewGroupEmoji(e.target.value)}
-                    className="w-14 h-12 text-center text-[22px] rounded-[14px] bg-[#F2F2F7] border border-black/[0.06] focus:outline-none"
+                    className="w-14 h-12 text-center text-[22px] rounded-[14px] bg-[#F8FAFC] border border-slate-200 focus:outline-none focus:border-[#00875A]"
                   />
                   <input
                     type="text"
@@ -238,18 +239,18 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                     value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
                     placeholder="örn: Kadıköy Evi, Kaş Tatili 2026"
-                    className="flex-1 h-12 px-4 rounded-[14px] bg-[#F2F2F7] border border-black/[0.06] text-[14px] font-bold text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
+                    className="flex-1 h-12 px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-bold text-[#0F172A] focus:outline-none focus:border-[#00875A]"
                   />
                 </div>
               </div>
 
               {/* Category selector */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#8E8E93] uppercase">KATEGORİ</label>
+                <label className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">KATEGORİ</label>
                 <select
                   value={newGroupCategory}
                   onChange={(e) => setNewGroupCategory(e.target.value)}
-                  className="w-full h-12 px-4 rounded-[14px] bg-[#F2F2F7] border border-black/[0.06] text-[14px] font-bold text-[#1C1C1E] focus:outline-none focus:border-[#00875A]"
+                  className="w-full h-12 px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-bold text-[#0F172A] focus:outline-none focus:border-[#00875A]"
                 >
                   <option value="Ev & Yaşam">Ev & Yaşam</option>
                   <option value="Tatil & Seyahat">Tatil & Seyahat</option>
@@ -261,10 +262,10 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
 
               {/* Members Selection */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#8E8E93] uppercase">
+                <label className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
                   GRUP ÜYELERİNİ SEÇ ({selectedMemberIds.length})
                 </label>
-                <div className="apple-card divide-y divide-black/[0.04] max-h-48 overflow-y-auto">
+                <div className="rounded-[18px] bg-[#F8FAFC] border border-slate-200 divide-y divide-slate-100 max-h-48 overflow-y-auto">
                   {users.map((u) => {
                     const isSelected = selectedMemberIds.includes(u.id);
                     return (
@@ -279,11 +280,16 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                             setSelectedMemberIds([...selectedMemberIds, u.id]);
                           }
                         }}
-                        className="p-3 flex items-center justify-between cursor-pointer hover:bg-black/[0.02]"
+                        className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-100/50"
                       >
-                        <span className="text-[13px] font-bold text-[#1C1C1E]">
-                          {u.id === currentUser.id ? `Ben (${u.fullName})` : u.fullName}
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#00875A] text-[11px] font-extrabold flex items-center justify-center">
+                            {u.fullName.slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-[13px] font-bold text-[#0F172A]">
+                            {u.id === currentUser.id ? `Ben (${u.fullName})` : u.fullName}
+                          </span>
+                        </div>
                         <div
                           className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] text-white ${
                             isSelected ? 'bg-[#00875A]' : 'border border-slate-300'
@@ -297,12 +303,14 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full h-12 rounded-[16px] bg-[#00875A] text-white font-bold text-[14px] hover:bg-[#00744d] active:scale-[0.98] transition mt-4 shadow-sm"
-              >
-                Grubu Oluştur
-              </button>
+              <div className="pt-2 pb-[max(env(safe-area-inset-bottom),8px)]">
+                <button
+                  type="submit"
+                  className="w-full h-12 rounded-[14px] bg-[#00875A] text-white font-bold text-[14px] hover:bg-[#00744d] active:scale-[0.98] transition shadow-sm shadow-emerald-900/20"
+                >
+                  Grubu Oluştur
+                </button>
+              </div>
             </form>
           </div>
         </div>
