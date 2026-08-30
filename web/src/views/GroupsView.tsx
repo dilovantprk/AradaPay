@@ -82,17 +82,17 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   return (
     <div className="space-y-5 text-left animate-fadeIn">
       {/* Header */}
-      <div className="flex items-center justify-between px-1">
-        <div>
+      <div className="flex items-center justify-between gap-3 px-1">
+        <div className="min-w-0">
           <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Gruplar</h2>
           <p className="text-[13px] text-[#64748B]">Ortak ev, tatil, yemek ve arkadaş harcamaları</p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 rounded-[12px] bg-[#00875A] text-white text-[13px] font-bold flex items-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-900/10"
+          className="h-9 px-3.5 rounded-full bg-[#00875A] text-white text-[12px] font-bold flex items-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-2xs flex-shrink-0 whitespace-nowrap"
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>Grup Kur</span>
         </button>
       </div>
