@@ -19,7 +19,9 @@ import {
   Zap,
   Tag,
   CreditCard,
-  History
+  History,
+  LayoutGrid,
+  Bell
 } from 'lucide-react';
 import { Expense, Settlement, Nudge, User, ExpenseCategory } from '../types';
 
@@ -99,12 +101,10 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
       let status = '';
 
       if (isPayerMe) {
-        // I paid, others owe me (total minus my share)
         myAmount = exp.amount - (mySplit?.amountOwed || 0);
         isPos = true;
         status = 'alacaklısın';
       } else {
-        // Someone else paid, I owe my share
         myAmount = mySplit?.amountOwed || 0;
         isPos = false;
         status = 'sen borçlusun';
@@ -169,13 +169,11 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
   // Apply filters and search
   const filteredActivities = useMemo(() => {
     return activities.filter((act) => {
-      // Search
       const matchesSearch = searchQuery
         ? act.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           act.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
         : true;
 
-      // Filter
       let matchesFilter = true;
       if (filter === 'RECEIVABLES') {
         matchesFilter = act.type === 'EXPENSE' && act.isPositive;
@@ -199,7 +197,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
         <p className="text-[13px] text-[#8E8E93]">Tüm harcama, FAST fitleşme ve ödeme hatırlatma geçmişi</p>
       </div>
 
-      {/* Search & Filter Bar (1:1 Android ActivityScreen.kt) */}
+      {/* Search & Filter Bar (With Clean Icons on all Chips) */}
       <div className="space-y-3">
         {/* Search */}
         <div className="relative">
@@ -213,57 +211,66 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
           />
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {/* Filter Pills with Icons and zero visible scrollbars */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button
             onClick={() => setFilter('ALL')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'ALL'
                 ? 'bg-[#00875A] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
             }`}
           >
-            Tümü ({activities.length})
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Tümü ({activities.length})</span>
           </button>
+
           <button
             onClick={() => setFilter('RECEIVABLES')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'RECEIVABLES'
                 ? 'bg-[#00875A] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#00875A] hover:bg-slate-50'
             }`}
           >
-            Alacaklar (+₺)
+            <ArrowDownLeft className="w-3.5 h-3.5" />
+            <span>Alacaklar (+₺)</span>
           </button>
+
           <button
             onClick={() => setFilter('PAYABLES')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'PAYABLES'
                 ? 'bg-[#D32F2F] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#D32F2F] hover:bg-slate-50'
             }`}
           >
-            Borçlar (-₺)
+            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Borçlar (-₺)</span>
           </button>
+
           <button
             onClick={() => setFilter('SETTLEMENTS')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'SETTLEMENTS'
                 ? 'bg-[#00875A] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
             }`}
           >
-            Fitleşmeler (FAST)
+            <CreditCard className="w-3.5 h-3.5 text-[#00875A]" />
+            <span>Fitleşmeler (FAST)</span>
           </button>
+
           <button
             onClick={() => setFilter('REQUESTS')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               filter === 'REQUESTS'
                 ? 'bg-[#6366F1] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#6366F1] hover:bg-slate-50'
             }`}
           >
-            İstek & Onay (Dürtmeler)
+            <Bell className="w-3.5 h-3.5 text-[#6366F1]" />
+            <span>İstek & Onay</span>
           </button>
         </div>
       </div>

@@ -238,20 +238,22 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-black/5 rounded-[18px] text-[13px] font-bold">
         <button
           onClick={() => setActiveTab('expenses')}
-          className={`py-2.5 rounded-[14px] transition ${
+          className={`py-2.5 rounded-[14px] transition flex items-center justify-center gap-1.5 ${
             activeTab === 'expenses' ? 'bg-white text-[#1C1C1E] shadow-apple-sm' : 'text-[#8E8E93]'
           }`}
         >
-          Harcamalar ({groupExpenses.length})
+          <Receipt className="w-4 h-4" />
+          <span>Harcamalar ({groupExpenses.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('members')}
-          className={`py-2.5 rounded-[14px] transition ${
+          className={`py-2.5 rounded-[14px] transition flex items-center justify-center gap-1.5 ${
             activeTab === 'members' ? 'bg-white text-[#1C1C1E] shadow-apple-sm' : 'text-[#8E8E93]'
           }`}
         >
-          Üyeler ({group.members.length})
+          <Users className="w-4 h-4" />
+          <span>Üyeler ({group.members.length})</span>
         </button>
 
         <button

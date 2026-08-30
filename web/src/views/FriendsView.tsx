@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { UserPlus, Send, CreditCard, Check, Search, X, CheckCircle2, ChevronRight, Phone } from 'lucide-react';
+import { UserPlus, Send, CreditCard, Check, Search, X, CheckCircle2, ChevronRight, Phone, Users as UsersIcon, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { User, Expense, Settlement, Group } from '../types';
 import { AddFriendModal } from '../components/AddFriendModal';
 
@@ -111,47 +111,51 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
           />
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {/* Filter Pills with Icons and zero visible scrollbar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button
             onClick={() => setBalanceFilter('all')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               balanceFilter === 'all'
                 ? 'bg-[#00875A] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
             }`}
           >
-            Tümü ({friends.length})
+            <UsersIcon className="w-3.5 h-3.5" />
+            <span>Tümü ({friends.length})</span>
           </button>
           <button
             onClick={() => setBalanceFilter('positive')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               balanceFilter === 'positive'
                 ? 'bg-[#00875A] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#00875A] hover:bg-slate-50'
             }`}
           >
-            Alacaklı Olduklarım (+₺)
+            <ArrowDownLeft className="w-3.5 h-3.5" />
+            <span>Alacaklı Olduklarım (+₺)</span>
           </button>
           <button
             onClick={() => setBalanceFilter('negative')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               balanceFilter === 'negative'
                 ? 'bg-[#D32F2F] text-white shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#D32F2F] hover:bg-slate-50'
             }`}
           >
-            Borçlu Olduklarım (-₺)
+            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Borçlu Olduklarım (-₺)</span>
           </button>
           <button
             onClick={() => setBalanceFilter('zero')}
-            className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               balanceFilter === 'zero'
                 ? 'bg-black/10 text-[#1C1C1E] shadow-2xs'
                 : 'bg-white border border-black/[0.08] text-[#8E8E93] hover:bg-slate-50'
             }`}
           >
-            Fitleşilenler (0₺)
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Fitleşilenler (0₺)</span>
           </button>
         </div>
       </div>

@@ -283,20 +283,22 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
       <div className="grid grid-cols-3 gap-1 p-1 bg-black/5 rounded-[18px] text-[13px] font-bold">
         <button
           onClick={() => setActiveTab('timeline')}
-          className={`py-2.5 rounded-[14px] transition ${
+          className={`py-2.5 rounded-[14px] transition flex items-center justify-center gap-1.5 ${
             activeTab === 'timeline' ? 'bg-white text-[#1C1C1E] shadow-apple-sm' : 'text-[#8E8E93]'
           }`}
         >
-          Ortak Geçmiş ({sharedExpenses.length + sharedSettlements.length})
+          <Receipt className="w-3.5 h-3.5" />
+          <span>Ortak Geçmiş ({sharedExpenses.length + sharedSettlements.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('groups')}
-          className={`py-2.5 rounded-[14px] transition ${
+          className={`py-2.5 rounded-[14px] transition flex items-center justify-center gap-1.5 ${
             activeTab === 'groups' ? 'bg-white text-[#1C1C1E] shadow-apple-sm' : 'text-[#8E8E93]'
           }`}
         >
-          Ortak Gruplar ({sharedGroups.length})
+          <Users className="w-3.5 h-3.5" />
+          <span>Ortak Gruplar ({sharedGroups.length})</span>
         </button>
 
         <button
@@ -305,7 +307,7 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
             activeTab === 'payment' ? 'bg-white text-[#1C1C1E] shadow-apple-sm' : 'text-[#8E8E93]'
           }`}
         >
-          <QrCode className="w-4 h-4" />
+          <QrCode className="w-3.5 h-3.5" />
           <span>Ödeme & QR</span>
         </button>
       </div>
@@ -323,27 +325,30 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
             <div className="flex items-center gap-1 p-0.5 bg-black/5 rounded-full text-[11px] font-bold">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1 rounded-full transition ${
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full transition ${
                   filter === 'all' ? 'bg-white text-[#1C1C1E] shadow-2xs' : 'text-[#8E8E93]'
                 }`}
               >
-                Tümü
+                <Sparkles className="w-3 h-3" />
+                <span>Tümü</span>
               </button>
               <button
                 onClick={() => setFilter('expenses')}
-                className={`px-3 py-1 rounded-full transition ${
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full transition ${
                   filter === 'expenses' ? 'bg-white text-[#1C1C1E] shadow-2xs' : 'text-[#8E8E93]'
                 }`}
               >
-                Harcamalar
+                <Receipt className="w-3 h-3" />
+                <span>Harcamalar</span>
               </button>
               <button
                 onClick={() => setFilter('settlements')}
-                className={`px-3 py-1 rounded-full transition ${
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full transition ${
                   filter === 'settlements' ? 'bg-white text-[#1C1C1E] shadow-2xs' : 'text-[#8E8E93]'
                 }`}
               >
-                Fitleşmeler
+                <CreditCard className="w-3 h-3" />
+                <span>Fitleşmeler</span>
               </button>
             </div>
           </div>

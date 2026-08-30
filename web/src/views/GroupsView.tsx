@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Users, ArrowRight, ArrowLeft, UserPlus, ChevronRight, X, Check, Sparkles, Search } from 'lucide-react';
+import { Plus, Users, ArrowRight, ArrowLeft, UserPlus, ChevronRight, X, Check, Sparkles, Search, LayoutGrid, Home, Plane, Utensils, Film, Folder } from 'lucide-react';
 import { Group, User, Expense } from '../types';
 
 interface GroupsViewProps {
@@ -112,21 +112,42 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
           />
         </div>
 
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          {GROUP_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition ${
-                selectedCategory === cat
-                  ? 'bg-[#00875A] text-white shadow-2xs'
-                  : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        {/* Category Pills with Icons and zero visible scrollbar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {GROUP_CATEGORIES.map((cat) => {
+            const isSelected = selectedCategory === cat;
+            const getIcon = () => {
+              switch (cat) {
+                case 'Ev & Yaşam':
+                  return <Home className="w-3.5 h-3.5" />;
+                case 'Tatil & Seyahat':
+                  return <Plane className="w-3.5 h-3.5" />;
+                case 'Yemek & Kafe':
+                  return <Utensils className="w-3.5 h-3.5" />;
+                case 'Etkinlik & Festival':
+                  return <Film className="w-3.5 h-3.5" />;
+                case 'Genel':
+                  return <Folder className="w-3.5 h-3.5" />;
+                default:
+                  return <LayoutGrid className="w-3.5 h-3.5" />;
+              }
+            };
+
+            return (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
+                  isSelected
+                    ? 'bg-[#00875A] text-white shadow-2xs'
+                    : 'bg-white border border-black/[0.08] text-[#1C1C1E] hover:bg-slate-50'
+                }`}
+              >
+                {getIcon()}
+                <span>{cat}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
