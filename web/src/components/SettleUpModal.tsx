@@ -27,14 +27,54 @@ interface SettleUpModalProps {
 }
 
 const SUPPORTED_BANKS = [
-  { id: 'garanti', name: 'Garanti BBVA', code: '0062', color: '#1B5E20' },
-  { id: 'isbank', name: 'Türkiye İş Bankası', code: '0064', color: '#0D47A1' },
-  { id: 'akbank', name: 'Akbank', code: '0046', color: '#B71C1C' },
-  { id: 'yapikredi', name: 'Yapı Kredi', code: '0067', color: '#01579B' },
-  { id: 'ziraat', name: 'Ziraat Bankası', code: '0010', color: '#C62828' },
-  { id: 'qnb', name: 'QNB Finansbank', code: '0111', color: '#4A148C' },
-  { id: 'papara', name: 'Papara', code: '8001', color: '#6A1B9A' },
-  { id: 'enpara', name: 'Enpara.com', code: '0111', color: '#6A1B9A' }
+  {
+    id: 'garanti',
+    name: 'Garanti BBVA',
+    url: 'https://online.garantibbva.com.tr',
+    scheme: 'garantibbva://'
+  },
+  {
+    id: 'isbank',
+    name: 'Türkiye İş Bankası',
+    url: 'https://www.isbank.com.tr',
+    scheme: 'iscep://'
+  },
+  {
+    id: 'akbank',
+    name: 'Akbank',
+    url: 'https://www.akbank.com',
+    scheme: 'akbankdirekt://'
+  },
+  {
+    id: 'yapikredi',
+    name: 'Yapı Kredi',
+    url: 'https://www.yapikredi.com.tr',
+    scheme: 'yapikredi://'
+  },
+  {
+    id: 'ziraat',
+    name: 'Ziraat Bankası',
+    url: 'https://bireysel.ziraatbank.com.tr',
+    scheme: 'ziraatmobil://'
+  },
+  {
+    id: 'qnb',
+    name: 'QNB Finansbank',
+    url: 'https://www.qnb.com.tr',
+    scheme: 'qnbfinansbank://'
+  },
+  {
+    id: 'papara',
+    name: 'Papara',
+    url: 'https://www.papara.com',
+    scheme: 'papara://'
+  },
+  {
+    id: 'enpara',
+    name: 'Enpara.com',
+    url: 'https://www.enpara.com',
+    scheme: 'enpara://'
+  }
 ];
 
 export const SettleUpModal: React.FC<SettleUpModalProps> = ({
@@ -53,6 +93,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const [selectedBankId, setSelectedBankId] = useState<string>('garanti');
   const [copiedIban, setCopiedIban] = useState<boolean>(false);
   const [copiedDesc, setCopiedDesc] = useState<boolean>(false);
+  const [bankOpeningStatus, setBankOpeningStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialTargetUser) {
@@ -86,6 +127,22 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
     const current = parseFloat(amountText.replace(',', '.')) || 0;
     const next = current + val;
     setAmountText(next % 1 === 0 ? next.toString() : next.toFixed(2));
+  };
+
+  const handleOpenBankApp = (bank: typeof SUPPORTED_BANKS[0]) => {
+    setSelectedBankId(bank.id);
+
+    // Automatically copy IBAN to clipboard
+    navigator.clipboard.writeText(iban.replace(/\s+/g, ''));
+    setCopiedIban(true);
+    setBankOpeningStatus(`IBAN kopyalandı! ${bank.name} açılıyor...`);
+
+    // Redirect to banking app / portal
+    window.open(bank.url, '_blank', 'noopener,noreferrer');
+
+    setTimeout(() => {
+      setBankOpeningStatus(null);
+    }, 4000);
   };
 
   const handleConfirm = () => {
@@ -138,8 +195,8 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
           <div className="w-10" />
         </div>
 
-        {/* Scrollable Form Body */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+        {/* Scrollable Form Body (De-nested, Flat & Grouped) */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 text-left">
           {/* 1. Kime Ödenecek (Seçici) */}
           <div className="px-5 py-4 space-y-2 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
@@ -162,7 +219,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
             </div>
           </div>
 
-          {/* 2. Tutar Girişi (Büyük Kahraman Tutar + Hızlı Çipler) */}
+          {/* 2. Ödenecek Tutar (Hero Amount) */}
           <div className="px-5 py-4 space-y-3 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               ÖDENECEK TUTAR
@@ -196,24 +253,24 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
             </div>
           </div>
 
-          {/* 3. FAST & IBAN Bilgileri Kartı (1:1 Android) */}
-          <div className="px-5 py-4 space-y-3 bg-[#F8FAFC]">
+          {/* 3. FAST & IBAN Bilgileri (Single Flat Grouped Block) */}
+          <div className="px-5 py-4 space-y-3 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
               FAST & HAVALE BİLGİLERİ
             </span>
 
-            <div className="apple-card p-4 space-y-3 bg-white">
+            <div className="divide-y divide-slate-100 text-[13px]">
               {/* Alıcı Adı */}
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-[#8E8E93]">Alıcı Adı:</span>
-                <span className="text-[13px] font-bold text-[#0F172A]">{selectedUser.fullName}</span>
+              <div className="py-2.5 flex items-center justify-between">
+                <span className="text-[#64748B]">Alıcı Adı:</span>
+                <span className="font-bold text-[#0F172A]">{selectedUser.fullName}</span>
               </div>
 
               {/* IBAN */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className="py-2.5 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-[#8E8E93] uppercase block">FAST IBAN</span>
-                  <span className="text-[13px] font-mono font-bold text-[#0F172A] tracking-wider block">
+                  <span className="text-[10px] font-bold text-[#64748B] uppercase block">FAST IBAN</span>
+                  <span className="font-mono font-bold text-[#0F172A] tracking-wider block">
                     {iban}
                   </span>
                 </div>
@@ -232,10 +289,10 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
               </div>
 
               {/* Açıklama Kodu */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className="py-2.5 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-[#8E8E93] uppercase block">Açıklama</span>
-                  <span className="text-[12px] font-semibold text-[#0F172A] block">{descriptionCode}</span>
+                  <span className="text-[10px] font-bold text-[#64748B] uppercase block">Açıklama</span>
+                  <span className="font-semibold text-[#0F172A] block">{descriptionCode}</span>
                 </div>
                 <button
                   type="button"
@@ -253,22 +310,36 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
             </div>
           </div>
 
-          {/* 4. Banka Seçici */}
+          {/* 4. Banka Uygulamasını Aç & Yönlendir (Fully Functional!) */}
           <div className="px-5 py-4 space-y-2 bg-white">
-            <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
-              BANKA UYGULAMASINI SEÇ
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
+                BANKA UYGULAMASINA GİT
+              </span>
+              <span className="text-[11px] text-[#00875A] font-semibold flex items-center gap-1">
+                <ExternalLink className="w-3 h-3" />
+                <span>Dokununca IBAN kopyalanır</span>
+              </span>
+            </div>
+
+            {bankOpeningStatus && (
+              <div className="p-2.5 rounded-[10px] bg-emerald-50 text-[#00875A] text-[12px] font-bold text-center animate-fadeIn">
+                {bankOpeningStatus}
+              </div>
+            )}
+
             <div className="grid grid-cols-4 gap-2">
               {SUPPORTED_BANKS.map((b) => (
                 <button
                   key={b.id}
                   type="button"
-                  onClick={() => setSelectedBankId(b.id)}
-                  className={`p-2.5 rounded-[12px] border text-center transition flex flex-col items-center gap-1 ${
+                  onClick={() => handleOpenBankApp(b)}
+                  className={`p-2.5 rounded-[12px] border text-center transition flex flex-col items-center gap-1 active:scale-95 ${
                     selectedBankId === b.id
                       ? 'border-[#00875A] bg-emerald-50 text-[#00875A] font-bold'
-                      : 'border-slate-100 bg-[#F8FAFC] text-[#0F172A] hover:border-slate-300'
+                      : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] hover:border-slate-300'
                   }`}
+                  title={`${b.name} uygulamasını aç`}
                 >
                   <Building2 className="w-5 h-5 opacity-80" />
                   <span className="text-[10px] font-semibold truncate w-full">{b.name}</span>
