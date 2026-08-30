@@ -367,6 +367,67 @@ export function App() {
           />
         </div>
 
+        {/* Desktop macOS Toolbar (Visible only on lg: >= 1024px) */}
+        <header className="hidden lg:flex items-center justify-between px-8 py-3.5 bg-white/70 backdrop-blur-2xl border-b border-black/[0.06] sticky top-0 z-30">
+          {/* Breadcrumb Navigation */}
+          <div className="flex items-center gap-2 text-[13px]">
+            <span className="font-semibold text-[#8E8E93]">AradaPay</span>
+            <span className="text-[#8E8E93]">/</span>
+            <span className="font-bold text-[#1C1C1E] capitalize">
+              {selectedGroupId
+                ? `Gruplar / ${groups.find((g) => g.id === selectedGroupId)?.name || 'Grup'}`
+                : selectedFriendId
+                ? `Arkadaşlar / ${users.find((u) => u.id === selectedFriendId)?.fullName || 'Arkadaş'}`
+                : currentTab === 'dashboard'
+                ? 'Ana Panel'
+                : currentTab === 'groups'
+                ? 'Gruplarım'
+                : currentTab === 'friends'
+                ? 'Arkadaşlarım'
+                : currentTab === 'analytics'
+                ? 'Finansal Analiz & DFS'
+                : 'Ayarlar & Kasa'}
+            </span>
+          </div>
+
+          {/* macOS Toolbar Actions */}
+          <div className="flex items-center gap-3">
+            {/* Balance Masking Quick Toggle */}
+            <button
+              onClick={() => setIsLocked(!isLocked)}
+              className="px-3 py-1.5 rounded-[8px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 transition"
+              title="Bakiye Maskesini Aç/Kapat"
+            >
+              <span>{isLocked ? '🙈 Gizli Bakiye' : '👁️ Bakiye Açık'}</span>
+            </button>
+
+            {/* Notification Badge */}
+            <button
+              onClick={() => handleTabChange('analytics')}
+              className="relative p-2 rounded-[8px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] transition"
+              title="Bildirimler & Mahsuplaşma"
+            >
+              {nudges.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D32F2F] ring-2 ring-white animate-pulse" />
+              )}
+              <span className="text-[13px]">🔔</span>
+            </button>
+
+            {/* Profile Avatar Capsule */}
+            <div
+              onClick={() => handleTabChange('settings')}
+              className="flex items-center gap-2 px-2.5 py-1 rounded-[10px] bg-black/5 hover:bg-black/10 cursor-pointer transition select-none"
+            >
+              <div className="w-6 h-6 rounded-full bg-[#00875A] text-white font-extrabold text-[10px] flex items-center justify-center">
+                {activeUser.fullName.slice(0, 2).toUpperCase()}
+              </div>
+              <span className="text-[12px] font-bold text-[#1C1C1E]">
+                {activeUser.fullName.split(' ')[0]}
+              </span>
+            </div>
+          </div>
+        </header>
+
         {/* Main Content Area */}
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-8 py-6 pb-28 lg:pb-12 space-y-6">
           {/* 1. DEDICATED GROUP DETAIL PAGE */}

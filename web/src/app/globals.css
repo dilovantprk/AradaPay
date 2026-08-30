@@ -10,13 +10,13 @@
   }
 
   body {
-    background-color: #F2F2F7; /* Apple iOS System Grouped Background */
+    background-color: #F2F2F7; /* Apple iOS & macOS System Grouped Background */
     color: #1C1C1E;            /* Apple Label Primary */
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", sans-serif;
     letter-spacing: -0.015em;
   }
 
-  /* Custom Apple-like scrollbar */
+  /* Custom Apple-grade minimal scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -25,19 +25,93 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.16);
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.28);
   }
+}
+
+/* ========================================================================= */
+/* macOS HIG VIBRANCY & WINDOW STYLING */
+/* ========================================================================= */
+.macos-window {
+  background: rgba(246, 246, 246, 0.85);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 18px;
+}
+
+.macos-traffic-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.macos-traffic-light-close { background-color: #FF5F56; }
+.macos-traffic-light-minimize { background-color: #FFBD2E; }
+.macos-traffic-light-maximize { background-color: #27C93F; }
+
+.macos-sidebar {
+  background: rgba(238, 238, 240, 0.75);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.macos-toolbar {
+  background: rgba(246, 246, 246, 0.88);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.macos-card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ========================================================================= */
+/* iOS HIG VIBRANCY & COMPONENT STYLING */
+/* ========================================================================= */
+.ios-grouped-bg {
+  background-color: #F2F2F7;
+}
+
+.ios-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.02);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+.ios-large-title {
+  font-size: 34px;
+  line-height: 41px;
+  font-weight: 700;
+  letter-spacing: 0.37px;
+}
+
+.ios-tab-bar {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  border-top: 0.5px solid rgba(0, 0, 0, 0.12);
 }
 
 /* Apple Spring Animations */
 @keyframes appleSheetSlideUp {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.98);
+    transform: translateY(24px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -72,7 +146,7 @@
 
 /* Apple Frosted Glass Utilities */
 .apple-glass {
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.80);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
