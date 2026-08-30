@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Plus, Users, ArrowRight, ArrowLeft, UserPlus, ChevronRight, X, Check, Sparkles } from 'lucide-react';
 import { Group, User, Expense } from '../types';
-import { GroupDetailModal } from '../components/GroupDetailModal';
 
 interface GroupsViewProps {
   groups: Group[];
@@ -11,10 +10,9 @@ interface GroupsViewProps {
   users: User[];
   expenses: Expense[];
   isLocked: boolean;
+  onSelectGroup: (group: Group) => void;
   onAddExpenseClick: (group?: Group) => void;
   onSaveGroup: (group: Group) => void;
-  onOpenSettleUp: (targetUser: User, amount?: number) => void;
-  onViewExpenseDetail: (expense: Expense) => void;
 }
 
 export const GroupsView: React.FC<GroupsViewProps> = ({
@@ -23,12 +21,10 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   users,
   expenses,
   isLocked,
+  onSelectGroup,
   onAddExpenseClick,
-  onSaveGroup,
-  onOpenSettleUp,
-  onViewExpenseDetail
+  onSaveGroup
 }) => {
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupEmoji, setNewGroupEmoji] = useState('🏠');
@@ -66,31 +62,11 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
     setShowCreateModal(false);
     setNewGroupName('');
     setSelectedMemberIds([currentUser.id]);
-  };
-
-  const handleAddMemberToGroup = (groupId: string, newMember: User) => {
-    const targetGroup = groups.find((g) => g.id === groupId);
-    if (!targetGroup) return;
-
-    const updatedGroup: Group = {
-      ...targetGroup,
-      members: [
-        ...targetGroup.members,
-        {
-          id: newMember.id,
-          name: newMember.fullName,
-          avatar: newMember.fullName.slice(0, 2).toUpperCase(),
-          tag: newMember.tag || '',
-          balanceInGroup: 0
-        }
-      ]
-    };
-    onSaveGroup(updatedGroup);
-    setSelectedGroup(updatedGroup);
+    onSelectGroup(newGroup);
   };
 
   return (
-    <div className="space-y-4 text-left">
+    <div className="space-y-4 text-left animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div>
@@ -116,7 +92,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
           return (
             <div
               key={group.id}
-              onClick={() => setSelectedGroup(group)}
+              onClick={() => onSelectGroup(group)}
               className="apple-card p-5 hover:border-black/[0.1] active:scale-[0.99] cursor-pointer transition flex items-center justify-between"
             >
               <div className="flex items-center gap-3.5">
@@ -231,30 +207,6 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* 1:1 Android GroupDetailModal */}
-      <GroupDetailModal
-        isOpen={selectedGroup !== null}
-        onClose={() => setSelectedGroup(null)}
-        group={selectedGroup}
-        currentUser={currentUser}
-        users={users}
-        expenses={expenses}
-        isLocked={isLocked}
-        onOpenAddExpenseInGroup={(g) => {
-          setSelectedGroup(null);
-          onAddExpenseClick(g);
-        }}
-        onOpenSettleUp={(targetUser, amount) => {
-          setSelectedGroup(null);
-          onOpenSettleUp(targetUser, amount);
-        }}
-        onViewExpenseDetail={(exp) => {
-          setSelectedGroup(null);
-          onViewExpenseDetail(exp);
-        }}
-        onAddMemberToGroup={handleAddMemberToGroup}
-      />
     </div>
   );
 };

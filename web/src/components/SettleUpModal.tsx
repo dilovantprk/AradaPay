@@ -22,6 +22,8 @@ interface SettleUpModalProps {
   onClose: () => void;
   currentUser: User;
   users: User[];
+  initialTargetUser?: User;
+  initialAmount?: number;
   onConfirmSettlement: (settlement: Settlement) => void;
   onShowReceipt: (settlement: Settlement) => void;
 }
@@ -42,16 +44,27 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   onClose,
   currentUser,
   users,
+  initialTargetUser,
+  initialAmount,
   onConfirmSettlement,
   onShowReceipt
 }) => {
   const otherUsers = users.filter((u) => u.id !== currentUser.id);
-  const [selectedUserId, setSelectedUserId] = useState<string>(otherUsers[0]?.id || '');
-  const [amount, setAmount] = useState<string>('320.00');
+  const [selectedUserId, setSelectedUserId] = useState<string>(initialTargetUser?.id || otherUsers[0]?.id || '');
+  const [amount, setAmount] = useState<string>(initialAmount ? initialAmount.toFixed(2) : '320.00');
   const [selectedBankId, setSelectedBankId] = useState<string>('garanti');
   const [copiedIban, setCopiedIban] = useState<boolean>(false);
   const [copiedDesc, setCopiedDesc] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'fast' | 'qr'>('fast');
+
+  React.useEffect(() => {
+    if (initialTargetUser) {
+      setSelectedUserId(initialTargetUser.id);
+    }
+    if (initialAmount !== undefined && initialAmount > 0) {
+      setAmount(initialAmount.toFixed(2));
+    }
+  }, [initialTargetUser, initialAmount, isOpen]);
 
   if (!isOpen) return null;
 

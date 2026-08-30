@@ -15,14 +15,14 @@ import { SmartSettlementModal } from './components/SmartSettlementModal';
 import { MerkleReceiptModal } from './components/MerkleReceiptModal';
 import { AddFriendModal } from './components/AddFriendModal';
 import { ExpenseDetailModal } from './components/ExpenseDetailModal';
-import { FriendDetailModal } from './components/FriendDetailModal';
-import { GroupDetailModal } from './components/GroupDetailModal';
 import { SmartSettlementReportModal } from './components/SmartSettlementReportModal';
 import { EditProfileModal } from './components/EditProfileModal';
 import { LandingPage } from './components/LandingPage';
 import { AuthScreen } from './components/AuthScreen';
 import { GroupsView } from './views/GroupsView';
 import { FriendsView } from './views/FriendsView';
+import { GroupDetailView } from './views/GroupDetailView';
+import { FriendDetailView } from './views/FriendDetailView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { SettingsView } from './views/SettingsView';
 import { Download } from 'lucide-react';
@@ -59,6 +59,9 @@ export function App() {
   const [nudges, setNudges] = useState<Nudge[]>([]);
 
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [dismissAppBanner, setDismissAppBanner] = useState(false);
 
@@ -67,8 +70,10 @@ export function App() {
 
   // Modals state
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [preselectedGroupForExpense, setPreselectedGroupForExpense] = useState<Group | undefined>(undefined);
   const [showSettleUp, setShowSettleUp] = useState(false);
   const [settlePreselectedUser, setSettlePreselectedUser] = useState<User | null>(null);
+  const [settleInitialAmount, setSettleInitialAmount] = useState<number | undefined>(undefined);
   const [showRequestMoney, setShowRequestMoney] = useState(false);
   const [showAddFriend, setShowAddFriend] = useState(false);
 
@@ -185,6 +190,12 @@ export function App() {
   }, [activeUser.id, expenses, settlements]);
 
   // Handlers
+  const handleTabChange = (tab: NavTab) => {
+    setSelectedGroupId(null);
+    setSelectedFriendId(null);
+    setCurrentTab(tab);
+  };
+
   const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prev) => [newExpense, ...prev]);
     FirestoreService.addExpense(newExpense).catch(console.error);
@@ -237,6 +248,31 @@ export function App() {
     FirestoreService.saveUser(updatedUser).catch(console.error);
   };
 
+  const handleAddMemberToGroup = (groupId: string, newMember: User) => {
+    setGroups((prev) =>
+      prev.map((g) => {
+        if (g.id === groupId) {
+          const updated: Group = {
+            ...g,
+            members: [
+              ...g.members,
+              {
+                id: newMember.id,
+                name: newMember.fullName,
+                avatar: newMember.fullName.slice(0, 2).toUpperCase(),
+                tag: newMember.tag || '',
+                balanceInGroup: 0
+              }
+            ]
+          };
+          FirestoreService.saveGroup(updated).catch(console.error);
+          return updated;
+        }
+        return g;
+      })
+    );
+  };
+
   const handleWipeData = () => {
     setExpenses([]);
     setSettlements([]);
@@ -275,11 +311,15 @@ export function App() {
       {/* ========================================================================= */}
       <DesktopSidebar
         currentTab={currentTab}
-        onTabChange={(tab) => setCurrentTab(tab)}
+        onTabChange={handleTabChange}
         currentUser={activeUser}
-        onOpenAddExpense={() => setShowAddExpense(true)}
+        onOpenAddExpense={() => {
+          setPreselectedGroupForExpense(undefined);
+          setShowAddExpense(true);
+        }}
         onOpenSettleUp={() => {
           setSettlePreselectedUser(null);
+          setSettleInitialAmount(undefined);
           setShowSettleUp(true);
         }}
         onLogout={handleLogout}
@@ -322,129 +362,184 @@ export function App() {
         <div className="lg:hidden">
           <TopBar
             user={activeUser}
-            onProfileClick={() => setCurrentTab('settings')}
+            onProfileClick={() => handleTabChange('settings')}
             hasNudges={nudges.length > 0}
           />
         </div>
 
         {/* Main Content Area */}
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-8 py-6 pb-28 lg:pb-12 space-y-6">
-          {currentTab === 'dashboard' && (
-            <div className="space-y-6">
-              {/* Responsive Grid on Desktop */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Column: Balance & Primary Actions */}
-                <div className="lg:col-span-7 space-y-6">
-                  {/* Financial Hero Card */}
-                  <FinancialHeroCard
-                    netBalance={balanceSummary.netBalance}
-                    totalReceivable={balanceSummary.totalReceivable}
-                    totalPayable={balanceSummary.totalPayable}
-                    isLocked={isLocked}
-                    onToggleLock={() => setIsLocked(!isLocked)}
-                  />
-
-                  {/* Action Buttons Row */}
-                  <div className="lg:hidden">
-                    <ActionButtonsRow
-                      onAddExpenseClick={() => setShowAddExpense(true)}
-                      onSettleUpClick={() => {
-                        setSettlePreselectedUser(null);
-                        setShowSettleUp(true);
-                      }}
-                      onRequestMoneyClick={() => setShowRequestMoney(true)}
-                    />
-                  </div>
-
-                  {/* Smart Settlement Banner (DFS Cycle Detection) */}
-                  <SmartSettlementBanner
-                    offers={crossOffers}
-                    currentUserId={activeUser.id}
-                    onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
-                  />
-                </div>
-
-                {/* Right Column: Transactions List */}
-                <div className="lg:col-span-5 space-y-6">
-                  <TransactionsList
-                    expenses={expenses}
-                    currentUserId={activeUser.id}
-                    isLocked={isLocked}
-                    onSeeAllClick={() => setCurrentTab('analytics')}
-                    onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentTab === 'groups' && (
-            <GroupsView
+          {/* 1. DEDICATED GROUP DETAIL PAGE */}
+          {selectedGroupId ? (
+            <GroupDetailView
+              groupId={selectedGroupId}
               groups={groups}
               currentUser={activeUser}
               users={users}
               expenses={expenses}
               isLocked={isLocked}
-              onAddExpenseClick={() => setShowAddExpense(true)}
-              onSaveGroup={(newGroup) => {
-                setGroups((prev) => [newGroup, ...prev]);
-                FirestoreService.saveGroup(newGroup).catch(console.error);
+              onBack={() => setSelectedGroupId(null)}
+              onAddExpenseInGroup={(g) => {
+                setPreselectedGroupForExpense(g);
+                setShowAddExpense(true);
               }}
-              onOpenSettleUp={(targetUser) => {
+              onOpenSettleUp={(targetUser, amount) => {
                 setSettlePreselectedUser(targetUser);
+                setSettleInitialAmount(amount);
                 setShowSettleUp(true);
               }}
               onViewExpenseDetail={(exp) => setSelectedExpenseForDetail(exp)}
+              onAddMemberToGroup={handleAddMemberToGroup}
             />
-          )}
-
-          {currentTab === 'friends' && (
-            <FriendsView
+          ) : selectedFriendId ? (
+            /* 2. DEDICATED FRIEND DETAIL PAGE */
+            <FriendDetailView
+              friendId={selectedFriendId}
               currentUser={activeUser}
               users={users}
               expenses={expenses}
               settlements={settlements}
               groups={groups}
               isLocked={isLocked}
-              onOpenSettleWithUser={(user) => {
-                setSettlePreselectedUser(user);
+              onBack={() => setSelectedFriendId(null)}
+              onOpenSettleUp={(friend, amount) => {
+                setSettlePreselectedUser(friend);
+                setSettleInitialAmount(amount);
                 setShowSettleUp(true);
               }}
-              onOpenNudgeWithUser={() => setShowRequestMoney(true)}
-              onOpenAddExpenseWithUser={() => setShowAddExpense(true)}
+              onOpenNudge={() => setShowRequestMoney(true)}
+              onOpenAddExpense={() => setShowAddExpense(true)}
               onViewExpenseDetail={(exp) => setSelectedExpenseForDetail(exp)}
-              onAddFriend={handleAddFriend}
-            />
-          )}
-
-          {currentTab === 'analytics' && (
-            <AnalyticsView
-              expenses={expenses}
-              settlements={settlements}
-              currentUserId={activeUser.id}
-              isLocked={isLocked}
-              crossOffers={crossOffers}
-              currentUser={activeUser}
-              onOpenReceipt={(txId) => {
-                setSelectedReceipt({
-                  txId,
-                  payerName: activeUser.fullName,
-                  receiverName: 'Mahsuplaşma Grubu',
-                  amount: crossOffers[0]?.cycleAmount || 0
-                });
+              onNavigateToGroup={(groupId) => {
+                setSelectedFriendId(null);
+                setSelectedGroupId(groupId);
+                setCurrentTab('groups');
               }}
             />
-          )}
+          ) : (
+            /* 3. PRIMARY TABS */
+            <>
+              {currentTab === 'dashboard' && (
+                <div className="space-y-6">
+                  {/* Responsive Grid on Desktop */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    {/* Left Column: Balance & Primary Actions */}
+                    <div className="lg:col-span-7 space-y-6">
+                      {/* Financial Hero Card */}
+                      <FinancialHeroCard
+                        netBalance={balanceSummary.netBalance}
+                        totalReceivable={balanceSummary.totalReceivable}
+                        totalPayable={balanceSummary.totalPayable}
+                        isLocked={isLocked}
+                        onToggleLock={() => setIsLocked(!isLocked)}
+                      />
 
-          {currentTab === 'settings' && (
-            <SettingsView
-              currentUser={activeUser}
-              isLocked={isLocked}
-              onToggleLock={() => setIsLocked(!isLocked)}
-              onWipeData={handleWipeData}
-              onLogout={handleLogout}
-              onSaveProfile={handleSaveProfile}
-            />
+                      {/* Action Buttons Row */}
+                      <div className="lg:hidden">
+                        <ActionButtonsRow
+                          onAddExpenseClick={() => {
+                            setPreselectedGroupForExpense(undefined);
+                            setShowAddExpense(true);
+                          }}
+                          onSettleUpClick={() => {
+                            setSettlePreselectedUser(null);
+                            setSettleInitialAmount(undefined);
+                            setShowSettleUp(true);
+                          }}
+                          onRequestMoneyClick={() => setShowRequestMoney(true)}
+                        />
+                      </div>
+
+                      {/* Smart Settlement Banner (DFS Cycle Detection) */}
+                      <SmartSettlementBanner
+                        offers={crossOffers}
+                        currentUserId={activeUser.id}
+                        onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
+                      />
+                    </div>
+
+                    {/* Right Column: Transactions List */}
+                    <div className="lg:col-span-5 space-y-6">
+                      <TransactionsList
+                        expenses={expenses}
+                        currentUserId={activeUser.id}
+                        isLocked={isLocked}
+                        onSeeAllClick={() => handleTabChange('analytics')}
+                        onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentTab === 'groups' && (
+                <GroupsView
+                  groups={groups}
+                  currentUser={activeUser}
+                  users={users}
+                  expenses={expenses}
+                  isLocked={isLocked}
+                  onSelectGroup={(g) => setSelectedGroupId(g.id)}
+                  onAddExpenseClick={(g) => {
+                    setPreselectedGroupForExpense(g);
+                    setShowAddExpense(true);
+                  }}
+                  onSaveGroup={(newGroup) => {
+                    setGroups((prev) => [newGroup, ...prev]);
+                    FirestoreService.saveGroup(newGroup).catch(console.error);
+                  }}
+                />
+              )}
+
+              {currentTab === 'friends' && (
+                <FriendsView
+                  currentUser={activeUser}
+                  users={users}
+                  expenses={expenses}
+                  settlements={settlements}
+                  groups={groups}
+                  isLocked={isLocked}
+                  onSelectFriend={(f) => setSelectedFriendId(f.id)}
+                  onOpenSettleWithUser={(user, amount) => {
+                    setSettlePreselectedUser(user);
+                    setSettleInitialAmount(amount);
+                    setShowSettleUp(true);
+                  }}
+                  onOpenNudgeWithUser={() => setShowRequestMoney(true)}
+                  onAddFriend={handleAddFriend}
+                />
+              )}
+
+              {currentTab === 'analytics' && (
+                <AnalyticsView
+                  expenses={expenses}
+                  settlements={settlements}
+                  currentUserId={activeUser.id}
+                  isLocked={isLocked}
+                  crossOffers={crossOffers}
+                  currentUser={activeUser}
+                  onOpenReceipt={(txId) => {
+                    setSelectedReceipt({
+                      txId,
+                      payerName: activeUser.fullName,
+                      receiverName: 'Mahsuplaşma Grubu',
+                      amount: crossOffers[0]?.cycleAmount || 0
+                    });
+                  }}
+                />
+              )}
+
+              {currentTab === 'settings' && (
+                <SettingsView
+                  currentUser={activeUser}
+                  isLocked={isLocked}
+                  onToggleLock={() => setIsLocked(!isLocked)}
+                  onWipeData={handleWipeData}
+                  onLogout={handleLogout}
+                  onSaveProfile={handleSaveProfile}
+                />
+              )}
+            </>
           )}
         </main>
       </div>
@@ -454,7 +549,7 @@ export function App() {
       {/* ========================================================================= */}
       <BottomNavBar
         currentTab={currentTab}
-        onTabChange={(tab) => setCurrentTab(tab)}
+        onTabChange={handleTabChange}
       />
 
       {/* ========================================================================= */}
@@ -462,7 +557,10 @@ export function App() {
       {/* ========================================================================= */}
       <AddExpenseModal
         isOpen={showAddExpense}
-        onClose={() => setShowAddExpense(false)}
+        onClose={() => {
+          setShowAddExpense(false);
+          setPreselectedGroupForExpense(undefined);
+        }}
         currentUser={activeUser}
         users={users}
         groups={groups}
@@ -474,9 +572,12 @@ export function App() {
         onClose={() => {
           setShowSettleUp(false);
           setSettlePreselectedUser(null);
+          setSettleInitialAmount(undefined);
         }}
         currentUser={activeUser}
         users={users}
+        initialTargetUser={settlePreselectedUser || undefined}
+        initialAmount={settleInitialAmount}
         onConfirmSettlement={handleConfirmSettlement}
         onShowReceipt={(settlement) => {
           const receiver = users.find((u) => u.id === settlement.receiverId);

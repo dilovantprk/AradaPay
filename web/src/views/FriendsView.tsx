@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { UserPlus, Send, CreditCard, Check, Search, X, CheckCircle2, ChevronRight } from 'lucide-react';
 import { User, Expense, Settlement, Group } from '../types';
 import { AddFriendModal } from '../components/AddFriendModal';
-import { FriendDetailModal } from '../components/FriendDetailModal';
 
 interface FriendsViewProps {
   currentUser: User;
@@ -13,10 +12,9 @@ interface FriendsViewProps {
   settlements: Settlement[];
   groups: Group[];
   isLocked: boolean;
+  onSelectFriend: (friend: User) => void;
   onOpenSettleWithUser: (user: User, amount?: number) => void;
   onOpenNudgeWithUser: (user: User) => void;
-  onOpenAddExpenseWithUser: (user: User) => void;
-  onViewExpenseDetail: (expense: Expense) => void;
   onAddFriend: (user: User) => void;
 }
 
@@ -27,14 +25,12 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
   settlements,
   groups,
   isLocked,
+  onSelectFriend,
   onOpenSettleWithUser,
   onOpenNudgeWithUser,
-  onOpenAddExpenseWithUser,
-  onViewExpenseDetail,
   onAddFriend
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const friends = users.filter((u) => u.id !== currentUser.id);
 
   // Compute bilateral balance with each friend
@@ -62,7 +58,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
   };
 
   return (
-    <div className="space-y-4 text-left">
+    <div className="space-y-4 text-left animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div>
@@ -101,7 +97,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
             return (
               <div
                 key={friend.id}
-                onClick={() => setSelectedFriend(friend)}
+                onClick={() => onSelectFriend(friend)}
                 className="apple-card p-4 hover:border-black/[0.1] active:scale-[0.99] cursor-pointer transition space-y-3"
               >
                 <div className="flex items-center justify-between">
@@ -179,34 +175,6 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
         existingFriends={users}
         onFriendAdded={(user) => {
           onAddFriend(user);
-        }}
-      />
-
-      {/* 1:1 Android FriendDetailModal */}
-      <FriendDetailModal
-        isOpen={selectedFriend !== null}
-        onClose={() => setSelectedFriend(null)}
-        friend={selectedFriend}
-        currentUser={currentUser}
-        expenses={expenses}
-        settlements={settlements}
-        groups={groups}
-        isLocked={isLocked}
-        onOpenSettleUp={(f) => {
-          setSelectedFriend(null);
-          onOpenSettleWithUser(f);
-        }}
-        onOpenNudge={(f) => {
-          setSelectedFriend(null);
-          onOpenNudgeWithUser(f);
-        }}
-        onOpenAddExpense={(f) => {
-          setSelectedFriend(null);
-          onOpenAddExpenseWithUser(f);
-        }}
-        onViewExpenseDetail={(exp) => {
-          setSelectedFriend(null);
-          onViewExpenseDetail(exp);
         }}
       />
     </div>
