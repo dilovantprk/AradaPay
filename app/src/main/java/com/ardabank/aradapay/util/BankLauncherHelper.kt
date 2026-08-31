@@ -24,6 +24,17 @@ object BankLauncherHelper {
     }
 
     /**
+     * Returns the official application icon drawable if installed, or null otherwise.
+     */
+    fun getBankAppIcon(context: Context, packageName: String): android.graphics.drawable.Drawable? {
+        return try {
+            context.packageManager.getApplicationIcon(packageName)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * Copies clean IBAN, formatted Amount and Transfer Note to clipboard.
      */
     fun copyTransferDetails(

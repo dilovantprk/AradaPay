@@ -6,6 +6,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
@@ -387,19 +390,35 @@ fun BankAppChooserScreen(
                                 .padding(horizontal = 8.dp, vertical = 14.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(bank.primaryColorHex),
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = bank.iconInitials,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
+                            // REAL OFFICIAL APP ICON OR AUTHENTIC BRAND BADGE
+                            val installedDrawable = remember(bank.packageName) {
+                                BankLauncherHelper.getBankAppIcon(context, bank.packageName)
+                            }
+                            val appBitmap = remember(installedDrawable) {
+                                try {
+                                    installedDrawable?.toBitmap(120, 120)?.asImageBitmap()
+                                } catch (_: Exception) {
+                                    null
+                                }
+                            }
+
+                            if (appBitmap != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color.White,
+                                    shadowElevation = 2.dp,
+                                    modifier = Modifier.size(46.dp)
+                                ) {
+                                    Image(
+                                        bitmap = appBitmap,
+                                        contentDescription = bank.bankName,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp))
                                     )
                                 }
+                            } else {
+                                BankBrandLogoBadge(bank = bank)
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -441,6 +460,86 @@ fun BankAppChooserScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BankBrandLogoBadge(bank: SupportedBank) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(bank.primaryColorHex),
+        shadowElevation = 1.dp,
+        modifier = Modifier.size(46.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            when (bank) {
+                SupportedBank.AKBANK -> {
+                    Text("akbank", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = (-0.5).sp)
+                }
+                SupportedBank.GARANTI -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("♣", color = Color(0xFF86EFAC), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("BBVA", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 9.sp)
+                    }
+                }
+                SupportedBank.IS_BANKASI -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("İŞ", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                        Text("BANK", color = Color(0xFF93C5FD), fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                    }
+                }
+                SupportedBank.YAPI_KREDI -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("♈", color = Color(0xFF93C5FD), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("YKB", color = Color.White, fontWeight = FontWeight.Black, fontSize = 9.sp)
+                    }
+                }
+                SupportedBank.ZIRAAT -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🌾", color = Color(0xFFFDE047), fontSize = 12.sp)
+                        Text("ZİRAAT", color = Color.White, fontWeight = FontWeight.Black, fontSize = 8.sp)
+                    }
+                }
+                SupportedBank.VAKIFBANK -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("V", color = Color(0xFF1E293B), fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        Text("VAKIF", color = Color(0xFF334155), fontWeight = FontWeight.ExtraBold, fontSize = 7.sp)
+                    }
+                }
+                SupportedBank.PAPARA -> {
+                    Text("papara", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                }
+                SupportedBank.ENPARA -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("enpara", color = Color.White, fontWeight = FontWeight.Black, fontSize = 9.sp)
+                        Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(Color(0xFFFB923C)))
+                    }
+                }
+                SupportedBank.KUVEYT_TURK -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("❖", color = Color(0xFF86EFAC), fontSize = 13.sp)
+                        Text("KUVEYT", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                    }
+                }
+                SupportedBank.QNB -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("QNB", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                    }
+                }
+                SupportedBank.DENIZBANK -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("⛵", color = Color(0xFF67E8F9), fontSize = 12.sp)
+                        Text("DENİZ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                    }
+                }
+                SupportedBank.TEB -> {
+                    Text("TEB", color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                }
+                SupportedBank.HALKBANK -> {
+                    Text("HALK", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
                 }
             }
         }

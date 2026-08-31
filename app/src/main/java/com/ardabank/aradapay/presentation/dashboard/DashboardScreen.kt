@@ -62,6 +62,32 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.SyncAlt
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.ardabank.aradapay.presentation.activity.ActivityFilterOption
+import com.ardabank.aradapay.presentation.activity.ActivityItemKind
+import com.ardabank.aradapay.presentation.activity.ActivityActionItem
+import com.ardabank.aradapay.presentation.common.MaskedFinancialText
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -86,6 +112,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -180,63 +207,205 @@ fun DashboardScreen(
         }
     }
 
-    // Top 3 Priority Upcoming Payments (Ordered by nearest deadline/priority)
-    val top3PriorityPayments = remember {
-        emptyList<PriorityPayment>()
+    val coroutineScope = rememberCoroutineScope()
+    var selectedFilter by remember { mutableStateOf(ActivityFilterOption.ALL) }
+    var selectedItemForDetail by remember { mutableStateOf<ActivityActionItem?>(null) }
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var hasMoreItems by remember { mutableStateOf(true) }
+    var pageNumber by remember { mutableStateOf(1) }
+
+    // Live Realistic FinTech Data
+    val activityList = remember {
+        mutableStateListOf(
+            ActivityActionItem(
+                id = "act_1",
+                title = "Migros Sanal Market",
+                subtitle = "Market • Ahmet Yılmaz • 10:15",
+                actorName = "Ahmet Yılmaz",
+                actorInitials = "AY",
+                dateGroup = "BUGÜN",
+                time = "10:15",
+                amount = 225.00,
+                isPositiveFinancial = null,
+                statusBadge = "Onayını Bekliyor",
+                statusBgColor = Color(0xFFF1F5F9),
+                statusTextColor = Color(0xFF475569),
+                kind = ActivityItemKind.INCOMING_APPROVAL,
+                icon = Icons.Default.ShoppingCart,
+                bgTint = Color(0xFFEFF6FF),
+                iconTint = Color(0xFF2563EB)
+            ),
+            ActivityActionItem(
+                id = "act_2",
+                title = "Starbucks Coffee",
+                subtitle = "Yemek & İçecek • Zeynep Kaya • 16:00",
+                actorName = "Zeynep Kaya",
+                actorInitials = "ZK",
+                dateGroup = "BUGÜN",
+                time = "16:00",
+                amount = 120.00,
+                isPositiveFinancial = true,
+                statusBadge = "Arkadaş Onayı",
+                statusBgColor = Color(0xFFEFF6FF),
+                statusTextColor = Color(0xFF2563EB),
+                kind = ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK,
+                icon = Icons.Default.Fastfood,
+                bgTint = Color(0xFFECFDF5),
+                iconTint = PrimaryEmerald
+            ),
+            ActivityActionItem(
+                id = "act_3",
+                title = "Taksi & Ulaşım",
+                subtitle = "Ulaşım • Mert Çelik • 23:45",
+                actorName = "Mert Çelik",
+                actorInitials = "MÇ",
+                dateGroup = "DÜN",
+                time = "23:45",
+                amount = 100.00,
+                isPositiveFinancial = true,
+                statusBadge = "Arkadaş Onayı",
+                statusBgColor = Color(0xFFEFF6FF),
+                statusTextColor = Color(0xFF2563EB),
+                kind = ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK,
+                icon = Icons.Default.LocalGasStation,
+                bgTint = Color(0xFFECFDF5),
+                iconTint = PrimaryEmerald
+            ),
+            ActivityActionItem(
+                id = "act_4",
+                title = "Ev Kirası & Aidat Payı",
+                subtitle = "Konut • Burak Demir • 14:20",
+                actorName = "Burak Demir",
+                actorInitials = "BD",
+                dateGroup = "DÜN",
+                time = "14:20",
+                amount = 450.00,
+                isPositiveFinancial = false,
+                statusBadge = "Ödeme Bekliyor",
+                statusBgColor = Color(0xFFFEE2E2),
+                statusTextColor = Color(0xFFDC2626),
+                kind = ActivityItemKind.INCOMING_NUDGE,
+                icon = Icons.Default.Home,
+                bgTint = Color(0xFFFEF2F2),
+                iconTint = Color(0xFFDC2626)
+            ),
+            ActivityActionItem(
+                id = "act_5",
+                title = "Konser Bileti",
+                subtitle = "Eğlence • Caner Yıldız • 21 Ağu",
+                actorName = "Caner Yıldız",
+                actorInitials = "CY",
+                dateGroup = "BU HAFTA",
+                time = "21 Ağu",
+                amount = 320.00,
+                isPositiveFinancial = true,
+                statusBadge = "Tahsilat Bekliyor",
+                statusBgColor = Color(0xFFDCFCE7),
+                statusTextColor = Color(0xFF16A34A),
+                kind = ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK,
+                icon = Icons.Default.ConfirmationNumber,
+                bgTint = Color(0xFFF5F3FF),
+                iconTint = Color(0xFF7C3AED)
+            ),
+            ActivityActionItem(
+                id = "act_6",
+                title = "FAST Fitleşme Ödemesi",
+                subtitle = "FAST Havale • Selin Tekin • 19 Ağu",
+                actorName = "Selin Tekin",
+                actorInitials = "ST",
+                dateGroup = "BU HAFTA",
+                time = "19 Ağu",
+                amount = 180.00,
+                isPositiveFinancial = true,
+                statusBadge = "Fitleşildi",
+                statusBgColor = Color(0xFFDCFCE7),
+                statusTextColor = Color(0xFF16A34A),
+                kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                icon = Icons.Default.Payment,
+                bgTint = Color(0xFFECFDF5),
+                iconTint = PrimaryEmerald
+            )
+        )
     }
 
-    LazyColumn(
+    val filteredList = remember(selectedFilter, activityList.toList()) {
+        activityList.filter { item ->
+            when (selectedFilter) {
+                ActivityFilterOption.ALL -> true
+                ActivityFilterOption.PENDING -> item.kind == ActivityItemKind.INCOMING_APPROVAL || item.kind == ActivityItemKind.FRIEND_REQUEST || item.kind == ActivityItemKind.INCOMING_NUDGE
+                ActivityFilterOption.RECEIVABLES -> item.isPositiveFinancial == true
+                ActivityFilterOption.PAYABLES -> item.isPositiveFinancial == false
+                ActivityFilterOption.SETTLEMENTS -> item.kind == ActivityItemKind.SETTLEMENT_COMPLETED || item.kind == ActivityItemKind.SMART_CROSS_SETTLEMENT
+            }
+        }
+    }
+
+    val groupedItems = remember(filteredList) {
+        filteredList.groupBy { it.dateGroup }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(bottom = 36.dp)
+            .statusBarsPadding()
     ) {
-        // 1. Top Bar Header
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Merhaba, $firstName",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF64748B),
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "AradaPay",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A),
-                        fontSize = 28.sp,
-                        letterSpacing = (-0.5).sp
+        // 1. STICKY TOP BAR HEADER
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Merhaba, $firstName",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color(0xFF64748B),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "AradaPay",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                            fontSize = 28.sp,
+                            letterSpacing = (-0.5).sp
+                        )
+                    }
+
+                    // Profil Avatar Butonu (onProfileClick)
+                    UserAvatar(
+                        userName = userName,
+                        avatarUrl = avatarUrl,
+                        avatarEmoji = avatarEmoji,
+                        size = 44.dp,
+                        shape = CircleShape,
+                        border = BorderStroke(1.5.dp, PrimaryEmerald),
+                        backgroundColor = PrimaryEmeraldContainer,
+                        textColor = PrimaryEmerald,
+                        fontSizeSp = 15,
+                        modifier = Modifier.bounceClick { onProfileClick() }
                     )
                 }
-
-                // Profil Avatar Butonu (onProfileClick)
-                UserAvatar(
-                    userName = userName,
-                    avatarUrl = avatarUrl,
-                    avatarEmoji = avatarEmoji,
-                    size = 44.dp,
-                    shape = CircleShape,
-                    border = BorderStroke(1.5.dp, PrimaryEmerald),
-                    backgroundColor = PrimaryEmeraldContainer,
-                    textColor = PrimaryEmerald,
-                    fontSizeSp = 15,
-                    modifier = Modifier.bounceClick { onProfileClick() }
-                )
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
             }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
         }
 
-        // 2. Hero: Net Durum (Pure Ultra-Minimal Hero)
-        item {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentPadding = PaddingValues(bottom = 36.dp)
+        ) {
+            // 2. Hero: Net Durum (Pure Ultra-Minimal Hero)
+            item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -352,42 +521,84 @@ fun DashboardScreen(
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
         }
 
-        // 4. Section: Son Hareketler (Tek ve Temiz Akış)
+        // 4. Section: HAREKETLER & İŞLEMLER (Tam ve Entegre FinTech Akışı)
         item {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(top = 8.dp)
             ) {
-                Text(
-                    text = "SON HAREKETLER",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF64748B),
-                    letterSpacing = 0.8.sp
-                )
-
-                Text(
-                    text = "Tümünü Gör",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PrimaryEmerald,
+                Row(
                     modifier = Modifier
-                        .bounceClick { onSeeAllActivityClick() }
-                        .padding(4.dp)
-                )
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "HAREKETLER & İŞLEMLER",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B),
+                        letterSpacing = 0.8.sp
+                    )
+
+                    Text(
+                        text = "${filteredList.size} İşlem",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF94A3B8)
+                    )
+                }
+
+                // Filter Chips Horizontal Row
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(ActivityFilterOption.values()) { opt ->
+                        val isSelected = selectedFilter == opt
+                        val count = remember(opt, activityList.toList()) {
+                            activityList.count { item ->
+                                when (opt) {
+                                    ActivityFilterOption.ALL -> true
+                                    ActivityFilterOption.PENDING -> item.kind == ActivityItemKind.INCOMING_APPROVAL || item.kind == ActivityItemKind.FRIEND_REQUEST || item.kind == ActivityItemKind.INCOMING_NUDGE
+                                    ActivityFilterOption.RECEIVABLES -> item.isPositiveFinancial == true
+                                    ActivityFilterOption.PAYABLES -> item.isPositiveFinancial == false
+                                    ActivityFilterOption.SETTLEMENTS -> item.kind == ActivityItemKind.SETTLEMENT_COMPLETED || item.kind == ActivityItemKind.SMART_CROSS_SETTLEMENT
+                                }
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                            border = if (isSelected) BorderStroke(1.dp, PrimaryEmerald) else null,
+                            modifier = Modifier
+                                .bounceClick { selectedFilter = opt }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${opt.title} ($count)",
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) PrimaryEmerald else Color(0xFF64748B),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
             }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp, modifier = Modifier.padding(top = 10.dp))
         }
 
-        if (top3PriorityPayments.isEmpty()) {
+        if (filteredList.isEmpty()) {
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 32.dp, horizontal = 20.dp),
+                        .padding(vertical = 36.dp, horizontal = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -398,86 +609,195 @@ fun DashboardScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Bekleyen Ödemeniz Yok",
+                        text = "İşlem Bulunamadı",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = Color(0xFF0F172A)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Tüm hesaplar dengede, fitleşilecek borcunuz bulunmuyor.",
+                        text = "Seçili filtreye uygun işlem veya bildirim bulunmuyor.",
                         fontSize = 12.sp,
                         color = Color(0xFF64748B)
                     )
                 }
             }
         } else {
-            items(top3PriorityPayments) { payment ->
-                Row(
+            groupedItems.forEach { (dateGroup, items) ->
+                item {
+                    Text(
+                        text = dateGroup,
+                        color = Color(0xFF94A3B8),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
+                    )
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                }
+
+                itemsIndexed(items) { _, item ->
+                    FinTechDashboardActivityRow(
+                        item = item,
+                        isLocked = isLocked,
+                        onItemClick = {
+                            if (item.kind == ActivityItemKind.INCOMING_NUDGE) {
+                                onSettleUpClick()
+                            } else {
+                                selectedItemForDetail = item
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                }
+            }
+
+            // Pagination Button
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .bounceClick { onSettleUpClick() }
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color(0xFFF1F5F9),
-                            modifier = Modifier.size(44.dp)
+                    if (hasMoreItems) {
+                        FilledTonalButton(
+                            onClick = {
+                                if (!isLoadingMore) {
+                                    coroutineScope.launch {
+                                        isLoadingMore = true
+                                        delay(600)
+                                        if (pageNumber == 1) {
+                                            activityList.addAll(
+                                                listOf(
+                                                    ActivityActionItem(
+                                                        id = "act_7",
+                                                        title = "CarrefourSA Gurme",
+                                                        subtitle = "Market • Deniz Arslan • 14 Ağu",
+                                                        actorName = "Deniz Arslan",
+                                                        actorInitials = "DA",
+                                                        dateGroup = "GEÇEN AY",
+                                                        time = "14 Ağu",
+                                                        amount = 310.50,
+                                                        isPositiveFinancial = false,
+                                                        statusBadge = "Ödendi",
+                                                        kind = ActivityItemKind.EXPENSE_ADDED_YOU_OWE,
+                                                        icon = Icons.Default.ShoppingCart,
+                                                        bgTint = Color(0xFFEFF6FF),
+                                                        iconTint = Color(0xFF2563EB)
+                                                    ),
+                                                    ActivityActionItem(
+                                                        id = "act_8",
+                                                        title = "Yemeksepeti Akşam Yemeği",
+                                                        subtitle = "Yemek • Zeynep Kaya • 08 Ağu",
+                                                        actorName = "Zeynep Kaya",
+                                                        actorInitials = "ZK",
+                                                        dateGroup = "GEÇEN AY",
+                                                        time = "08 Ağu",
+                                                        amount = 145.00,
+                                                        isPositiveFinancial = true,
+                                                        statusBadge = "Fitleşildi",
+                                                        kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                                                        icon = Icons.Default.Fastfood,
+                                                        bgTint = Color(0xFFECFDF5),
+                                                        iconTint = PrimaryEmerald
+                                                    )
+                                                )
+                                            )
+                                            pageNumber = 2
+                                        } else if (pageNumber == 2) {
+                                            activityList.addAll(
+                                                listOf(
+                                                    ActivityActionItem(
+                                                        id = "act_10",
+                                                        title = "Spotify Aile Planı",
+                                                        subtitle = "Abonelik • Selin Tekin • 25 Tem",
+                                                        actorName = "Selin Tekin",
+                                                        actorInitials = "ST",
+                                                        dateGroup = "TEMMUZ 2026",
+                                                        time = "25 Tem",
+                                                        amount = 45.00,
+                                                        isPositiveFinancial = true,
+                                                        statusBadge = "Fitleşildi",
+                                                        kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                                                        icon = Icons.Default.ConfirmationNumber,
+                                                        bgTint = Color(0xFFF5F3FF),
+                                                        iconTint = Color(0xFF7C3AED)
+                                                    )
+                                                )
+                                            )
+                                            pageNumber = 3
+                                            hasMoreItems = false
+                                        }
+                                        isLoadingMore = false
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = Color(0xFFF1F5F9),
+                                contentColor = PrimaryEmerald
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            if (isLoadingMore) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = PrimaryEmerald,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = payment.recipientAvatar,
-                                    color = Color(0xFF0F172A),
+                                    text = "Yükleniyor...",
+                                    fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
+                                    color = PrimaryEmerald
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = null,
+                                    tint = PrimaryEmerald,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Daha Fazla Yükle",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = PrimaryEmerald
                                 )
                             }
                         }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column {
-                            Text(
-                                text = payment.recipientName,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF0F172A)
+                    } else {
+                        Row(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = PrimaryEmerald,
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${payment.dueDateText} • ${payment.title}",
-                                fontSize = 12.sp,
-                                color = Color(0xFF64748B)
+                                text = "Tüm geçmiş hareketler yüklendi",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "sen borçlusun",
-                            color = AccentRose,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (isLocked) "•••• ₺" else "- ${String.format(java.util.Locale.US, "%.2f", payment.amount)} ₺",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AccentRose
-                        )
-                    }
                 }
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
             }
         }
     }
+}
 
     // 6. ACTION: PARA İSTE & DÜRT (Flat & Minimalist FinTech Screen)
     if (showRequestMoneySheet) {
@@ -1206,6 +1526,303 @@ fun DashboardScreen(
             }
         }
         return
+    }
+
+    // ACTION DETAIL MODAL (Clean Transaction Receipt Sheet)
+    selectedItemForDetail?.let { item ->
+        ModalBottomSheet(
+            onDismissRequest = { selectedItemForDetail = null },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFCBD5E1)) }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${item.actorName} • ${item.dateGroup} ${item.time}",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = item.bgTint,
+                        modifier = Modifier.size(46.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(item.icon, contentDescription = null, tint = item.iconTint, modifier = Modifier.size(24.dp))
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                if (item.amount > 0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("İşlem Tutarı:", color = Color(0xFF64748B), fontSize = 14.sp)
+                        val amtColor = if (item.isPositiveFinancial == true) PrimaryEmerald else if (item.isPositiveFinancial == false) Color(0xFFE11D48) else Color(0xFF0F172A)
+                        Text(
+                            text = "${if (item.isPositiveFinancial == true) "+" else if (item.isPositiveFinancial == false) "-" else ""}${String.format(java.util.Locale.US, "%.2f", item.amount)} ₺",
+                            color = amtColor,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Açıklama:", color = Color(0xFF64748B), fontSize = 14.sp)
+                    Text(item.subtitle, color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                }
+
+                // Action Buttons
+                when (item.kind) {
+                    ActivityItemKind.INCOMING_NUDGE -> {
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                        Button(
+                            onClick = {
+                                item.isPendingActionHandled = true
+                                selectedItemForDetail = null
+                                onSettleUpClick()
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .bounceClick { }
+                        ) {
+                            Icon(Icons.Default.Payment, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Borcu Şimdi Öde & Fitleş", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                        }
+                    }
+                    ActivityItemKind.INCOMING_APPROVAL -> {
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            FilledTonalButton(
+                                onClick = {
+                                    item.isPendingActionHandled = true
+                                    selectedItemForDetail = null
+                                    Toast.makeText(context, "Harcama payı reddedildi", Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color(0xFFFEE2E2), contentColor = AccentRose),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp)
+                                    .bounceClick { }
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Reddet", tint = AccentRose, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Reddet", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    item.isPendingActionHandled = true
+                                    selectedItemForDetail = null
+                                    Toast.makeText(context, "Harcama payı onaylandı", Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
+                                modifier = Modifier
+                                    .weight(1.5f)
+                                    .height(50.dp)
+                                    .bounceClick { }
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Onayla", tint = Color.White, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Payı Onayla", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FinTechDashboardActivityRow(
+    item: ActivityActionItem,
+    isLocked: Boolean,
+    onItemClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClick(onClick = onItemClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 1. Transaction Brand / Category Pastel Squircle Badge with Corner Status Dot
+        Box(modifier = Modifier.size(44.dp)) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = item.bgTint,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (item.kind == ActivityItemKind.FRIEND_REQUEST) {
+                        Text(
+                            text = item.actorInitials,
+                            color = item.iconTint,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = null,
+                            tint = item.iconTint,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            }
+
+            // Status Indicator Corner Badge
+            val (statusIcon, statusBg, statusTint) = when (item.kind) {
+                ActivityItemKind.INCOMING_APPROVAL -> Triple(
+                    Icons.Default.HourglassTop,
+                    Color(0xFFFEF3C7), // Soft Amber
+                    Color(0xFFD97706)
+                )
+                ActivityItemKind.INCOMING_NUDGE,
+                ActivityItemKind.EXPENSE_ADDED_YOU_OWE -> Triple(
+                    Icons.Default.ArrowDownward,
+                    Color(0xFFFEE2E2), // Soft Rose
+                    Color(0xFFDC2626)
+                )
+                ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK -> Triple(
+                    Icons.Default.ArrowUpward,
+                    Color(0xFFDCFCE7), // Soft Emerald
+                    Color(0xFF16A34A)
+                )
+                ActivityItemKind.SETTLEMENT_COMPLETED -> Triple(
+                    Icons.Default.Check,
+                    Color(0xFFDCFCE7), // Soft Emerald
+                    Color(0xFF16A34A)
+                )
+                ActivityItemKind.FRIEND_REQUEST -> Triple(
+                    Icons.Default.Person,
+                    Color(0xFFEDE9FE), // Soft Purple
+                    Color(0xFF7C3AED)
+                )
+                ActivityItemKind.SMART_CROSS_SETTLEMENT -> Triple(
+                    Icons.Default.SyncAlt,
+                    Color(0xFFCCFBF1), // Soft Teal
+                    Color(0xFF0D9488)
+                )
+            }
+
+            Surface(
+                shape = CircleShape,
+                color = statusBg,
+                border = BorderStroke(2.dp, Color.White),
+                modifier = Modifier
+                    .size(18.dp)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = statusIcon,
+                        contentDescription = null,
+                        tint = statusTint,
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        // 2. Center Column: Merchant / Title & Clean Subtitle
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = item.subtitle,
+                fontSize = 13.sp,
+                color = Color(0xFF64748B),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // 3. Right Column: Clean Amount or Time
+        Column(horizontalAlignment = Alignment.End) {
+            if (item.amount > 0) {
+                val amountColor = if (item.isPositiveFinancial == true) PrimaryEmerald else if (item.isPositiveFinancial == false) Color(0xFFE11D48) else Color(0xFF0F172A)
+                val amountPrefix = if (item.isPositiveFinancial == true) "+" else if (item.isPositiveFinancial == false) "-" else ""
+
+                if (isLocked) {
+                    MaskedFinancialText(
+                        amount = item.amount,
+                        isLocked = true,
+                        color = amountColor,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    )
+                } else {
+                    Text(
+                        text = "$amountPrefix${String.format(java.util.Locale.US, "%.2f", item.amount)} ₺",
+                        color = amountColor,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                Text(
+                    text = item.time,
+                    color = Color(0xFF94A3B8),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
     }
 }
 

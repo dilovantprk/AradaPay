@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.horizontalScroll
@@ -183,7 +184,7 @@ fun BankContactPickerScreen(
                         onClick = onDismiss,
                         shape = RoundedCornerShape(12.dp),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(40.dp).bounceClick(onClick = onDismiss)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -204,12 +205,12 @@ fun BankContactPickerScreen(
                     )
                 }
 
-                // Green Confirm Button
+                // Green Confirm Button (Circle with Check icon)
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = PrimaryEmerald,
+                    shape = CircleShape,
+                    color = PrimaryEmeraldContainer,
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(40.dp)
                         .bounceClick {
                             onConfirmSelection(currentSelected.toSet(), combinedMembers)
                             onDismiss()
@@ -219,344 +220,307 @@ fun BankContactPickerScreen(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Onayla",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            tint = PrimaryEmerald,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
             }
 
-            // 2. Universal Inline Participant Selection & Search Row
-            Column(modifier = Modifier.fillMaxWidth()) {
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-
+            // 2. Search Bar
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFFF1F5F9),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+            ) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 54.dp)
-                        .padding(vertical = 8.dp),
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Seninle ve:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color(0xFF0F172A)
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier.size(18.dp)
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Selected Participant Pills & Inline Search (Horizontal Scroll)
-                    val selectedParticipants = remember(currentSelected.size, combinedMembers) {
-                        combinedMembers.filter { currentSelected.contains(it.id) }.distinctBy { it.id }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .horizontalScroll(rememberScrollState()),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        selectedParticipants.forEach { p ->
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = PrimaryEmeraldContainer,
-                                border = BorderStroke(1.dp, PrimaryEmerald),
-                                modifier = Modifier.bounceClick { currentSelected.remove(p.id) }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = PrimaryEmerald,
-                                        modifier = Modifier.size(22.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = if (p.avatar.length <= 2) p.avatar else p.name.take(2).uppercase(),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White,
-                                                maxLines = 1,
-                                                softWrap = false
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = p.name.split(" ").first(),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PrimaryEmerald,
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Kaldır",
-                                        tint = PrimaryEmerald,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = Color(0xFF0F172A),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        cursorBrush = SolidColor(PrimaryEmerald),
+                        decorationBox = { innerTextField ->
+                            if (searchQuery.isEmpty()) {
+                                Text(
+                                    text = "Kişi ara veya #tag yaz...",
+                                    color = Color(0xFF94A3B8),
+                                    fontSize = 14.sp
+                                )
                             }
-                        }
+                            innerTextField()
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
 
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                color = Color(0xFF0F172A),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            cursorBrush = SolidColor(PrimaryEmerald),
-                            decorationBox = { innerTextField ->
-                                Box(
-                                    contentAlignment = Alignment.CenterStart,
-                                    modifier = Modifier.defaultMinSize(minWidth = 80.dp)
-                                ) {
-                                    if (searchQuery.isEmpty()) {
-                                        Text(
-                                            text = if (currentSelected.isEmpty()) "Kişi ara..." else "Kişi ekle...",
-                                            color = Color(0xFF94A3B8),
-                                            fontSize = 14.sp,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            },
-                            modifier = Modifier.widthIn(min = 90.dp)
+                    if (searchQuery.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Temizle",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .bounceClick { searchQuery = "" }
                         )
                     }
                 }
-
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
             }
 
-                // 5. UNBOXED Contact List (100% Flat Rows with Inset Dividers)
-                LazyColumn(
+            // 3. Selected Participants Chips Row (Visible when contacts are selected)
+            val selectedParticipants = remember(currentSelected.size, combinedMembers) {
+                combinedMembers.filter { currentSelected.contains(it.id) }.distinctBy { it.id }
+            }
+
+            if (selectedParticipants.isNotEmpty()) {
+                LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    contentPadding = PaddingValues(bottom = if (currentSelected.isNotEmpty()) 80.dp else 16.dp)
+                        .padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Section 1: Members
-                    if (filteredMembers.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = "ARADAPAY ÜYELERİ (${filteredMembers.size})",
-                                color = Color(0xFF64748B),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
-                                modifier = Modifier.padding(start = 2.dp, top = 8.dp, bottom = 4.dp)
-                            )
-                        }
-
-                        itemsIndexed(filteredMembers, key = { _, contact -> "member_${contact.id}" }) { index, contact ->
-                            val isChecked = currentSelected.contains(contact.id)
-
+                    items(selectedParticipants, key = { it.id }) { p ->
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFECFDF5),
+                            border = BorderStroke(1.dp, PrimaryEmerald),
+                            modifier = Modifier.bounceClick { currentSelected.remove(p.id) }
+                        ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .bounceClick {
-                                        if (isChecked) {
-                                            currentSelected.remove(contact.id)
-                                        } else {
-                                            currentSelected.add(contact.id)
-                                            NotificationHelper.showSystemNotification(
-                                                context = context,
-                                                title = "Arkadaşlık İsteği İletildi",
-                                                message = "${contact.name} (${contact.tag}) kişisine arkadaşlık isteği başarıyla gönderildi."
-                                            )
-                                            Toast.makeText(context, "${contact.name} kişisine arkadaşlık isteği iletildi", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                    .padding(vertical = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(start = 6.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
+                                Surface(
+                                    shape = CircleShape,
+                                    color = PrimaryEmerald,
+                                    modifier = Modifier.size(22.dp)
                                 ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(14.dp),
-                                        color = if (isChecked) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
-                                        modifier = Modifier.size(42.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = contact.avatar,
-                                                color = if (isChecked) PrimaryEmerald else Color(0xFF0F172A),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 14.sp
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
+                                    Box(contentAlignment = Alignment.Center) {
                                         Text(
-                                            text = contact.name,
-                                            color = Color(0xFF0F172A),
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 15.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(1.dp))
-                                        Text(
-                                            text = contact.tag,
-                                            color = Color(0xFF64748B),
-                                            fontSize = 12.sp
+                                            text = if (p.avatar.length <= 2) p.avatar else p.name.take(2).uppercase(),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
                                         )
                                     }
                                 }
-
-                                // Checkmark
-                                Icon(
-                                    imageVector = if (isChecked) Icons.Default.CheckCircle else Icons.Outlined.Circle,
-                                    contentDescription = null,
-                                    tint = if (isChecked) PrimaryEmerald else Color(0xFFCBD5E1),
-                                    modifier = Modifier.size(24.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = p.name.split(" ").first(),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F766E)
                                 )
-                            }
-
-                            if (index < filteredMembers.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 54.dp),
-                                    color = Color(0xFFF1F5F9),
-                                    thickness = 0.8.dp
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Kaldır",
+                                    tint = Color(0xFF0F766E),
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
                     }
+                }
+            }
 
-                    // Section 2: Non-members from phone
-                    if (filteredNonMembers.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = "REHBERDEKİ DİĞER KİŞİLER (${filteredNonMembers.size})",
-                                color = Color(0xFF64748B),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
-                                modifier = Modifier.padding(start = 2.dp, top = 14.dp, bottom = 4.dp)
-                            )
-                        }
+            Spacer(modifier = Modifier.height(6.dp))
 
-                        itemsIndexed(filteredNonMembers, key = { _, nonMember -> "non_member_${nonMember.phone}" }) { index, nonMember ->
+            // 4. UNBOXED Contact List (100% Flat Rows with Inset Dividers)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
+            ) {
+                // Section 1: Members
+                if (filteredMembers.isNotEmpty()) {
+                    itemsIndexed(filteredMembers, key = { _, contact -> "member_${contact.id}" }) { index, contact ->
+                        val isChecked = currentSelected.contains(contact.id)
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bounceClick {
+                                    if (isChecked) {
+                                        currentSelected.remove(contact.id)
+                                    } else {
+                                        currentSelected.add(contact.id)
+                                    }
+                                }
+                                .padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .bounceClick {
-                                        selectedNonMemberForInvite = nonMember
-                                    }
-                                    .padding(vertical = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isChecked) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(42.dp)
                                 ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(14.dp),
-                                        color = Color(0xFFF1F5F9),
-                                        modifier = Modifier.size(42.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = nonMember.name.take(2).uppercase(),
-                                                color = Color(0xFF64748B),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
+                                    Box(contentAlignment = Alignment.Center) {
                                         Text(
-                                            text = nonMember.name,
-                                            color = Color(0xFF334155),
-                                            fontWeight = FontWeight.Medium,
+                                            text = contact.avatar,
+                                            color = if (isChecked) PrimaryEmerald else Color(0xFF0F172A),
+                                            fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp
                                         )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = contact.name,
+                                        color = if (isChecked) PrimaryEmerald else Color(0xFF0F172A),
+                                        fontWeight = if (isChecked) FontWeight.Bold else FontWeight.SemiBold,
+                                        fontSize = 15.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Text(
+                                        text = contact.tag,
+                                        color = Color(0xFF64748B),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+
+                            // Checkmark (Filled Green when selected, Outline Circle when unselected)
+                            Icon(
+                                imageVector = if (isChecked) Icons.Default.CheckCircle else Icons.Outlined.Circle,
+                                contentDescription = null,
+                                tint = if (isChecked) PrimaryEmerald else Color(0xFFCBD5E1),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        if (index < filteredMembers.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 54.dp),
+                                color = Color(0xFFF1F5F9),
+                                thickness = 0.8.dp
+                            )
+                        }
+                    }
+                }
+
+                // Section 2: Non-members from phone
+                if (filteredNonMembers.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "REHBERDEKİ DİĞER KİŞİLER (${filteredNonMembers.size})",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            modifier = Modifier.padding(start = 2.dp, top = 14.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    itemsIndexed(filteredNonMembers, key = { _, nonMember -> "non_member_${nonMember.phone}" }) { index, nonMember ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .bounceClick {
+                                    selectedNonMemberForInvite = nonMember
+                                }
+                                .padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(42.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
                                         Text(
-                                            text = "${nonMember.phone} • Üye Değil",
-                                            color = Color(0xFF94A3B8),
-                                            fontSize = 11.sp
+                                            text = nonMember.name.take(2).uppercase(),
+                                            color = Color(0xFF64748B),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
                                         )
                                     }
                                 }
 
-                                FilledTonalButton(
-                                    onClick = {
-                                        selectedNonMemberForInvite = nonMember
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.filledTonalButtonColors(
-                                        containerColor = Color(0xFFE0F2FE),
-                                        contentColor = Color(0xFF0284C7)
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    modifier = Modifier.height(32.dp)
-                                ) {
-                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(13.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Davet Et", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = nonMember.name,
+                                        color = Color(0xFF334155),
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 14.sp
+                                    )
+                                    Text(
+                                        text = "${nonMember.phone} • Üye Değil",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 11.sp
+                                    )
                                 }
                             }
 
-                            if (index < filteredNonMembers.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 54.dp),
-                                    color = Color(0xFFF1F5F9),
-                                    thickness = 0.8.dp
-                                )
+                            FilledTonalButton(
+                                onClick = {
+                                    selectedNonMemberForInvite = nonMember
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = Color(0xFFE0F2FE),
+                                    contentColor = Color(0xFF0284C7)
+                                ),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Davet Et", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
-                    }
 
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        if (index < filteredNonMembers.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 54.dp),
+                                color = Color(0xFFF1F5F9),
+                                thickness = 0.8.dp
+                            )
+                        }
                     }
                 }
 
-                // Bottom Sticky Confirmation Button
-                Button(
-                    onClick = {
-                        onConfirmSelection(currentSelected.toSet(), combinedMembers)
-                        onDismiss()
-                    },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryEmerald,
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .padding(bottom = 4.dp)
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (currentSelected.isNotEmpty()) "Seçimi Tamamla (${currentSelected.size} Kişi)" else "Listeyi Kapat",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
+            }
             }
         }
 

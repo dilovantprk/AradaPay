@@ -503,14 +503,6 @@ fun SettleUpScreen(
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Seninle ve:",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A),
-                        fontSize = 15.sp
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
 
                     // Tek Seçili Katılımcı Kapsül Çipi
                     if (selectedRecipient != null) {

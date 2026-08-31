@@ -38,6 +38,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [pinError, setPinError] = useState('');
   const [selectedUserForPin, setSelectedUserForPin] = useState<User | null>(null);
 
+  // Register Step State (1: Info, 2: Phone & OTP, 3: IBAN)
+  const [registerStep, setRegisterStep] = useState(1);
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [iban, setIban] = useState('TR64 0006 2000 0000 1122 3344 55');
+
   // Demo Fast Login Profiles
   const demoUsers: User[] = INITIAL_USERS.slice(0, 3); // Arda, Dilovan, Caner
 
@@ -55,19 +62,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       setPinError('');
 
       if (newPin.length === 4) {
-        // Auto-validate PIN (default demo PIN: '1234' or any 4 digit in demo mode)
         setTimeout(() => {
           if (selectedUserForPin) {
             onLoginSuccess(selectedUserForPin);
           } else {
             // New user login
+            const firstName = fullName.trim().split(' ')[0] || 'Kullanıcı';
             const newUser: User = {
               id: `user_${Date.now()}`,
-              email: emailOrPhone.includes('@') ? emailOrPhone : `${tag.replace('@', '').toLowerCase()}@aradapay.com`,
-              username: tag ? tag.replace('@', '').replace('#', '_').toLowerCase() : 'kullanici',
+              email: emailOrPhone.includes('@') ? emailOrPhone : `${firstName.toLowerCase()}@aradapay.com`,
+              username: firstName.toLowerCase(),
               fullName: fullName.trim() || 'AradaPay Üyesi',
-              iban: 'TR64 0006 2000 0000 ' + Math.floor(1000 + Math.random() * 9000) + ' 11',
-              tag: tag.startsWith('@') ? tag : `@${tag || 'kullanici'}`
+              iban: iban || 'TR64 0006 2000 0000 1122 3344 55',
+              tag: `@${firstName.toLowerCase()}#${Math.floor(1000 + Math.random() * 9000)}`
             };
             onLoginSuccess(newUser);
           }
@@ -112,7 +119,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       {/* Top Bar */}
       <header className="px-5 py-4 flex items-center justify-between border-b border-slate-200 bg-white">
         <button
-          onClick={mode === 'welcome' ? onBackToLanding : () => setMode('welcome')}
+          onClick={() => {
+            if (mode === 'register' && registerStep > 1) {
+              setRegisterStep((prev) => prev - 1);
+            } else if (mode !== 'welcome') {
+              setMode('welcome');
+            } else {
+              onBackToLanding();
+            }
+          }}
           className="text-[13px] font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5"
         >
           ← {mode === 'welcome' ? 'Ana Sayfa' : 'Geri'}
@@ -127,14 +142,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </span>
         </div>
 
-        <div className="w-12" />
+        <div className="w-12 text-right">
+          {mode === 'register' && (
+            <span className="text-[12px] font-bold text-slate-400">
+              {registerStep}/4
+            </span>
+          )}
+        </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md bg-white rounded-[28px] border border-slate-200/90 shadow-xl p-6 sm:p-8 space-y-6">
           {/* ========================================================================= */}
-          {/* MODE 1: WELCOME SCREEN (Onboarding Cards + Quick Profiles) */}
+          {/* MODE 1: WELCOME SCREEN */}
           {/* ========================================================================= */}
           {mode === 'welcome' && (
             <div className="space-y-6 animate-fadeIn">
@@ -208,11 +229,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 </button>
 
                 <button
-                  onClick={() => setMode('register')}
+                  onClick={() => {
+                    setRegisterStep(1);
+                    setMode('register');
+                  }}
                   className="w-full h-[50px] rounded-[16px] bg-surfaceContainerLow text-textPrimary font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-slate-200 active:scale-95 transition"
                 >
                   <UserPlus className="w-4 h-4 text-textSecondary" />
-                  <span>Yeni Hesap Oluştur</span>
+                  <span>Yeni Hesap Oluştur (Adım Adım)</span>
                 </button>
               </div>
             </div>
@@ -257,75 +281,207 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           )}
 
           {/* ========================================================================= */}
-          {/* MODE 3: REGISTER FORM */}
+          {/* MODE 3: STEP-BY-STEP REGISTER FLOW (1..4) */}
           {/* ========================================================================= */}
           {mode === 'register' && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setMode('pin');
-              }}
-              className="space-y-4 animate-fadeIn"
-            >
-              <div className="text-center space-y-1.5">
-                <h3 className="text-[22px] font-black text-textPrimary">Yeni Hesap Aç</h3>
-                <p className="text-[13px] text-textSecondary">
-                  Saniyeler içinde AradaPay hesabını oluştur.
-                </p>
+            <div className="space-y-4 animate-fadeIn">
+              {/* Step Progress Bar */}
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4].map((s) => (
+                  <div
+                    key={s}
+                    className={`h-1.5 rounded-full flex-1 transition-all ${
+                      s === registerStep
+                        ? 'bg-primaryEmerald'
+                        : s < registerStep
+                        ? 'bg-emerald-300'
+                        : 'bg-slate-200'
+                    }`}
+                  />
+                ))}
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[12px] font-bold text-textPrimary mb-1">
-                    Ad Soyad
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Ahmet Yılmaz"
-                    className="w-full h-[46px] px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] focus:outline-none focus:border-primaryEmerald focus:bg-white transition"
-                  />
-                </div>
+              {/* STEP 1: Full Name & Email */}
+              {registerStep === 1 && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!fullName.trim() || !emailOrPhone.trim()) return;
+                    setRegisterStep(2);
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="text-center space-y-1">
+                    <h3 className="text-[20px] font-black text-textPrimary">Kimlik Bilgilerin</h3>
+                    <p className="text-[12px] text-textSecondary">
+                      Harcamalarda görünecek gerçek adını ve e-postanı gir.
+                    </p>
+                  </div>
 
-                <div>
-                  <label className="block text-[12px] font-bold text-textPrimary mb-1">
-                    Kişisel @Tag Etiketin
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={tag}
-                    onChange={(e) => setTag(e.target.value)}
-                    placeholder="@ahmet#2026"
-                    className="w-full h-[46px] px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] focus:outline-none focus:border-primaryEmerald focus:bg-white transition font-mono"
-                  />
-                </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[12px] font-bold text-textPrimary mb-1">
+                        Gerçek Ad Soyad *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Mehmet Dilovan"
+                        className="w-full h-[46px] px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] focus:outline-none focus:border-primaryEmerald focus:bg-white transition"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-[12px] font-bold text-textPrimary mb-1">
-                    E-posta veya Telefon
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={emailOrPhone}
-                    onChange={(e) => setEmailOrPhone(e.target.value)}
-                    placeholder="ahmet@gmail.com"
-                    className="w-full h-[46px] px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] focus:outline-none focus:border-primaryEmerald focus:bg-white transition"
-                  />
-                </div>
-              </div>
+                    <div>
+                      <label className="block text-[12px] font-bold text-textPrimary mb-1">
+                        E-posta Adresi *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={emailOrPhone}
+                        onChange={(e) => setEmailOrPhone(e.target.value)}
+                        placeholder="mehmet@ornek.com"
+                        className="w-full h-[46px] px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] focus:outline-none focus:border-primaryEmerald focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
 
-              <button
-                type="submit"
-                className="w-full h-[50px] rounded-[16px] bg-primaryEmerald text-white font-black text-[15px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-95 transition shadow-sm mt-2"
-              >
-                <span>PIN Belirle & Kaydol</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
+                  <button
+                    type="submit"
+                    className="w-full h-[50px] rounded-[16px] bg-primaryEmerald text-white font-black text-[15px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-95 transition shadow-sm mt-4"
+                  >
+                    <span>Devam Et →</span>
+                  </button>
+                </form>
+              )}
+
+              {/* STEP 2: Phone & OTP Verification */}
+              {registerStep === 2 && (
+                <div className="space-y-4">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-[20px] font-black text-textPrimary">Telefon Doğrulama</h3>
+                    <p className="text-[12px] text-textSecondary">
+                      Rehberindeki arkadaşlarınla eşleşmek için telefonunu gir.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[12px] font-bold text-textPrimary mb-1">
+                        Telefon Numarası
+                      </label>
+                      <div className="flex gap-2">
+                        <span className="h-[46px] px-3 rounded-[14px] bg-slate-100 border border-slate-200 text-[14px] font-bold flex items-center text-slate-700">
+                          +90
+                        </span>
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          placeholder="5XX XXX XX XX"
+                          className="flex-1 h-[46px] px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] focus:outline-none focus:border-primaryEmerald focus:bg-white transition"
+                        />
+                      </div>
+                    </div>
+
+                    {!generatedOtp ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const code = Math.floor(100000 + Math.random() * 900000).toString();
+                          setGeneratedOtp(code);
+                        }}
+                        className="w-full py-2.5 rounded-[12px] bg-slate-900 text-white font-bold text-[13px] hover:bg-slate-800 transition"
+                      >
+                        SMS Onay Kodu Gönder
+                      </button>
+                    ) : (
+                      <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+                        <div className="flex items-center justify-between text-[12px] font-bold text-emerald-800">
+                          <span>📩 SMS Kodu: <b>{generatedOtp}</b></span>
+                          <button
+                            type="button"
+                            onClick={() => setOtp(generatedOtp)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-black"
+                          >
+                            Otomatik Doldur
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          placeholder="6 Haneli Kodu Girin"
+                          className="w-full h-[40px] px-3 rounded-xl bg-white border border-emerald-300 text-[14px] text-center font-bold tracking-widest"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setRegisterStep(3)}
+                    className="w-full h-[50px] rounded-[16px] bg-primaryEmerald text-white font-black text-[15px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-95 transition shadow-sm mt-2"
+                  >
+                    <span>Doğrula ve Devam Et →</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRegisterStep(3)}
+                    className="w-full text-center text-[12px] text-slate-500 font-semibold hover:text-slate-800"
+                  >
+                    Bu adımı şimdilik atla (Opsiyonel)
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 3: FAST IBAN */}
+              {registerStep === 3 && (
+                <div className="space-y-4">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-[20px] font-black text-textPrimary">FAST IBAN Bilgin</h3>
+                    <p className="text-[12px] text-textSecondary">
+                      Ortak harcamalarda alacaklarını doğrudan almak için IBAN gir.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[12px] font-bold text-textPrimary">
+                      Banka IBAN Numarası *
+                    </label>
+                    <input
+                      type="text"
+                      value={iban}
+                      onChange={(e) => setIban(e.target.value.toUpperCase())}
+                      placeholder="TR64 0006 2000 ..."
+                      className="w-full h-[46px] px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] focus:outline-none focus:border-primaryEmerald focus:bg-white font-mono transition"
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIban('TR64 0006 2000 0000 1122 3344 55')}
+                        className="text-[11px] font-bold text-primaryEmerald hover:underline"
+                      >
+                        + Örnek TR IBAN Kullan
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('pin');
+                    }}
+                    className="w-full h-[50px] rounded-[16px] bg-primaryEmerald text-white font-black text-[15px] flex items-center justify-center gap-2 hover:bg-[#00744d] active:scale-95 transition shadow-sm mt-4"
+                  >
+                    <span>PIN Belirle & Kaydı Tamamla →</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* ========================================================================= */}

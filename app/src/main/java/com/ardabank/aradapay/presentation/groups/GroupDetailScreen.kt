@@ -46,13 +46,14 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import android.content.Intent
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ModalBottomSheet
@@ -249,79 +250,20 @@ fun GroupDetailScreen(
                         )
                     }
 
-                    // More Options Dropdown
-                    Box {
-                        FilledTonalIconButton(
-                            onClick = { showMoreMenu = true },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = Color(0xFFF1F5F9)
-                            ),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Daha Fazla",
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showMoreMenu,
-                            onDismissRequest = { showMoreMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("⚡ Borçları Sadeleştir", fontWeight = FontWeight.SemiBold) },
-                                onClick = {
-                                    showMoreMenu = false
-                                    showSimplifyDebtsModal = true
-                                },
-                                leadingIcon = { Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = PrimaryEmerald) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("📄 PDF Raporu Paylaş", fontWeight = FontWeight.SemiBold) },
-                                onClick = {
-                                    showMoreMenu = false
-                                    com.ardabank.aradapay.presentation.receipt.PdfReceiptGenerator.shareGroupReportPdf(context, group, groupExpenses)
-                                },
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = Color(0xFF0F172A)) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("👥 Katılımcıları Yönet", fontWeight = FontWeight.SemiBold) },
-                                onClick = {
-                                    showMoreMenu = false
-                                    showMembersManagementModal = true
-                                },
-                                leadingIcon = { Icon(Icons.Default.Group, contentDescription = null, tint = Color(0xFF0F172A)) }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (group.isArchived) "Arşivden Çıkar" else "Grubu Kapat & Arşivle",
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (group.isArchived) PrimaryEmerald else AccentRose
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    if (group.isArchived) {
-                                        groupRepository.unarchiveGroup(group.id)
-                                        Toast.makeText(context, "Grup aktif duruma getirildi", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        groupRepository.archiveGroup(group.id)
-                                        Toast.makeText(context, "Grup arşivlendi", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        if (group.isArchived) Icons.Default.CheckCircle else Icons.Default.Archive,
-                                        contentDescription = null,
-                                        tint = if (group.isArchived) PrimaryEmerald else AccentRose
-                                    )
-                                }
-                            )
-                        }
+                    // Direct Edit Group Button
+                    FilledTonalIconButton(
+                        onClick = { showMembersManagementModal = true },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Color(0xFFF1F5F9)
+                        ),
+                        modifier = Modifier.size(40.dp).bounceClick { showMembersManagementModal = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Grubu Düzenle",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
@@ -700,166 +642,15 @@ fun GroupDetailScreen(
     }
 
     // =========================================================================
-    // 1. MEMBERS MANAGEMENT FULL-PAGE INTRINSIC SCREEN
+    // 1. GROUP EDIT & MEMBERS MANAGEMENT FULL-PAGE SCREEN
     // =========================================================================
     if (showMembersManagementModal) {
-        BackHandler { showMembersManagementModal = false }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .statusBarsPadding()
-                .navigationBarsPadding()
-        ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-
-                // TOP BAR
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        FilledTonalIconButton(
-                            onClick = { showMembersManagementModal = false },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = Color(0xFFF1F5F9)
-                            ),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Geri",
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Text(
-                            text = "Katılımcılar (${group.members.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
-                        )
-
-                        FilledTonalIconButton(
-                            onClick = {
-                                showMembersManagementModal = false
-                                showAddMemberModal = true
-                            },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = PrimaryEmeraldContainer
-                            ),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PersonAdd,
-                                contentDescription = "Katılımcı Ekle",
-                                tint = PrimaryEmerald,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-                }
-
-                // ÜYE SATIRLARI
-                itemsIndexed(group.members) { idx, member ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color(0xFFF1F5F9),
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = member.avatar,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0F172A),
-                                        fontSize = 15.sp
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column {
-                                Text(
-                                    text = member.name,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF0F172A),
-                                    fontSize = 15.sp
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = if (member.id == "me" || member.id == "1") "Yönetici • Sen" else member.tag,
-                                    color = Color(0xFF64748B),
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            val isMe = member.id == "me" || member.id == "1"
-                            if (isMe) {
-                                val statusLabel = when {
-                                    member.balanceInGroup > 0 -> "alacaklı"
-                                    member.balanceInGroup < 0 -> "borçlu"
-                                    else -> "fitleşildi"
-                                }
-                                val balanceColor = when {
-                                    member.balanceInGroup > 0 -> PrimaryEmerald
-                                    member.balanceInGroup < 0 -> AccentRose
-                                    else -> Color(0xFF94A3B8)
-                                }
-                                val balanceText = when {
-                                    member.balanceInGroup > 0 -> "+${String.format(java.util.Locale.US, "%.2f", member.balanceInGroup)} ₺"
-                                    member.balanceInGroup < 0 -> "-${String.format(java.util.Locale.US, "%.2f", abs(member.balanceInGroup))} ₺"
-                                    else -> "0,00 ₺"
-                                }
-
-                                Text(
-                                    text = statusLabel,
-                                    color = balanceColor,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.height(1.dp))
-                                Text(
-                                    text = balanceText,
-                                    color = balanceColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                            } else {
-                                Text(
-                                    text = "Katılımcı",
-                                    color = Color(0xFF64748B),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-                }
-
-                item { Spacer(modifier = Modifier.height(24.dp)) }
-            }
-        }
+        EditGroupScreen(
+            groupId = group.id,
+            groupRepository = groupRepository,
+            onBackClick = { showMembersManagementModal = false },
+            onGroupDeleted = onBackClick
+        )
         return
     }
 

@@ -30,38 +30,40 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalGasStation
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,7 +72,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -92,10 +97,10 @@ import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
 
 enum class ActivityFilterOption(val title: String) {
     ALL("Tümü"),
+    PENDING("Onay Bekleyenler"),
     RECEIVABLES("Alacaklar (+₺)"),
     PAYABLES("Borçlar (-₺)"),
-    SETTLEMENTS("Fitleşmeler"),
-    REQUESTS("İstek & Onay")
+    SETTLEMENTS("Fitleşmeler")
 }
 
 enum class ActivityItemKind {
@@ -104,22 +109,23 @@ enum class ActivityItemKind {
     INCOMING_APPROVAL,          // Gelen Onay: Başkası girdi, senin onayını bekliyor
     INCOMING_NUDGE,             // Gelen Dürtme / FAST Ödeme Hatırlatması
     FRIEND_REQUEST,             // Arkadaşlık İsteği
-    COMMENT_NOTE_ADDED,         // Harcamaya not / yorum eklendi
-    GROUP_CREATED,              // Grup oluşturuldu
     SETTLEMENT_COMPLETED,       // Ödeme / Fitleşme yapıldı
     SMART_CROSS_SETTLEMENT      // 3'lü Akıllı Çapraz Fitleşme
 }
 
 data class ActivityActionItem(
     val id: String,
-    val title: String,               // FinTech Merchant/Title: "Migros Market", "Shell Yakıt", "Kahve & Tatlı"
-    val subtitle: String,            // Subtitle: "4 kişi eşit • Sen ödedin", "Burak Öztürk • Onay bekliyor"
+    val title: String,               // FinTech Merchant: "Migros Sanal Market", "Starbucks Coffee", etc.
+    val subtitle: String,            // Subtitle: "Market • Ahmet Yılmaz • 10:15"
     val actorName: String,
     val actorInitials: String,
     val dateGroup: String,
     val time: String,
     val amount: Double = 0.0,
     val isPositiveFinancial: Boolean? = null,
+    val statusBadge: String = "",
+    val statusBgColor: Color = Color(0xFFF1F5F9),
+    val statusTextColor: Color = Color(0xFF64748B),
     val kind: ActivityItemKind,
     val icon: ImageVector,
     val bgTint: Color,
@@ -140,13 +146,127 @@ fun ActivityScreen(
     onNavigateToSettleUp: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedItemForDetail by remember { mutableStateOf<ActivityActionItem?>(null) }
 
-    // FinTech Transaction Data (Standard Banking Format)
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var hasMoreItems by remember { mutableStateOf(true) }
+    var pageNumber by remember { mutableStateOf(1) }
+
+    // Live Realistic FinTech Data
     val activityList = remember {
-        mutableStateListOf<ActivityActionItem>()
+        mutableStateListOf(
+            ActivityActionItem(
+                id = "act_1",
+                title = "Migros Sanal Market",
+                subtitle = "Market • Ahmet Yılmaz • 10:15",
+                actorName = "Ahmet Yılmaz",
+                actorInitials = "AY",
+                dateGroup = "BUGÜN",
+                time = "10:15",
+                amount = 225.00,
+                isPositiveFinancial = null,
+                statusBadge = "Onayını Bekliyor",
+                statusBgColor = Color(0xFFF1F5F9),
+                statusTextColor = Color(0xFF475569),
+                kind = ActivityItemKind.INCOMING_APPROVAL,
+                icon = Icons.Default.ShoppingCart,
+                bgTint = Color(0xFFEFF6FF),
+                iconTint = Color(0xFF2563EB)
+            ),
+            ActivityActionItem(
+                id = "act_2",
+                title = "Starbucks Coffee",
+                subtitle = "Yemek & İçecek • Zeynep Kaya • 16:00",
+                actorName = "Zeynep Kaya",
+                actorInitials = "ZK",
+                dateGroup = "BUGÜN",
+                time = "16:00",
+                amount = 120.00,
+                isPositiveFinancial = true,
+                statusBadge = "Arkadaş Onayı",
+                statusBgColor = Color(0xFFEFF6FF),
+                statusTextColor = Color(0xFF2563EB),
+                kind = ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK,
+                icon = Icons.Default.Fastfood,
+                bgTint = Color(0xFFECFDF5),
+                iconTint = PrimaryEmerald
+            ),
+            ActivityActionItem(
+                id = "act_3",
+                title = "Taksi & Ulaşım",
+                subtitle = "Ulaşım • Mert Çelik • 23:45",
+                actorName = "Mert Çelik",
+                actorInitials = "MÇ",
+                dateGroup = "DÜN",
+                time = "23:45",
+                amount = 100.00,
+                isPositiveFinancial = true,
+                statusBadge = "Arkadaş Onayı",
+                statusBgColor = Color(0xFFEFF6FF),
+                statusTextColor = Color(0xFF2563EB),
+                kind = ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK,
+                icon = Icons.Default.LocalGasStation,
+                bgTint = Color(0xFFECFDF5),
+                iconTint = PrimaryEmerald
+            ),
+            ActivityActionItem(
+                id = "act_4",
+                title = "Ev Kirası & Aidat Payı",
+                subtitle = "Konut • Burak Demir • 14:20",
+                actorName = "Burak Demir",
+                actorInitials = "BD",
+                dateGroup = "DÜN",
+                time = "14:20",
+                amount = 450.00,
+                isPositiveFinancial = false,
+                statusBadge = "Ödeme Bekliyor",
+                statusBgColor = Color(0xFFFEE2E2),
+                statusTextColor = Color(0xFFDC2626),
+                kind = ActivityItemKind.INCOMING_NUDGE,
+                icon = Icons.Default.Home,
+                bgTint = Color(0xFFFEF2F2),
+                iconTint = Color(0xFFDC2626)
+            ),
+            ActivityActionItem(
+                id = "act_5",
+                title = "Konser Bileti",
+                subtitle = "Eğlence • Caner Yıldız • 21 Ağu",
+                actorName = "Caner Yıldız",
+                actorInitials = "CY",
+                dateGroup = "BU HAFTA",
+                time = "21 Ağu",
+                amount = 320.00,
+                isPositiveFinancial = true,
+                statusBadge = "Tahsilat Bekliyor",
+                statusBgColor = Color(0xFFDCFCE7),
+                statusTextColor = Color(0xFF16A34A),
+                kind = ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK,
+                icon = Icons.Default.ConfirmationNumber,
+                bgTint = Color(0xFFF5F3FF),
+                iconTint = Color(0xFF7C3AED)
+            ),
+            ActivityActionItem(
+                id = "act_6",
+                title = "FAST Fitleşme Ödemesi",
+                subtitle = "FAST Havale • Selin Tekin • 19 Ağu",
+                actorName = "Selin Tekin",
+                actorInitials = "ST",
+                dateGroup = "BU HAFTA",
+                time = "19 Ağu",
+                amount = 180.00,
+                isPositiveFinancial = true,
+                statusBadge = "Fitleşildi",
+                statusBgColor = Color(0xFFDCFCE7),
+                statusTextColor = Color(0xFF16A34A),
+                kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                icon = Icons.Default.Payment,
+                bgTint = Color(0xFFECFDF5),
+                iconTint = PrimaryEmerald
+            )
+        )
     }
 
     var selectedFilter by remember { mutableStateOf(ActivityFilterOption.ALL) }
@@ -161,10 +281,10 @@ fun ActivityScreen(
 
             val matchesFilter = when (selectedFilter) {
                 ActivityFilterOption.ALL -> true
+                ActivityFilterOption.PENDING -> item.kind == ActivityItemKind.INCOMING_APPROVAL || item.kind == ActivityItemKind.INCOMING_NUDGE
                 ActivityFilterOption.RECEIVABLES -> item.isPositiveFinancial == true
                 ActivityFilterOption.PAYABLES -> item.isPositiveFinancial == false
                 ActivityFilterOption.SETTLEMENTS -> item.kind == ActivityItemKind.SETTLEMENT_COMPLETED || item.kind == ActivityItemKind.SMART_CROSS_SETTLEMENT
-                ActivityFilterOption.REQUESTS -> item.kind == ActivityItemKind.INCOMING_APPROVAL || item.kind == ActivityItemKind.INCOMING_NUDGE || item.kind == ActivityItemKind.FRIEND_REQUEST
             }
 
             matchesSearch && matchesFilter
@@ -186,7 +306,7 @@ fun ActivityScreen(
                 .statusBarsPadding()
         ) {
             // =========================================================================
-            // 1. TOP APP BAR (Search, History & Large Title)
+            // 1. TOP APP BAR (Minimalist, Clean & Modern Title)
             // =========================================================================
             if (isSearchActive) {
                 Row(
@@ -271,13 +391,16 @@ fun ActivityScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Hareketler",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A),
-                        fontSize = 28.sp
-                    )
+                    Column {
+                        Text(
+                            text = "Hareketler",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0F172A),
+                            fontSize = 26.sp,
+                            letterSpacing = (-0.5).sp
+                        )
+                    }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilledTonalIconButton(
@@ -293,27 +416,15 @@ fun ActivityScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-
-                        FilledTonalIconButton(
-                            onClick = onNavigateToHistory,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
-                            modifier = Modifier.size(40.dp).bounceClick(onClick = onNavigateToHistory)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = "Geçmiş",
-                                tint = Color(0xFF0F172A),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
                     }
                 }
             }
 
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // Filtre Çipleri
+            // =========================================================================
+            // 2. MODERN M3 FILTER CHIPS
+            // =========================================================================
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -323,19 +434,31 @@ fun ActivityScreen(
             ) {
                 items(ActivityFilterOption.values()) { opt ->
                     val isSelected = selectedFilter == opt
+                    val count = when (opt) {
+                        ActivityFilterOption.ALL -> activityList.size
+                        ActivityFilterOption.PENDING -> activityList.count { it.kind == ActivityItemKind.INCOMING_APPROVAL || it.kind == ActivityItemKind.INCOMING_NUDGE }
+                        ActivityFilterOption.RECEIVABLES -> activityList.count { it.isPositiveFinancial == true }
+                        ActivityFilterOption.PAYABLES -> activityList.count { it.isPositiveFinancial == false }
+                        ActivityFilterOption.SETTLEMENTS -> activityList.count { it.kind == ActivityItemKind.SETTLEMENT_COMPLETED }
+                    }
+
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF8FAFC),
                         border = if (isSelected) BorderStroke(1.dp, PrimaryEmerald) else BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.bounceClick { selectedFilter = opt }
                     ) {
-                        Text(
-                            text = opt.title,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) PrimaryEmerald else Color(0xFF64748B),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
+                        ) {
+                            Text(
+                                text = "${opt.title} ($count)",
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) PrimaryEmerald else Color(0xFF64748B)
+                            )
+                        }
                     }
                 }
             }
@@ -343,7 +466,7 @@ fun ActivityScreen(
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
             // =========================================================================
-            // 2. ACTIVITY FEED LIST (Flat Stream)
+            // 3. ACTIVITY FEED LIST (Flat Modern Stream)
             // =========================================================================
             LazyColumn(
                 modifier = Modifier
@@ -394,10 +517,10 @@ fun ActivityScreen(
                         item {
                             Text(
                                 text = dateGroup,
-                                color = Color(0xFF64748B),
+                                color = Color(0xFF94A3B8),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
+                                letterSpacing = 1.sp,
                                 modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
                             )
                             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
@@ -420,34 +543,189 @@ fun ActivityScreen(
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                        FilledTonalButton(
-                            onClick = onNavigateToHistory,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFFF1F5F9),
-                                contentColor = PrimaryEmerald
-                            ),
+                if (filteredList.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp)
-                                .bounceClick(onClick = onNavigateToHistory)
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = null,
-                                tint = PrimaryEmerald,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Tüm Finansal Geçmişi Gör",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = PrimaryEmerald
-                            )
+                            if (hasMoreItems) {
+                                FilledTonalButton(
+                                    onClick = {
+                                        if (!isLoadingMore) {
+                                            coroutineScope.launch {
+                                                isLoadingMore = true
+                                                delay(600)
+                                                if (pageNumber == 1) {
+                                                    activityList.addAll(
+                                                        listOf(
+                                                            ActivityActionItem(
+                                                                id = "act_7",
+                                                                title = "CarrefourSA Gurme",
+                                                                subtitle = "Market • Deniz Arslan • 14 Ağu",
+                                                                actorName = "Deniz Arslan",
+                                                                actorInitials = "DA",
+                                                                dateGroup = "GEÇEN AY",
+                                                                time = "14 Ağu",
+                                                                amount = 310.50,
+                                                                isPositiveFinancial = false,
+                                                                statusBadge = "Ödendi",
+                                                                statusBgColor = Color(0xFFF1F5F9),
+                                                                statusTextColor = Color(0xFF64748B),
+                                                                kind = ActivityItemKind.EXPENSE_ADDED_YOU_OWE,
+                                                                icon = Icons.Default.ShoppingCart,
+                                                                bgTint = Color(0xFFEFF6FF),
+                                                                iconTint = Color(0xFF2563EB)
+                                                            ),
+                                                            ActivityActionItem(
+                                                                id = "act_8",
+                                                                title = "Yemeksepeti Akşam Yemeği",
+                                                                subtitle = "Yemek • Zeynep Kaya • 08 Ağu",
+                                                                actorName = "Zeynep Kaya",
+                                                                actorInitials = "ZK",
+                                                                dateGroup = "GEÇEN AY",
+                                                                time = "08 Ağu",
+                                                                amount = 260.00,
+                                                                isPositiveFinancial = true,
+                                                                statusBadge = "Fitleşildi",
+                                                                statusBgColor = Color(0xFFDCFCE7),
+                                                                statusTextColor = Color(0xFF16A34A),
+                                                                kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                                                                icon = Icons.Default.Fastfood,
+                                                                bgTint = Color(0xFFECFDF5),
+                                                                iconTint = PrimaryEmerald
+                                                            ),
+                                                            ActivityActionItem(
+                                                                id = "act_9",
+                                                                title = "Otoyol & HGS Geçişi",
+                                                                subtitle = "Ulaşım • Caner Yıldız • 01 Ağu",
+                                                                actorName = "Caner Yıldız",
+                                                                actorInitials = "CY",
+                                                                dateGroup = "GEÇEN AY",
+                                                                time = "01 Ağu",
+                                                                amount = 95.00,
+                                                                isPositiveFinancial = false,
+                                                                statusBadge = "Fitleşildi",
+                                                                statusBgColor = Color(0xFFDCFCE7),
+                                                                statusTextColor = Color(0xFF16A34A),
+                                                                kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                                                                icon = Icons.Default.DirectionsCar,
+                                                                bgTint = Color(0xFFFEF2F2),
+                                                                iconTint = Color(0xFFDC2626)
+                                                            )
+                                                        )
+                                                    )
+                                                    pageNumber = 2
+                                                } else if (pageNumber == 2) {
+                                                    activityList.addAll(
+                                                        listOf(
+                                                            ActivityActionItem(
+                                                                id = "act_10",
+                                                                title = "Spotify Aile Planı",
+                                                                subtitle = "Abonelik • Selin Tekin • 25 Tem",
+                                                                actorName = "Selin Tekin",
+                                                                actorInitials = "ST",
+                                                                dateGroup = "TEMMUZ 2026",
+                                                                time = "25 Tem",
+                                                                amount = 45.00,
+                                                                isPositiveFinancial = true,
+                                                                statusBadge = "Fitleşildi",
+                                                                statusBgColor = Color(0xFFDCFCE7),
+                                                                statusTextColor = Color(0xFF16A34A),
+                                                                kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                                                                icon = Icons.Default.ConfirmationNumber,
+                                                                bgTint = Color(0xFFF5F3FF),
+                                                                iconTint = Color(0xFF7C3AED)
+                                                            ),
+                                                            ActivityActionItem(
+                                                                id = "act_11",
+                                                                title = "Netflix Ortak Üyelik",
+                                                                subtitle = "Abonelik • Burak Demir • 15 Tem",
+                                                                actorName = "Burak Demir",
+                                                                actorInitials = "BD",
+                                                                dateGroup = "TEMMUZ 2026",
+                                                                time = "15 Tem",
+                                                                amount = 65.00,
+                                                                isPositiveFinancial = false,
+                                                                statusBadge = "Fitleşildi",
+                                                                statusBgColor = Color(0xFFDCFCE7),
+                                                                statusTextColor = Color(0xFF16A34A),
+                                                                kind = ActivityItemKind.SETTLEMENT_COMPLETED,
+                                                                icon = Icons.Default.ConfirmationNumber,
+                                                                bgTint = Color(0xFFEFF6FF),
+                                                                iconTint = Color(0xFF2563EB)
+                                                            )
+                                                        )
+                                                    )
+                                                    pageNumber = 3
+                                                    hasMoreItems = false
+                                                }
+                                                isLoadingMore = false
+                                            }
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = Color(0xFFF1F5F9),
+                                        contentColor = PrimaryEmerald
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                ) {
+                                    if (isLoadingMore) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            color = PrimaryEmerald,
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Yükleniyor...",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = PrimaryEmerald
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            tint = PrimaryEmerald,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Daha Fazla Yükle",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = PrimaryEmerald
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Tüm geçmiş hareketler yüklendi",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -513,9 +791,9 @@ fun ActivityScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("İşlem Tutarı:", color = Color(0xFF64748B), fontSize = 14.sp)
-                        val amtColor = if (item.isPositiveFinancial == true) PrimaryEmerald else Color(0xFFE11D48)
+                        val amtColor = if (item.isPositiveFinancial == true) PrimaryEmerald else if (item.isPositiveFinancial == false) Color(0xFFE11D48) else Color(0xFF0F172A)
                         Text(
-                            text = "${if (item.isPositiveFinancial == true) "+" else "-"}${String.format(java.util.Locale.US, "%.2f", item.amount)} ₺",
+                            text = "${if (item.isPositiveFinancial == true) "+" else if (item.isPositiveFinancial == false) "-" else ""}${String.format(java.util.Locale.US, "%.2f", item.amount)} ₺",
                             color = amtColor,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
@@ -531,41 +809,10 @@ fun ActivityScreen(
                     Text(item.subtitle, color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 }
 
-                if (item.iban.isNotBlank() && item.amount > 0) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("FAST IBAN:", color = Color(0xFF64748B), fontSize = 14.sp)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(item.iban.take(15) + "...", color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            FilledTonalIconButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("IBAN", item.iban))
-                                    Toast.makeText(context, "IBAN kopyalandı", Toast.LENGTH_SHORT).show()
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
-                                modifier = Modifier.size(28.dp).bounceClick {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("IBAN", item.iban))
-                                    Toast.makeText(context, "IBAN kopyalandı", Toast.LENGTH_SHORT).show()
-                                }
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Kopyala", tint = Color(0xFF0F172A), modifier = Modifier.size(14.dp))
-                            }
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-
-                // Bottom Actions
+                // Action Buttons only when action is required
                 when (item.kind) {
                     ActivityItemKind.INCOMING_NUDGE -> {
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
                         Button(
                             onClick = {
                                 item.isPendingActionHandled = true
@@ -585,6 +832,7 @@ fun ActivityScreen(
                         }
                     }
                     ActivityItemKind.INCOMING_APPROVAL -> {
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -602,6 +850,8 @@ fun ActivityScreen(
                                     .height(50.dp)
                                     .bounceClick { }
                             ) {
+                                Icon(Icons.Default.Close, contentDescription = "Reddet", tint = AccentRose, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text("Reddet", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
 
@@ -618,60 +868,14 @@ fun ActivityScreen(
                                     .height(50.dp)
                                     .bounceClick { }
                             ) {
+                                Icon(Icons.Default.Check, contentDescription = "Onayla", tint = Color.White, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text("Payı Onayla", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                             }
                         }
                     }
-                    ActivityItemKind.FRIEND_REQUEST -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            FilledTonalButton(
-                                onClick = {
-                                    activityList.remove(item)
-                                    selectedItemForDetail = null
-                                    Toast.makeText(context, "İstek silindi", Toast.LENGTH_SHORT).show()
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color(0xFFF1F5F9), contentColor = Color(0xFF64748B)),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp)
-                                    .bounceClick { }
-                            ) {
-                                Text("Sil", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            }
-
-                            Button(
-                                onClick = {
-                                    item.isPendingActionHandled = true
-                                    selectedItemForDetail = null
-                                    Toast.makeText(context, "${item.actorName} arkadaş olarak eklendi", Toast.LENGTH_SHORT).show()
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                                modifier = Modifier
-                                    .weight(1.5f)
-                                    .height(50.dp)
-                                    .bounceClick { }
-                            ) {
-                                Text("Kabul Et", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                            }
-                        }
-                    }
                     else -> {
-                        Button(
-                            onClick = { selectedItemForDetail = null },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                                .bounceClick { selectedItemForDetail = null }
-                        ) {
-                            Text("Tamam", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                        }
+                        // Clean dismissible sheet with no redundant Kapat button
                     }
                 }
             }
@@ -680,7 +884,7 @@ fun ActivityScreen(
 }
 
 // =========================================================================
-// 5. TRUE FINTECH TRANSACTION ROW (Apple Pay / iOS Wallet Standard)
+// 5. TRUE FINTECH TRANSACTION ROW (Apple Pay / Material 3 Standard)
 // =========================================================================
 @Composable
 private fun FinTechActivityRow(
@@ -695,39 +899,94 @@ private fun FinTechActivityRow(
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Transaction Brand / Category Pastel Squircle Badge
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = item.bgTint,
-            modifier = Modifier.size(42.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (item.kind == ActivityItemKind.FRIEND_REQUEST) {
-                    Text(
-                        text = item.actorInitials,
-                        color = item.iconTint,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                } else {
+        // 1. Transaction Brand / Category Pastel Squircle Badge with Corner Status Dot
+        Box(modifier = Modifier.size(44.dp)) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = item.bgTint,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (item.kind == ActivityItemKind.FRIEND_REQUEST) {
+                        Text(
+                            text = item.actorInitials,
+                            color = item.iconTint,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = null,
+                            tint = item.iconTint,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            }
+
+            // Status Indicator Corner Badge (Replaces AI slop text badges)
+            val (statusIcon, statusBg, statusTint) = when (item.kind) {
+                ActivityItemKind.INCOMING_APPROVAL -> Triple(
+                    Icons.Default.HourglassTop,
+                    Color(0xFFFEF3C7), // Soft Amber
+                    Color(0xFFD97706)
+                )
+                ActivityItemKind.INCOMING_NUDGE,
+                ActivityItemKind.EXPENSE_ADDED_YOU_OWE -> Triple(
+                    Icons.Default.ArrowDownward,
+                    Color(0xFFFEE2E2), // Soft Rose
+                    Color(0xFFDC2626)
+                )
+                ActivityItemKind.EXPENSE_ADDED_YOU_GET_BACK -> Triple(
+                    Icons.Default.ArrowUpward,
+                    Color(0xFFDCFCE7), // Soft Emerald
+                    Color(0xFF16A34A)
+                )
+                ActivityItemKind.SETTLEMENT_COMPLETED -> Triple(
+                    Icons.Default.Check,
+                    Color(0xFFDCFCE7), // Soft Emerald
+                    Color(0xFF16A34A)
+                )
+                ActivityItemKind.FRIEND_REQUEST -> Triple(
+                    Icons.Default.Person,
+                    Color(0xFFEDE9FE), // Soft Purple
+                    Color(0xFF7C3AED)
+                )
+                ActivityItemKind.SMART_CROSS_SETTLEMENT -> Triple(
+                    Icons.Default.SyncAlt,
+                    Color(0xFFCCFBF1), // Soft Teal
+                    Color(0xFF0D9488)
+                )
+            }
+
+            Surface(
+                shape = CircleShape,
+                color = statusBg,
+                border = BorderStroke(2.dp, Color.White),
+                modifier = Modifier
+                    .size(18.dp)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = item.icon,
+                        imageVector = statusIcon,
                         contentDescription = null,
-                        tint = item.iconTint,
-                        modifier = Modifier.size(20.dp)
+                        tint = statusTint,
+                        modifier = Modifier.size(10.dp)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
 
-        // 2. Left Column: Merchant / Title & Clean Subtitle
+        // 2. Center Column: Merchant / Title & Clean Subtitle
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = Color(0xFF0F172A),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -737,7 +996,7 @@ private fun FinTechActivityRow(
 
             Text(
                 text = item.subtitle,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 color = Color(0xFF64748B),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -746,41 +1005,36 @@ private fun FinTechActivityRow(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // 3. Right Column: Amount & Status
+        // 3. Right Column: Clean Amount or Time (No AI slop text badges!)
         Column(horizontalAlignment = Alignment.End) {
             if (item.amount > 0) {
-                val amountColor = if (item.isPositiveFinancial == true) PrimaryEmerald else Color(0xFF0F172A)
-                val amountPrefix = if (item.isPositiveFinancial == true) "+" else ""
+                val amountColor = if (item.isPositiveFinancial == true) PrimaryEmerald else if (item.isPositiveFinancial == false) Color(0xFFE11D48) else Color(0xFF0F172A)
+                val amountPrefix = if (item.isPositiveFinancial == true) "+" else if (item.isPositiveFinancial == false) "-" else ""
 
                 if (isLocked) {
                     MaskedFinancialText(
                         amount = item.amount,
                         isLocked = true,
                         color = amountColor,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     )
                 } else {
                     Text(
                         text = "$amountPrefix${String.format(java.util.Locale.US, "%.2f", item.amount)} ₺",
                         color = amountColor,
-                        fontSize = 14.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
-
-                Spacer(modifier = Modifier.height(1.dp))
-                Text(
-                    text = item.time,
-                    color = Color(0xFF94A3B8),
-                    fontSize = 11.sp
-                )
             } else {
                 Text(
                     text = item.time,
                     color = Color(0xFF94A3B8),
-                    fontSize = 12.sp
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
     }
 }
+

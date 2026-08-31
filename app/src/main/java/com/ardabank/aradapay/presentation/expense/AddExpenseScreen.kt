@@ -68,6 +68,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Movie
@@ -212,7 +213,45 @@ fun AddExpenseScreen(
         )
     }
 
-    val availableGroups: List<Group> = groupRepository?.groups?.collectAsState()?.value ?: emptyList()
+    val loadedGroups = groupRepository?.groups?.collectAsState()?.value ?: emptyList()
+    val availableGroups: List<Group> = remember(loadedGroups) {
+        if (loadedGroups.isNotEmpty()) loadedGroups else listOf(
+            Group(
+                id = "group_demo_1",
+                name = "Kaş Tatili 2026",
+                category = "Seyahat",
+                emoji = "🏖️",
+                members = listOf(
+                    com.ardabank.aradapay.domain.model.GroupMember("me", "Sen", "AP", "Sen"),
+                    com.ardabank.aradapay.domain.model.GroupMember("1", "Ahmet Yılmaz", "AY", "Ahmet#7821"),
+                    com.ardabank.aradapay.domain.model.GroupMember("2", "Zeynep Kaya", "ZK", "Zeynep#3412"),
+                    com.ardabank.aradapay.domain.model.GroupMember("3", "Mert Demir", "MD", "Mert#9015")
+                )
+            ),
+            Group(
+                id = "group_demo_2",
+                name = "Ev & Yaşam",
+                category = "Konut",
+                emoji = "🏠",
+                members = listOf(
+                    com.ardabank.aradapay.domain.model.GroupMember("me", "Sen", "AP", "Sen"),
+                    com.ardabank.aradapay.domain.model.GroupMember("4", "Elif Şahin", "EŞ", "Elif#4420"),
+                    com.ardabank.aradapay.domain.model.GroupMember("5", "Burak Öztürk", "BÖ", "Burak#6108")
+                )
+            ),
+            Group(
+                id = "group_demo_3",
+                name = "Kadıköy Ekibi",
+                category = "Eğlence",
+                emoji = "🍕",
+                members = listOf(
+                    com.ardabank.aradapay.domain.model.GroupMember("me", "Sen", "AP", "Sen"),
+                    com.ardabank.aradapay.domain.model.GroupMember("6", "Selin Aydın", "SA", "Selin#2839"),
+                    com.ardabank.aradapay.domain.model.GroupMember("7", "Caner Erkin", "CE", "Caner#1903")
+                )
+            )
+        )
+    }
 
     val isInitiallyGroup = !initialGroupId.isNullOrBlank() ||
             !initialGroupName.isNullOrBlank() ||
@@ -229,7 +268,7 @@ fun AddExpenseScreen(
             } else if (initialFriendName != null) {
                 availableGroups.find { it.name.equals(initialFriendName, ignoreCase = true) }
             } else {
-                availableGroups.firstOrNull()
+                null
             }
         )
     }
@@ -268,17 +307,50 @@ fun AddExpenseScreen(
 
     val selectedFriendIds = remember { mutableStateListOf<String>().apply { addAll(initialSelected) } }
 
-    val currentPayerName = remember(selectedPayerId, allFriends.size) {
-        if (selectedPayerId == "me") "Sen" else allFriends.find { it.id == selectedPayerId }?.name ?: "Arkadaş"
+    val splitParticipants: List<ExpenseParticipant> = remember(selectedGroup, selectedFriendIds.toList(), allFriends.toList()) {
+        val list = mutableListOf<ExpenseParticipant>()
+        val seenIds = mutableSetOf<String>()
+
+        // 1. Seçili gruptaki üyeler (varsa)
+        if (selectedGroup != null) {
+            selectedGroup!!.members.forEach { m ->
+                if (m.id != "me" && !seenIds.contains(m.id)) {
+                    seenIds.add(m.id)
+                    val existing = allFriends.find { it.id == m.id }
+                    if (existing != null) {
+                        list.add(existing)
+                    } else {
+                        val newP = ExpenseParticipant(id = m.id, name = m.name, tag = m.tag, avatar = m.avatar)
+                        list.add(newP)
+                    }
+                }
+            }
+        }
+
+        // 2. Bireysel seçilen arkadaşlar (duplicate olmadan)
+        selectedFriendIds.forEach { fId ->
+            if (fId != "me" && !seenIds.contains(fId)) {
+                seenIds.add(fId)
+                val existing = allFriends.find { it.id == fId }
+                if (existing != null) {
+                    list.add(existing)
+                }
+            }
+        }
+        list
     }
-    val currentPayerShortName = remember(selectedPayerId, allFriends.size) {
-        if (selectedPayerId == "me") "Sen" else allFriends.find { it.id == selectedPayerId }?.name?.split(" ")?.first() ?: "Arkadaş"
+
+    val currentPayerName = remember(selectedPayerId, splitParticipants, allFriends.size) {
+        if (selectedPayerId == "me") "Sen" else (splitParticipants.find { it.id == selectedPayerId } ?: allFriends.find { it.id == selectedPayerId })?.name ?: "Arkadaş"
+    }
+    val currentPayerShortName = remember(selectedPayerId, splitParticipants, allFriends.size) {
+        if (selectedPayerId == "me") "Sen" else (splitParticipants.find { it.id == selectedPayerId } ?: allFriends.find { it.id == selectedPayerId })?.name?.split(" ")?.first() ?: "Arkadaş"
     }
 
     val amountValue = amountText.replace(",", ".").toDoubleOrNull() ?: 0.0
 
-    val allParticipantIdsWithMe = remember(selectedFriendIds.toList(), includeMyselfInSplit) {
-        (if (includeMyselfInSplit) listOf("me") else emptyList()) + selectedFriendIds
+    val allParticipantIdsWithMe = remember(splitParticipants, includeMyselfInSplit) {
+        (if (includeMyselfInSplit) listOf("me") else emptyList()) + splitParticipants.map { it.id }
     }
 
     val includedInEqualCount = remember(allParticipantIdsWithMe, excludedInEqualSplit.toList()) {
@@ -301,14 +373,14 @@ fun AddExpenseScreen(
         label = "CategoryChevronRotation"
     )
 
-    val isExpenseFormValid = amountValue > 0.0 && description.isNotBlank() && selectedFriendIds.isNotEmpty()
+    val isExpenseFormValid = amountValue > 0.0 && description.isNotBlank() && (splitParticipants.isNotEmpty() || selectedFriendIds.isNotEmpty())
 
     val executeSaveExpense: () -> Unit = {
         if (amountValue <= 0) {
             Toast.makeText(context, "Lütfen harcama tutarı giriniz", Toast.LENGTH_SHORT).show()
         } else if (description.isBlank()) {
             Toast.makeText(context, "Lütfen harcama açıklaması giriniz", Toast.LENGTH_SHORT).show()
-        } else if (selectedFriendIds.isEmpty()) {
+        } else if (splitParticipants.isEmpty() && selectedFriendIds.isEmpty()) {
             Toast.makeText(context, "Lütfen en az bir kişi seçiniz", Toast.LENGTH_SHORT).show()
         } else {
             if (splitMode == 1 && selectedGroup != null && groupRepository != null) {
@@ -399,7 +471,7 @@ fun AddExpenseScreen(
                 Text(
                     text = when (mode) {
                         ExpenseScreenMode.CATEGORY -> "Kategori Seç"
-                        ExpenseScreenMode.PARTICIPANT -> "Kişi Ekle"
+                        ExpenseScreenMode.PARTICIPANT -> "Kişi veya Grup Ekle"
                         ExpenseScreenMode.SPLIT -> "Ödeyen ve Bölüşüm"
                         ExpenseScreenMode.NORMAL -> "Harcama Ekle"
                     },
@@ -649,7 +721,7 @@ fun AddExpenseScreen(
     }
     ExpenseScreenMode.PARTICIPANT -> {
         // =========================================================================
-        // KİŞİ EKLEME TAM EKRAN MODU
+        // KİŞİ VE GRUP EKLEME TAM EKRAN MODU
         // =========================================================================
         Column(modifier = Modifier.fillMaxSize()) {
             // 1. ARAMA ÇUBUĞU
@@ -694,7 +766,7 @@ fun AddExpenseScreen(
                             decorationBox = { innerTextField ->
                                 if (participantSearchQuery.isEmpty()) {
                                     Text(
-                                        text = "Kişi ara veya #tag yaz...",
+                                        text = "Kişi veya grup ara (#tag)...",
                                         color = Color(0xFF94A3B8),
                                         fontSize = 14.sp
                                     )
@@ -718,9 +790,9 @@ fun AddExpenseScreen(
                 }
             }
 
-            // 2. SEÇİLEN KİŞİLERİN KAPSÜLLERİ
+            // 2. SEÇİLEN KİŞİLERİN VE GRUBUN KAPSÜLLERİ
             val selectedFriends = allFriends.filter { selectedFriendIds.contains(it.id) }
-            if (selectedFriends.isNotEmpty()) {
+            if (selectedGroup != null || selectedFriends.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -729,11 +801,12 @@ fun AddExpenseScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    selectedFriends.forEach { p ->
+                    // Seçili Grup Çipi (Grup seçiliyse sadece grup görünür)
+                    if (selectedGroup != null) {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = PrimaryEmeraldContainer,
-                            border = BorderStroke(1.dp, PrimaryEmerald)
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFF3B82F6))
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -741,37 +814,82 @@ fun AddExpenseScreen(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = PrimaryEmerald,
+                                    color = Color(0xFF3B82F6),
                                     modifier = Modifier.size(20.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Text(
-                                            text = p.avatar,
-                                            color = Color.White,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
+                                            text = if (selectedGroup!!.emoji.isNotBlank()) selectedGroup!!.emoji else "👥",
+                                            fontSize = 11.sp
                                         )
                                     }
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = p.name.split(" ").first(),
+                                    text = selectedGroup!!.name,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PrimaryEmerald
+                                    color = Color(0xFF1D4ED8)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Kaldır",
-                                    tint = PrimaryEmerald,
+                                    contentDescription = "Grubu Kaldır",
+                                    tint = Color(0xFF3B82F6),
                                     modifier = Modifier
                                         .size(14.dp)
                                         .clickable {
-                                            selectedFriendIds.remove(p.id)
-                                            if (selectedPayerId == p.id) selectedPayerId = "me"
+                                            selectedGroup = null
+                                            splitMode = 0
                                         }
                                 )
+                            }
+                        }
+                    } else {
+                        selectedFriends.forEach { p ->
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = PrimaryEmeraldContainer,
+                                border = BorderStroke(1.dp, PrimaryEmerald)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = PrimaryEmerald,
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = p.avatar,
+                                                color = Color.White,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = p.name.split(" ").first(),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryEmerald
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Kaldır",
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clickable {
+                                                selectedFriendIds.remove(p.id)
+                                                if (selectedPayerId == p.id) selectedPayerId = "me"
+                                            }
+                                    )
+                                }
                             }
                         }
                     }
@@ -781,7 +899,13 @@ fun AddExpenseScreen(
 
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-            // 3. KİŞİ LİSTESİ
+            // 3. GRUP VE KİŞİ LİSTESİ
+            val filteredGroups = availableGroups.filter { g ->
+                participantSearchQuery.isBlank() ||
+                g.name.contains(participantSearchQuery, ignoreCase = true) ||
+                g.category.contains(participantSearchQuery, ignoreCase = true)
+            }
+
             val filteredFriends = allFriends.filter { friend ->
                 participantSearchQuery.isBlank() ||
                 friend.name.contains(participantSearchQuery, ignoreCase = true) ||
@@ -794,16 +918,129 @@ fun AddExpenseScreen(
                     .weight(1f),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp)
             ) {
-                if (filteredFriends.isEmpty()) {
+                // ================= GRUPLAR BÖLÜMÜ =================
+                if (filteredGroups.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Sonuç bulunamadı",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(vertical = 16.dp)
+                            text = "GRUPLAR (${filteredGroups.size})",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
                         )
                     }
-                } else {
+
+                    items(filteredGroups, key = { "group_${it.id}" }) { group ->
+                        val isGroupSelected = selectedGroup?.id == group.id
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bounceClick {
+                                    if (isGroupSelected) {
+                                        selectedGroup = null
+                                        splitMode = 0
+                                    } else {
+                                        selectedGroup = group
+                                        splitMode = 1
+                                        selectedFriendIds.clear()
+                                        // Gruptaki tüm üyeleri allFriends listesine ekle
+                                        group.members.forEach { m ->
+                                            if (m.id != "me" && allFriends.none { it.id == m.id }) {
+                                                allFriends.add(ExpenseParticipant(m.id, m.name, m.tag, m.avatar))
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isGroupSelected) Color(0xFFEFF6FF) else Color(0xFFF1F5F9),
+                                    border = if (isGroupSelected) BorderStroke(1.dp, Color(0xFF3B82F6)) else null,
+                                    modifier = Modifier.size(42.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        if (group.emoji.isNotBlank()) {
+                                            Text(text = group.emoji, fontSize = 20.sp)
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.Groups,
+                                                contentDescription = null,
+                                                tint = if (isGroupSelected) Color(0xFF2563EB) else Color(0xFF64748B),
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = group.name,
+                                        fontWeight = if (isGroupSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                        fontSize = 15.sp,
+                                        color = if (isGroupSelected) Color(0xFF1D4ED8) else Color(0xFF0F172A)
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${group.members.size} Katılımcı • ${group.category}",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
+
+                            AnimatedContent(
+                                targetState = isGroupSelected,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
+                                },
+                                label = "GroupSelectionAnimation"
+                            ) { selected ->
+                                if (selected) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Seçili",
+                                        tint = Color(0xFF2563EB),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Circle,
+                                        contentDescription = "Seçilmedi",
+                                        tint = Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = Color(0xFFF8FAFC),
+                            thickness = 1.dp
+                        )
+                    }
+                }
+
+                // ================= KİŞİLER BÖLÜMÜ =================
+                if (filteredFriends.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "KİŞİLER (${filteredFriends.size})",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 6.dp)
+                        )
+                    }
+
                     items(filteredFriends, key = { it.id }) { friend ->
                         val isSelected = selectedFriendIds.contains(friend.id)
                         Row(
@@ -900,22 +1137,13 @@ fun AddExpenseScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // 2. KATILIMCI SEÇİM BARI (Seninle ve: + Kapsül Çipler + Kişi ara... + [ v ] Butonu)
+            // 2. KATILIMCI SEÇİM BARI (Sen Çipi + Arkadaş Çipleri + Arama/Ekle)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Seninle ve:",
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A),
-                    fontSize = 15.sp
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -923,8 +1151,41 @@ fun AddExpenseScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val selectedFriends = allFriends.filter { selectedFriendIds.contains(it.id) }
-                    selectedFriends.forEach { p ->
+                    // Eğer grup seçiliyse SADECE grup çipi görünür
+                    if (selectedGroup != null) {
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFF3B82F6)),
+                            modifier = Modifier.bounceClick { isParticipantDropdownOpen = !isParticipantDropdownOpen }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF3B82F6), modifier = Modifier.size(20.dp)) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(text = if (selectedGroup!!.emoji.isNotBlank()) selectedGroup!!.emoji else "👥", fontSize = 11.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = selectedGroup!!.name, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Grubu Kaldır",
+                                    tint = Color(0xFF3B82F6),
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable {
+                                            selectedGroup = null
+                                            splitMode = 0
+                                        }
+                                )
+                            }
+                        }
+                    } else {
+                        // Sabit "Sen" Çipi
                         Surface(
                             shape = RoundedCornerShape(20.dp),
                             color = PrimaryEmeraldContainer,
@@ -937,54 +1198,77 @@ fun AddExpenseScreen(
                             ) {
                                 Surface(shape = CircleShape, color = PrimaryEmerald, modifier = Modifier.size(22.dp)) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Text(text = p.avatar, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text(text = "Sen", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(text = p.name.split(" ").first(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryEmerald)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Kaldır",
-                                    tint = PrimaryEmerald,
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clickable {
-                                            selectedFriendIds.remove(p.id)
-                                            if (selectedPayerId == p.id) selectedPayerId = "me"
-                                        }
-                                )
+                                Text(text = "Sen", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryEmerald)
                             }
                         }
-                    }
 
-                    BasicTextField(
-                        value = participantSearchQuery,
-                        onValueChange = {
-                            participantSearchQuery = it
-                            if (it.isNotEmpty()) isParticipantDropdownOpen = true
-                        },
-                        singleLine = true,
-                        textStyle = TextStyle(
-                            fontSize = 14.sp,
-                            color = Color(0xFF0F172A),
-                            fontWeight = FontWeight.Medium
-                        ),
-                        cursorBrush = SolidColor(PrimaryEmerald),
-                        decorationBox = { innerTextField ->
-                            Box(contentAlignment = Alignment.CenterStart) {
-                                if (participantSearchQuery.isEmpty()) {
-                                    Text(
-                                        text = if (selectedFriendIds.isEmpty()) "Kişi ara..." else "Ekle...",
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF94A3B8)
+                        val selectedFriends = allFriends.filter { selectedFriendIds.contains(it.id) }
+                        selectedFriends.forEach { p ->
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = PrimaryEmeraldContainer,
+                                border = BorderStroke(1.dp, PrimaryEmerald),
+                                modifier = Modifier.bounceClick { isParticipantDropdownOpen = !isParticipantDropdownOpen }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Surface(shape = CircleShape, color = PrimaryEmerald, modifier = Modifier.size(22.dp)) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(text = p.avatar, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(text = p.name.split(" ").first(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryEmerald)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Kaldır",
+                                        tint = PrimaryEmerald,
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clickable {
+                                                selectedFriendIds.remove(p.id)
+                                                if (selectedPayerId == p.id) selectedPayerId = "me"
+                                            }
                                     )
                                 }
-                                innerTextField()
                             }
-                        },
-                        modifier = Modifier.defaultMinSize(minWidth = 60.dp)
-                    )
+                        }
+
+                        BasicTextField(
+                            value = participantSearchQuery,
+                            onValueChange = {
+                                participantSearchQuery = it
+                                if (it.isNotEmpty()) isParticipantDropdownOpen = true
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                fontSize = 14.sp,
+                                color = Color(0xFF0F172A),
+                                fontWeight = FontWeight.Medium
+                            ),
+                            cursorBrush = SolidColor(PrimaryEmerald),
+                            decorationBox = { innerTextField ->
+                                Box(contentAlignment = Alignment.CenterStart) {
+                                    if (participantSearchQuery.isEmpty()) {
+                                        Text(
+                                            text = if (selectedFriendIds.isEmpty()) "Kişi ara..." else "Ekle...",
+                                            fontSize = 14.sp,
+                                            color = Color(0xFF94A3B8)
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            },
+                            modifier = Modifier.defaultMinSize(minWidth = 60.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(6.dp))
@@ -1362,37 +1646,34 @@ fun AddExpenseScreen(
                     }
 
                     // Diğer Katılımcılar
-                    selectedFriendIds.forEach { fId ->
-                        val f = allFriends.find { it.id == fId }
-                        if (f != null) {
-                            val isSelected = selectedPayerId == f.id
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
-                                border = if (isSelected) BorderStroke(1.dp, PrimaryEmerald) else null,
-                                modifier = Modifier.bounceClick { selectedPayerId = f.id }
+                    splitParticipants.forEach { f ->
+                        val isSelected = selectedPayerId == f.id
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isSelected) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                            border = if (isSelected) BorderStroke(1.dp, PrimaryEmerald) else null,
+                            modifier = Modifier.bounceClick { selectedPayerId = f.id }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSelected) PrimaryEmerald else Color(0xFF94A3B8),
+                                    modifier = Modifier.size(20.dp)
                                 ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (isSelected) PrimaryEmerald else Color(0xFF94A3B8),
-                                        modifier = Modifier.size(20.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(f.avatar, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                        }
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(f.avatar, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = f.name.split(" ").first(),
-                                        fontSize = 14.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) PrimaryEmerald else Color(0xFF0F172A)
-                                    )
                                 }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = f.name.split(" ").first(),
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) PrimaryEmerald else Color(0xFF0F172A)
+                                )
                             }
                         }
                     }
@@ -1496,58 +1777,55 @@ fun AddExpenseScreen(
                         }
                         HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
 
-                        // 2. Arkadaşlar
-                        selectedFriendIds.forEach { friendId ->
-                            val friend = allFriends.find { it.id == friendId }
-                            if (friend != null) {
-                                val isFriendIncluded = !excludedInEqualSplit.contains(friendId)
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .bounceClick {
-                                            if (isFriendIncluded) {
-                                                excludedInEqualSplit.add(friendId)
-                                            } else {
-                                                excludedInEqualSplit.remove(friendId)
-                                            }
+                        // 2. Katılımcılar
+                        splitParticipants.forEach { friend ->
+                            val isFriendIncluded = !excludedInEqualSplit.contains(friend.id)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .bounceClick {
+                                        if (isFriendIncluded) {
+                                            excludedInEqualSplit.add(friend.id)
+                                        } else {
+                                            excludedInEqualSplit.remove(friend.id)
                                         }
-                                        .padding(vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = if (isFriendIncluded) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
-                                            modifier = Modifier.size(38.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isFriendIncluded) PrimaryEmerald else Color(0xFF64748B))
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
                                     }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (isFriendIncluded && dynamicEqualShare > 0) {
-                                            Text(
-                                                text = "${String.format(java.util.Locale.US, "%.2f", dynamicEqualShare)} ₺",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 14.sp,
-                                                color = PrimaryEmerald
-                                            )
-                                            Spacer(modifier = Modifier.width(10.dp))
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (isFriendIncluded) PrimaryEmeraldContainer else Color(0xFFF1F5F9),
+                                        modifier = Modifier.size(38.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isFriendIncluded) PrimaryEmerald else Color(0xFF64748B))
                                         }
-                                        Icon(
-                                            imageVector = if (isFriendIncluded) Icons.Default.CheckCircle else Icons.Outlined.Circle,
-                                            contentDescription = null,
-                                            tint = if (isFriendIncluded) PrimaryEmerald else Color(0xFFCBD5E1),
-                                            modifier = Modifier.size(22.dp)
-                                        )
                                     }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
                                 }
-                                HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (isFriendIncluded && dynamicEqualShare > 0) {
+                                        Text(
+                                            text = "${String.format(java.util.Locale.US, "%.2f", dynamicEqualShare)} ₺",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = PrimaryEmerald
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                    }
+                                    Icon(
+                                        imageVector = if (isFriendIncluded) Icons.Default.CheckCircle else Icons.Outlined.Circle,
+                                        contentDescription = null,
+                                        tint = if (isFriendIncluded) PrimaryEmerald else Color(0xFFCBD5E1),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
                             }
+                            HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
                         }
                     }
                 }
@@ -1607,54 +1885,51 @@ fun AddExpenseScreen(
                         }
                         HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
 
-                        // Arkadaşlar
-                        selectedFriendIds.forEach { friendId ->
-                            val friend = allFriends.find { it.id == friendId }
-                            if (friend != null) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = Color(0xFFF1F5F9),
-                                            modifier = Modifier.size(38.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                                    }
+                        // Katılımcılar
+                        splitParticipants.forEach { friend ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
                                         color = Color(0xFFF1F5F9),
-                                        modifier = Modifier.width(110.dp).height(40.dp)
+                                        modifier = Modifier.size(38.dp)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            BasicTextField(
-                                                value = exactAmountsMap[friendId] ?: "",
-                                                onValueChange = { exactAmountsMap[friendId] = it },
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                singleLine = true,
-                                                textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
-                                                cursorBrush = SolidColor(PrimaryEmerald),
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            Text("₺", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                                         }
                                     }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
                                 }
-                                HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.width(110.dp).height(40.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        BasicTextField(
+                                            value = exactAmountsMap[friend.id] ?: "",
+                                            onValueChange = { exactAmountsMap[friend.id] = it },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                            singleLine = true,
+                                            textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                            cursorBrush = SolidColor(PrimaryEmerald),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text("₺", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
+                            HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
                         }
                     }
                 }
@@ -1714,54 +1989,51 @@ fun AddExpenseScreen(
                         }
                         HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
 
-                        // Arkadaşlar
-                        selectedFriendIds.forEach { friendId ->
-                            val friend = allFriends.find { it.id == friendId }
-                            if (friend != null) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = Color(0xFFF1F5F9),
-                                            modifier = Modifier.size(38.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                                    }
+                        // Katılımcılar
+                        splitParticipants.forEach { friend ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
                                         color = Color(0xFFF1F5F9),
-                                        modifier = Modifier.width(85.dp).height(40.dp)
+                                        modifier = Modifier.size(38.dp)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            BasicTextField(
-                                                value = percentageMap[friendId] ?: "",
-                                                onValueChange = { percentageMap[friendId] = it },
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                singleLine = true,
-                                                textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
-                                                cursorBrush = SolidColor(PrimaryEmerald),
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            Text("%", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(friend.avatar, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                                         }
                                     }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(friend.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF0F172A))
                                 }
-                                HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.width(85.dp).height(40.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        BasicTextField(
+                                            value = percentageMap[friend.id] ?: "",
+                                            onValueChange = { percentageMap[friend.id] = it },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            singleLine = true,
+                                            textStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)),
+                                            cursorBrush = SolidColor(PrimaryEmerald),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text("%", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
+                            HorizontalDivider(modifier = Modifier.padding(start = 50.dp), color = Color(0xFFF8FAFC), thickness = 0.8.dp)
                         }
                     }
                 }
@@ -1931,41 +2203,38 @@ fun AddExpenseScreen(
                                             }
                                         }
 
-                                        items(selectedFriendIds) { friendId ->
-                                            val friend = allFriends.find { it.id == friendId }
-                                            if (friend != null) {
-                                                val isAssigned = itemEntry.selectedMemberIds.contains(friendId)
-                                                val shortName = friend.name.split(" ").first()
-                                                Surface(
-                                                    shape = RoundedCornerShape(10.dp),
-                                                    color = if (isAssigned) PrimaryEmeraldContainer else Color.White,
-                                                    border = if (isAssigned) BorderStroke(1.dp, PrimaryEmerald) else null,
-                                                    modifier = Modifier.bounceClick {
-                                                        if (isAssigned) itemEntry.selectedMemberIds.remove(friendId)
-                                                        else itemEntry.selectedMemberIds.add(friendId)
-                                                    }
+                                        items(splitParticipants) { friend ->
+                                            val isAssigned = itemEntry.selectedMemberIds.contains(friend.id)
+                                            val shortName = friend.name.split(" ").first()
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = if (isAssigned) PrimaryEmeraldContainer else Color.White,
+                                                border = if (isAssigned) BorderStroke(1.dp, PrimaryEmerald) else null,
+                                                modifier = Modifier.bounceClick {
+                                                    if (isAssigned) itemEntry.selectedMemberIds.remove(friend.id)
+                                                    else itemEntry.selectedMemberIds.add(friend.id)
+                                                }
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                                 ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = if (isAssigned) PrimaryEmerald else Color(0xFF94A3B8),
+                                                        modifier = Modifier.size(14.dp)
                                                     ) {
-                                                        Surface(
-                                                            shape = RoundedCornerShape(4.dp),
-                                                            color = if (isAssigned) PrimaryEmerald else Color(0xFF94A3B8),
-                                                            modifier = Modifier.size(14.dp)
-                                                        ) {
-                                                            Box(contentAlignment = Alignment.Center) {
-                                                                Text(friend.avatar, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                                            }
+                                                        Box(contentAlignment = Alignment.Center) {
+                                                            Text(friend.avatar, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                                         }
-                                                        Spacer(modifier = Modifier.width(6.dp))
-                                                        Text(
-                                                            text = shortName,
-                                                            fontSize = 12.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = if (isAssigned) PrimaryEmerald else Color(0xFF64748B)
-                                                        )
                                                     }
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = shortName,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isAssigned) PrimaryEmerald else Color(0xFF64748B)
+                                                    )
                                                 }
                                             }
                                         }
@@ -2021,24 +2290,7 @@ fun AddExpenseScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Button(
-                onClick = { showSplitExpansion = false },
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .bounceClick { showSplitExpansion = false },
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-            ) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Bölüşümü Onayla", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

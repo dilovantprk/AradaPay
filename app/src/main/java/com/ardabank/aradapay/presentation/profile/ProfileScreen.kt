@@ -30,12 +30,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +49,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ardabank.aradapay.presentation.common.UserAvatar
 import com.ardabank.aradapay.presentation.components.bounceClick
+import com.ardabank.aradapay.presentation.theme.AccentRose
 import com.ardabank.aradapay.presentation.theme.LightBackground
 import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
@@ -85,11 +89,13 @@ fun ProfileScreen(
     onSettingsClick: () -> Unit = {},
     onEditProfileClick: () -> Unit = {},
     onAnalyticsClick: () -> Unit = {},
-    onSavingsReportClick: () -> Unit = {}
+    onSavingsReportClick: () -> Unit = {},
+    onSignOutClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     var showQrModal by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     val firstName = userName.split(" ").firstOrNull() ?: userName
     val cleanTag = if (userTag.contains("#")) userTag else "$firstName#$userTag"
@@ -365,9 +371,186 @@ fun ProfileScreen(
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
         }
 
+        // 4. SECTION: HESAP & OTURUM
+        item {
+            Text(
+                text = "HESAP & OTURUM",
+                color = Color(0xFF64748B),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp)
+            )
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+        }
+
+        // Ayarlar & Güvenlik Row
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSettingsClick()
+                    }
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF1F5F9),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null,
+                                tint = Color(0xFF0F172A),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column {
+                        Text(
+                            text = "Ayarlar & Gizlilik",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "PIN güvenliği, bildirimler ve tercihler",
+                            color = Color(0xFF64748B),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = null,
+                    tint = Color(0xFF94A3B8),
+                    modifier = Modifier.size(13.dp)
+                )
+            }
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+        }
+
+        // Çıkış Yap Row
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showLogoutDialog = true
+                    }
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFEE2E2),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = null,
+                                tint = AccentRose,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column {
+                        Text(
+                            text = "Çıkış Yap",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AccentRose
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Mevcut oturumu güvenle sonlandır",
+                            color = Color(0xFF64748B),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = null,
+                    tint = AccentRose.copy(alpha = 0.5f),
+                    modifier = Modifier.size(13.dp)
+                )
+            }
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+        }
+
         item {
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+
+    // ÇIKIŞ YAP ONAY DİYALOĞU
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = "Çıkış Yap",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A),
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "Hesabından çıkış yapmak istediğine emin misin? Tekrar giriş yapmak için PIN kodunu veya şifreni kullanabilirsin.",
+                    color = Color(0xFF64748B),
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        Toast.makeText(context, "Çıkış yapıldı", Toast.LENGTH_SHORT).show()
+                        onSignOutClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRose),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Çıkış Yap", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLogoutDialog = false }
+                ) {
+                    Text("İptal", color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 
     // FAST QR FULL-PAGE INTRINSIC SCREEN (Apple Wallet Card Pass Aesthetics)

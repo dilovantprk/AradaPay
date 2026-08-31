@@ -14,5 +14,6 @@ data class User(
     val iban: String? = null,
     val tag: String? = null, // Örn: 'Kaan#5674' / 'Arda#1453'
     val defaultCurrency: Currency = Currency.TRY,
+    val pin: String = "",
     val createdAt: String = ""
 )

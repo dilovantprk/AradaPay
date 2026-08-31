@@ -254,6 +254,49 @@ class GroupRepository @Inject constructor() {
         return steps
     }
 
+    fun updateGroup(
+        groupId: String,
+        name: String,
+        emoji: String,
+        category: String
+    ): Boolean {
+        val current = _groups.value.toMutableList()
+        val index = current.indexOfFirst { it.id == groupId }
+        if (index != -1) {
+            current[index] = current[index].copy(
+                name = name.trim(),
+                emoji = emoji,
+                category = category
+            )
+            _groups.value = current
+            return true
+        }
+        return false
+    }
+
+    fun removeMemberFromGroup(groupId: String, memberId: String): Boolean {
+        val current = _groups.value.toMutableList()
+        val index = current.indexOfFirst { it.id == groupId }
+        if (index != -1) {
+            val group = current[index]
+            val updatedMembers = group.members.filter { it.id != memberId }
+            current[index] = group.copy(members = updatedMembers)
+            _groups.value = current
+            return true
+        }
+        return false
+    }
+
+    fun deleteGroup(groupId: String): Boolean {
+        val current = _groups.value.toMutableList()
+        val removed = current.removeAll { it.id == groupId }
+        if (removed) {
+            _groups.value = current
+            return true
+        }
+        return false
+    }
+
     fun archiveGroup(groupId: String): Boolean {
         val current = _groups.value.toMutableList()
         val index = current.indexOfFirst { it.id == groupId }

@@ -679,11 +679,16 @@ fun FriendsScreen(
             avatarText = friend.avatarEmoji,
             iban = friend.user.iban,
             onDismiss = { selectedFriendForQuickAction = null },
+            onAddExpense = onAddExpense,
             onSettleUp = { onSettleUp(friend.user.id) },
             onViewDetail = { onFriendClick(friend.user.id) },
             onSendNudge = {
                 onSendNudge(friend.user.id)
                 Toast.makeText(context, "${friend.user.fullName} kişisine ödeme hatırlatması iletildi", Toast.LENGTH_SHORT).show()
+            },
+            onDelete = {
+                friendsList.removeAll { it.user.id == friend.user.id }
+                Toast.makeText(context, "${friend.user.fullName} listeden silindi", Toast.LENGTH_SHORT).show()
             }
         )
     }

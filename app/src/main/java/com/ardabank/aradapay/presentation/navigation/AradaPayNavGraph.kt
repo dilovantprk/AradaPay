@@ -44,7 +44,6 @@ import com.ardabank.aradapay.domain.model.ExpenseCategory
 import com.ardabank.aradapay.domain.model.Nudge
 import com.ardabank.aradapay.domain.model.SplitMethod
 import com.ardabank.aradapay.presentation.activity.ActivityScreen
-import com.ardabank.aradapay.presentation.activity.TransactionHistoryScreen
 import com.ardabank.aradapay.presentation.dashboard.DashboardScreen
 import com.ardabank.aradapay.presentation.expense.AddExpenseScreen
 import com.ardabank.aradapay.presentation.friends.FriendDetailScreen
@@ -133,8 +132,7 @@ fun AradaPayNavGraph() {
     val bottomNavItems = listOf(
         NavItem.Dashboard,
         NavItem.Groups,
-        NavItem.Friends,
-        NavItem.Activity
+        NavItem.Friends
     )
 
     Scaffold(
@@ -218,7 +216,7 @@ fun AradaPayNavGraph() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = "welcome",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("login") {
@@ -227,14 +225,19 @@ fun AradaPayNavGraph() {
                     onLoginSuccess = { loggedInName ->
                         userName = loggedInName
                         navController.navigate(NavItem.Dashboard.route) {
-                            popUpTo("login") { inclusive = true }
+                            popUpTo("welcome") { inclusive = true }
                         }
                     },
                     onSwitchUser = { newName ->
                         userName = newName
                     },
+                    onNavigateToRegister = {
+                        navController.navigate("register_flow")
+                    },
                     onNavigateToWelcome = {
-                        navController.navigate("welcome")
+                        navController.navigate("welcome") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 )
             }
@@ -316,7 +319,19 @@ fun AradaPayNavGraph() {
                     groupRepository = groupRepository,
                     onGroupClick = { groupId -> navController.navigate("group_detail/$groupId") },
                     onAddExpenseInGroup = { groupName -> navController.navigate("add_expense?initialGroupName=$groupName") },
-                    onAddExpense = { navController.navigate("add_expense") }
+                    onAddExpense = { navController.navigate("add_expense") },
+                    onCreateGroupClick = { navController.navigate("create_group") }
+                )
+            }
+
+            composable(route = "create_group") {
+                com.ardabank.aradapay.presentation.groups.CreateGroupScreen(
+                    groupRepository = groupRepository,
+                    onBackClick = { navController.popBackStack() },
+                    onGroupCreated = { newGroupId ->
+                        navController.popBackStack()
+                        navController.navigate("group_detail/$newGroupId")
+                    }
                 )
             }
 
@@ -333,6 +348,19 @@ fun AradaPayNavGraph() {
                     onNavigateToSettleUp = { amount, _, groupName, grpId ->
                         navController.navigate("settle_up?initialGroupId=$grpId&initialGroupName=$groupName&amount=$amount")
                     }
+                )
+            }
+
+            composable(
+                route = "edit_group/{groupId}",
+                arguments = listOf(navArgument("groupId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val groupId = backStackEntry.arguments?.getString("groupId") ?: "grp_1"
+                com.ardabank.aradapay.presentation.groups.EditGroupScreen(
+                    groupId = groupId,
+                    groupRepository = groupRepository,
+                    onBackClick = { navController.popBackStack() },
+                    onGroupDeleted = { navController.popBackStack() }
                 )
             }
 
@@ -362,16 +390,6 @@ fun AradaPayNavGraph() {
                 )
             }
 
-            composable(
-                route = NavItem.Activity.route,
-                deepLinks = listOf(navDeepLink { uriPattern = "aradapay://activity" })
-            ) {
-                ActivityScreen(
-                    isLocked = isDataLocked,
-                    onNavigateToHistory = { navController.navigate("transaction_history") },
-                    onExpenseClick = { expenseId -> navController.navigate("expense_detail/$expenseId") }
-                )
-            }
 
             composable(
                 route = "expense_detail/{expenseId}",
@@ -395,7 +413,13 @@ fun AradaPayNavGraph() {
                     onSettingsClick = { navController.navigate("settings") },
                     onEditProfileClick = { navController.navigate("edit_profile") },
                     onAnalyticsClick = { navController.navigate("analytics") },
-                    onSavingsReportClick = { navController.navigate("savings_report") }
+                    onSavingsReportClick = { navController.navigate("savings_report") },
+                    onSignOutClick = {
+                        userName = ""
+                        navController.navigate("welcome") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
 
@@ -423,22 +447,11 @@ fun AradaPayNavGraph() {
             }
 
             composable(
-                route = "transaction_history",
-                deepLinks = listOf(navDeepLink { uriPattern = "aradapay://history" })
-            ) {
-                TransactionHistoryScreen(
-                    isLocked = isDataLocked,
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
-
-            composable(
                 route = "notifications",
-                deepLinks = listOf(navDeepLink { uriPattern = "aradapay://notifications" })
+                deepLinks = listOf(navDeepLink { uriPattern = "aradapay://notifications" }, navDeepLink { uriPattern = "aradapay://history" })
             ) {
                 ActivityScreen(
                     isLocked = isDataLocked,
-                    onNavigateToHistory = { navController.navigate("transaction_history") },
                     onNavigateToSettleUp = { navController.navigate("settle_up") }
                 )
             }

@@ -1,13 +1,19 @@
 package com.ardabank.aradapay.presentation.auth
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,30 +32,34 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AlternateEmail
-import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -59,644 +70,695 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ardabank.aradapay.domain.model.Currency
 import com.ardabank.aradapay.domain.model.User
+import com.ardabank.aradapay.presentation.common.UserAvatar
+import com.ardabank.aradapay.presentation.components.bounceClick
 import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
+import com.ardabank.aradapay.util.ImageStorageHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun RegisterFlowScreen(
+    initialFullName: String = "",
+    initialEmail: String = "",
+    isGoogleVerified: Boolean = false,
     onBackClick: () -> Unit = {},
     onRegisterSuccess: (User) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
-    var currentStep by remember { mutableIntStateOf(1) } // 1: Info, 2: Phone/OTP, 3: IBAN, 4: PIN
+    var currentStep by remember { mutableIntStateOf(1) }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Step 1: Info
-    var fullName by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-
-    // Step 2: Phone & OTP
+    // Step 1: Kişisel Bilgiler & Hesap Şifresi
+    var fullName by remember { mutableStateOf(initialFullName) }
+    var email by remember { mutableStateOf(initialEmail) }
     var phone by remember { mutableStateOf("") }
-    var otpCode by remember { mutableStateOf("") }
-    var isOtpSent by remember { mutableStateOf(false) }
+    var avatarUrl by remember { mutableStateOf("") }
+    var accountPassword by remember { mutableStateOf("") }
+    var confirmAccountPassword by remember { mutableStateOf("") }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
-    // Step 3: IBAN
-    var ibanInput by remember { mutableStateOf("TR") }
-
-    // Step 4: 4-digit PIN
+    // Step 2: 4 Haneli Hızlı Giriş PIN Kodu
     var pinCode by remember { mutableStateOf("") }
-    var pinConfirmCode by remember { mutableStateOf("") }
-    var isConfirmingPin by remember { mutableStateOf(false) }
-    var isBiometricEnabled by remember { mutableStateOf(true) }
+    var confirmPinCode by remember { mutableStateOf("") }
+    var isPinVisible by remember { mutableStateOf(false) }
+    var isConfirmPinVisible by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-    ) {
-        // TOP BAR WITH BACK & PROGRESS INDICATOR
-        Row(
+    // Photo Picker Launcher
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val savedPath = ImageStorageHelper.saveProfileAvatar(context, uri)
+            if (savedPath != null) {
+                avatarUrl = savedPath
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                Toast.makeText(context, "Profil fotoğrafı eklendi", Toast.LENGTH_SHORT).show()
+            } else {
+                avatarUrl = uri.toString()
+            }
+        }
+    }
+
+    // Step-by-step BackHandler
+    BackHandler(enabled = !isLoading) {
+        if (currentStep > 1) {
+            currentStep--
+        } else {
+            onBackClick()
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color.White
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .padding(innerPadding)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
         ) {
-            FilledTonalIconButton(
-                onClick = {
-                    if (currentStep > 1) {
-                        currentStep--
-                    } else {
-                        onBackClick()
-                    }
-                },
-                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color.White),
-                modifier = Modifier.size(42.dp)
+            // =========================================================================
+            // TOP APP BAR & 2-STEP PROGRESS BAR
+            // =========================================================================
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Geri",
-                    tint = Color(0xFF0F172A),
-                    modifier = Modifier.size(20.dp)
+                FilledTonalIconButton(
+                    onClick = {
+                        if (currentStep > 1) {
+                            currentStep--
+                        } else {
+                            onBackClick()
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFFF1F5F9)),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Geri",
+                        tint = Color(0xFF0F172A),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Text(
+                    text = if (currentStep == 1) "Adım 1 / 2 • Hesap & Şifre" else "Adım 2 / 2 • 4 Haneli PIN",
+                    color = Color(0xFF64748B),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
                 )
+
+                Spacer(modifier = Modifier.size(40.dp))
             }
 
-            // Step Indicator Pills
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (step in 1..4) {
-                    val isActive = step == currentStep
-                    val isDone = step < currentStep
-                    Box(
+            // 2-Segment Progress Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                (1..2).forEach { step ->
+                    val isCompletedOrActive = currentStep >= step
+                    Surface(
                         modifier = Modifier
-                            .height(6.dp)
-                            .width(if (isActive) 28.dp else 16.dp)
-                            .background(
-                                color = when {
-                                    isActive -> PrimaryEmerald
-                                    isDone -> PrimaryEmerald.copy(alpha = 0.5f)
-                                    else -> Color(0xFFCBD5E1)
-                                },
-                                shape = RoundedCornerShape(3.dp)
-                            )
-                    )
+                            .weight(1f)
+                            .height(4.dp),
+                        shape = RoundedCornerShape(2.dp),
+                        color = if (isCompletedOrActive) PrimaryEmerald else Color(0xFFE2E8F0)
+                    ) {}
                 }
             }
 
-            Text(
-                text = "Adım $currentStep/4",
-                color = Color(0xFF64748B),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold
+            HorizontalDivider(
+                color = Color(0xFFF1F5F9),
+                thickness = 1.dp,
+                modifier = Modifier.padding(top = 10.dp)
             )
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ANIMATED STEP CONTENT
-        Box(modifier = Modifier.weight(1f)) {
-            AnimatedContent(
-                targetState = currentStep,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "RegisterStepAnimation"
-            ) { targetStep ->
-                when (targetStep) {
-                    // =========================================================================
-                    // STEP 1: GERÇEK AD SOYAD & E-POSTA (ZORUNLU)
-                    // =========================================================================
-                    1 -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Kimlik Bilgilerin",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 24.sp,
-                                    color = Color(0xFF0F172A)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Harcama bölüşümlerinde ve transfer dekontlarında görünecek gerçek adını ve e-postanı gir.",
-                                    color = Color(0xFF64748B),
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
-                                )
-                            }
-
-                            OutlinedTextField(
-                                value = fullName,
-                                onValueChange = { fullName = it },
-                                label = { Text("Gerçek Ad Soyad *") },
-                                placeholder = { Text("örn: Mehmet Dilovan") },
-                                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryEmerald) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Words,
-                                    keyboardType = KeyboardType.Text,
-                                    imeAction = ImeAction.Next
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = PrimaryEmerald,
-                                    unfocusedBorderColor = Color(0xFFCBD5E1),
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            OutlinedTextField(
-                                value = email,
-                                onValueChange = { email = it },
-                                label = { Text("E-Posta Adresi *") },
-                                placeholder = { Text("örn: mehmet@ornek.com") },
-                                leadingIcon = { Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = PrimaryEmerald) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Email,
-                                    imeAction = ImeAction.Done
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = PrimaryEmerald,
-                                    unfocusedBorderColor = Color(0xFFCBD5E1),
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Button(
-                                onClick = {
-                                    if (fullName.trim().length < 3 || !fullName.trim().contains(" ")) {
-                                        Toast.makeText(context, "Lütfen geçerli bir ad ve soyad girin.", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    if (!email.contains("@") || !email.contains(".")) {
-                                        Toast.makeText(context, "Lütfen geçerli bir e-posta adresi girin.", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    currentStep = 2
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(54.dp)
-                            ) {
-                                Text("Devam Et →", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            }
+            // =========================================================================
+            // STEP CONTENT
+            // =========================================================================
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                AnimatedContent(
+                    targetState = currentStep,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInHorizontally(animationSpec = tween(280)) { it } + fadeIn(animationSpec = tween(280)))
+                                .togetherWith(slideOutHorizontally(animationSpec = tween(280)) { -it } + fadeOut(animationSpec = tween(200)))
+                        } else {
+                            (slideInHorizontally(animationSpec = tween(280)) { -it } + fadeIn(animationSpec = tween(280)))
+                                .togetherWith(slideOutHorizontally(animationSpec = tween(280)) { it } + fadeOut(animationSpec = tween(200)))
                         }
-                    }
-
-                    // =========================================================================
-                    // STEP 2: TELEFON NO & SMS DOĞRULAMA (ZORUNLU)
-                    // =========================================================================
-                    2 -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Telefon Doğrulama",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 24.sp,
-                                    color = Color(0xFF0F172A)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Rehberindeki arkadaşlarınla anında eşleşebilmen için telefon numaranı doğrula.",
-                                    color = Color(0xFF64748B),
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
-                                )
-                            }
-
-                            OutlinedTextField(
-                                value = phone,
-                                onValueChange = { input ->
-                                    val digits = input.filter { it.isDigit() }.take(10)
-                                    phone = digits
-                                },
-                                label = { Text("Telefon Numarası *") },
-                                placeholder = { Text("5XX XXX XX XX") },
-                                prefix = { Text("+90 ", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
-                                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = PrimaryEmerald) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Phone,
-                                    imeAction = ImeAction.Done
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = PrimaryEmerald,
-                                    unfocusedBorderColor = Color(0xFFCBD5E1),
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            if (!isOtpSent) {
-                                Button(
-                                    onClick = {
-                                        if (phone.length == 10) {
-                                            isOtpSent = true
-                                            Toast.makeText(context, "+90 $phone numarasına 6 haneli SMS onay kodu gönderildi.", Toast.LENGTH_LONG).show()
-                                        } else {
-                                            Toast.makeText(context, "Lütfen 10 haneli telefon numaranızı girin (5XX...)", Toast.LENGTH_SHORT).show()
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
-                                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                                ) {
-                                    Text("SMS Onay Kodu Gönder", fontWeight = FontWeight.Bold)
-                                }
-                            } else {
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = PrimaryEmeraldContainer,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(modifier = Modifier.padding(14.dp)) {
-                                        Text("SMS Kodu Gönderildi", color = PrimaryEmerald, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                        Text("Telefonunuza gelen 6 haneli kodu aşağıya girin.", color = Color(0xFF065F46), fontSize = 11.sp)
-                                    }
-                                }
-
-                                OutlinedTextField(
-                                    value = otpCode,
-                                    onValueChange = { if (it.length <= 6) otpCode = it.filter { ch -> ch.isDigit() } },
-                                    label = { Text("6 Haneli SMS Kodu *") },
-                                    placeholder = { Text("123456") },
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = PrimaryEmerald,
-                                        unfocusedBorderColor = Color(0xFFCBD5E1),
-                                        focusedContainerColor = Color.White,
-                                        unfocusedContainerColor = Color.White
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Button(
-                                onClick = {
-                                    if (phone.length < 10) {
-                                        Toast.makeText(context, "Lütfen geçerli bir telefon numarası girin.", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    if (!isOtpSent) {
-                                        Toast.makeText(context, "Lütfen önce SMS kodu gönderin.", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    if (otpCode.length != 6) {
-                                        Toast.makeText(context, "Lütfen 6 haneli onay kodunu girin.", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    currentStep = 3
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp)
-                            ) {
-                                Text("Doğrula ve Devam Et →", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            }
-
-                            androidx.compose.material3.TextButton(
-                                onClick = {
-                                    phone = ""
-                                    currentStep = 3
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Bu Adımı Şimdilik Atla (Opsiyonel)", color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                            }
-                        }
-                    }
-
-                    // =========================================================================
-                    // STEP 3: FAST IBAN TANIMLAMA (ZORUNLU)
-                    // =========================================================================
-                    3 -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "FAST IBAN Bilgin",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 24.sp,
-                                    color = Color(0xFF0F172A)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Ortak harcamalarda arkadaşlarının sana doğrudan para gönderebilmesi için geçerli bir IBAN girilmesi zorunludur.",
-                                    color = Color(0xFF64748B),
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
-                                )
-                            }
-
-                            OutlinedTextField(
-                                value = ibanInput,
-                                onValueChange = { input ->
-                                    val cleaned = input.uppercase().filter { it.isLetterOrDigit() }.take(26)
-                                    ibanInput = if (cleaned.startsWith("TR")) cleaned else "TR$cleaned"
-                                },
-                                label = { Text("Banka IBAN Numarası *") },
-                                placeholder = { Text("TR64 0006 2000 ...") },
-                                leadingIcon = { Icon(Icons.Default.AccountBalance, contentDescription = null, tint = PrimaryEmerald) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Text,
-                                    imeAction = ImeAction.Done
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = PrimaryEmerald,
-                                    unfocusedBorderColor = Color(0xFFCBD5E1),
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFF1F5F9),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = PrimaryEmerald, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "TCMB FAST altyapısı ile 7/24 anlık para transferleri bu hesaba aktarılacaktır.",
-                                        color = Color(0xFF475569),
-                                        fontSize = 11.sp,
-                                        lineHeight = 15.sp
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Button(
-                                onClick = {
-                                    if (ibanInput.length < 24) {
-                                        Toast.makeText(context, "Lütfen geçerli 26 haneli TR IBAN numaranızı girin.", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    currentStep = 4
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(54.dp)
-                            ) {
-                                Text("Devam Et →", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            }
-                        }
-                    }
-
-                    // =========================================================================
-                    // STEP 4: 4 HANELİ PIN BELİRLEME (ZORUNLU) & BİYOMETRİK
-                    // =========================================================================
-                    4 -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState()),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Text(
-                                text = if (!isConfirmingPin) "4 Haneli PIN Belirle" else "PIN Kodunu Tekrar Gir",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 22.sp,
-                                color = Color(0xFF0F172A)
-                            )
-
-                            Text(
-                                text = if (!isConfirmingPin)
-                                    "Bakiyelerini korumak ve uygulamaya her girişte kullanmak üzere 4 haneli kodunu oluştur."
-                                else
-                                    "Doğrulama için lütfen belirlediğin 4 haneli PIN kodunu tekrar gir.",
-                                color = Color(0xFF64748B),
-                                fontSize = 13.sp,
-                                textAlign = TextAlign.Center
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // 4-Digit Indicator Dots
-                            val currentActivePin = if (!isConfirmingPin) pinCode else pinConfirmCode
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                for (i in 0 until 4) {
-                                    val isFilled = i < currentActivePin.length
-                                    Box(
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clip(CircleShape)
-                                            .background(if (isFilled) PrimaryEmerald else Color(0xFFE2E8F0))
-                                            .border(1.dp, if (isFilled) PrimaryEmerald else Color(0xFFCBD5E1), CircleShape)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // Biometric Switch Row
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color.White,
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Fingerprint, contentDescription = null, tint = PrimaryEmerald, modifier = Modifier.size(20.dp))
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text("Parmak İzi / Yüz Tanıma", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            Text("Hızlı tek dokunuşla giriş yap", color = Color(0xFF64748B), fontSize = 10.sp)
-                                        }
-                                    }
-
-                                    Switch(
-                                        checked = isBiometricEnabled,
-                                        onCheckedChange = { isBiometricEnabled = it },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = PrimaryEmerald
-                                        )
-                                    )
-                                }
-                            }
-
-                            // Numeric Keypad (1-9, 0, Backspace)
+                    },
+                    label = "RegisterStepAnimation"
+                ) { step ->
+                    when (step) {
+                        1 -> {
+                            // =========================================================================
+                            // ADIM 1: HESAP BİLGİLERİ & HESAP ŞİFRESİ
+                            // =========================================================================
                             Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
                             ) {
-                                val keys = listOf(
-                                    listOf("1", "2", "3"),
-                                    listOf("4", "5", "6"),
-                                    listOf("7", "8", "9"),
-                                    listOf("", "0", "DEL")
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    // Header
+                                    Column {
+                                        Text(
+                                            text = "Hesabını Oluştur 👋",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Temel bilgilerinizi ve hesabınıza giriş için ana şifrenizi belirleyin.",
+                                            color = Color(0xFF64748B),
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp
+                                        )
+                                    }
 
-                                keys.forEach { rowKeys ->
-                                    Row(
+                                    // Avatar Picker (Centered)
+                                    Column(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        rowKeys.forEach { key ->
-                                            if (key.isEmpty()) {
-                                                Spacer(modifier = Modifier.size(68.dp))
-                                            } else {
-                                                Surface(
-                                                    shape = CircleShape,
-                                                    color = Color.White,
-                                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                                    modifier = Modifier
-                                                        .size(68.dp)
-                                                        .clip(CircleShape)
-                                                        .clickable {
-                                                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                                                            if (key == "DEL") {
-                                                                if (!isConfirmingPin && pinCode.isNotEmpty()) {
-                                                                    pinCode = pinCode.dropLast(1)
-                                                                } else if (isConfirmingPin && pinConfirmCode.isNotEmpty()) {
-                                                                    pinConfirmCode = pinConfirmCode.dropLast(1)
-                                                                }
-                                                            } else {
-                                                                if (!isConfirmingPin) {
-                                                                    if (pinCode.length < 4) {
-                                                                        pinCode += key
-                                                                        if (pinCode.length == 4) {
-                                                                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                                                            coroutineScope.launch {
-                                                                                delay(200)
-                                                                                isConfirmingPin = true
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    if (pinConfirmCode.length < 4) {
-                                                                        pinConfirmCode += key
-                                                                        if (pinConfirmCode.length == 4) {
-                                                                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                                                            if (pinConfirmCode == pinCode) {
-                                                                                // Registration is 100% complete! Save to Firestore
-                                                                                isLoading = true
-                                                                                coroutineScope.launch {
-                                                                                    val firstName = fullName.split(" ").firstOrNull() ?: fullName
-                                                                                    val tagCode = "Arda#${(1000..9999).random()}"
-                                                                                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: "user_${System.currentTimeMillis()}"
-
-                                                                                    val createdUser = User(
-                                                                                        id = uid,
-                                                                                        email = email,
-                                                                                        username = firstName,
-                                                                                        fullName = fullName,
-                                                                                        tag = tagCode,
-                                                                                        defaultCurrency = Currency.TRY,
-                                                                                        iban = ibanInput,
-                                                                                        phone = "+90$phone"
-                                                                                    )
-
-                                                                                    try {
-                                                                                        FirebaseFirestore.getInstance()
-                                                                                            .collection("users")
-                                                                                            .document(uid)
-                                                                                            .set(createdUser)
-                                                                                    } catch (_: Exception) {}
-
-                                                                                    isLoading = false
-                                                                                    onRegisterSuccess(createdUser)
-                                                                                }
-                                                                            } else {
-                                                                                Toast.makeText(context, "PIN kodları uyuşmadı! Lütfen tekrar deneyin.", Toast.LENGTH_SHORT).show()
-                                                                                pinConfirmCode = ""
-                                                                                isConfirmingPin = false
-                                                                                pinCode = ""
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        if (key == "DEL") {
-                                                            Icon(Icons.Default.Backspace, contentDescription = "Sil", tint = Color(0xFF0F172A), modifier = Modifier.size(22.dp))
-                                                        } else {
-                                                            Text(key, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                                        }
-                                                    }
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(0xFFF8FAFC),
+                                            border = BorderStroke(2.dp, if (avatarUrl.isNotBlank()) PrimaryEmerald else Color(0xFFCBD5E1)),
+                                            modifier = Modifier
+                                                .size(76.dp)
+                                                .bounceClick {
+                                                    photoPickerLauncher.launch(
+                                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                    )
+                                                }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                if (avatarUrl.isNotBlank()) {
+                                                    UserAvatar(
+                                                        userName = fullName.ifBlank { "User" },
+                                                        avatarUrl = avatarUrl,
+                                                        size = 76.dp
+                                                    )
+                                                } else {
+                                                    Icon(
+                                                        imageVector = Icons.Default.AddAPhoto,
+                                                        contentDescription = "Fotoğraf Ekle",
+                                                        tint = PrimaryEmerald,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
                                                 }
                                             }
                                         }
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = if (avatarUrl.isNotBlank()) "Fotoğrafı Değiştir" else "Fotoğraf Ekle (Opsiyonel)",
+                                            color = PrimaryEmerald,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.clickable {
+                                                photoPickerLauncher.launch(
+                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                )
+                                            }
+                                        )
+                                    }
+
+                                    // 1. Ad Soyad
+                                    OutlinedTextField(
+                                        value = fullName,
+                                        onValueChange = { fullName = it },
+                                        label = { Text("Ad Soyad", maxLines = 1) },
+                                        placeholder = { Text("Örn: Mehmet Dilovan", maxLines = 1) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryEmerald)
+                                        },
+                                        singleLine = true,
+                                        maxLines = 1,
+                                        keyboardOptions = KeyboardOptions(
+                                            capitalization = KeyboardCapitalization.Words,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = PrimaryEmerald,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    // 2. E-posta
+                                    OutlinedTextField(
+                                        value = email,
+                                        onValueChange = { email = it },
+                                        label = { Text("E-posta Adresi", maxLines = 1) },
+                                        placeholder = { Text("ornek@mail.com", maxLines = 1) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryEmerald)
+                                        },
+                                        singleLine = true,
+                                        maxLines = 1,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Email,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = PrimaryEmerald,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    // 3. Telefon
+                                    OutlinedTextField(
+                                        value = phone,
+                                        onValueChange = { if (it.length <= 11) phone = it.filter { ch -> ch.isDigit() } },
+                                        label = { Text("Telefon Numarası", maxLines = 1) },
+                                        placeholder = { Text("05XX XXX XX XX", maxLines = 1) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Phone, contentDescription = null, tint = PrimaryEmerald)
+                                        },
+                                        singleLine = true,
+                                        maxLines = 1,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Phone,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = PrimaryEmerald,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    // 4. Hesap Şifresi
+                                    OutlinedTextField(
+                                        value = accountPassword,
+                                        onValueChange = { accountPassword = it },
+                                        label = { Text("Hesap Şifresi (Giriş için)", maxLines = 1) },
+                                        placeholder = { Text("En az 6 karakter", maxLines = 1) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryEmerald)
+                                        },
+                                        trailingIcon = {
+                                            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                                Icon(
+                                                    imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                    contentDescription = if (isPasswordVisible) "Gizle" else "Göster",
+                                                    tint = Color(0xFF94A3B8)
+                                                )
+                                            }
+                                        },
+                                        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                        singleLine = true,
+                                        maxLines = 1,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Password,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = PrimaryEmerald,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    // 5. Hesap Şifresi Tekrarı
+                                    OutlinedTextField(
+                                        value = confirmAccountPassword,
+                                        onValueChange = { confirmAccountPassword = it },
+                                        label = { Text("Hesap Şifresi Tekrar", maxLines = 1) },
+                                        placeholder = { Text("Şifrenizi tekrar girin", maxLines = 1) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryEmerald)
+                                        },
+                                        trailingIcon = {
+                                            IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
+                                                Icon(
+                                                    imageVector = if (isConfirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                    contentDescription = if (isConfirmPasswordVisible) "Gizle" else "Göster",
+                                                    tint = Color(0xFF94A3B8)
+                                                )
+                                            }
+                                        },
+                                        visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                        singleLine = true,
+                                        maxLines = 1,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Password,
+                                            imeAction = ImeAction.Done
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onDone = { focusManager.clearFocus() }
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = PrimaryEmerald,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                // Devam Et Button
+                                Button(
+                                    onClick = {
+                                        if (fullName.isBlank()) {
+                                            Toast.makeText(context, "Lütfen adınızı ve soyadınızı girin.", Toast.LENGTH_SHORT).show()
+                                            return@Button
+                                        }
+                                        if (!email.contains("@") || !email.contains(".")) {
+                                            Toast.makeText(context, "Lütfen geçerli bir e-posta adresi girin.", Toast.LENGTH_SHORT).show()
+                                            return@Button
+                                        }
+                                        if (accountPassword.length < 6) {
+                                            Toast.makeText(context, "Hesap şifreniz en az 6 karakter olmalıdır.", Toast.LENGTH_SHORT).show()
+                                            return@Button
+                                        }
+                                        if (accountPassword != confirmAccountPassword) {
+                                            Toast.makeText(context, "Hesap şifreleri eşleşmiyor.", Toast.LENGTH_SHORT).show()
+                                            return@Button
+                                        }
+
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        currentStep = 2
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PrimaryEmerald,
+                                        contentColor = Color.White
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp)
+                                        .bounceClick { },
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text("Devam Et (PIN Belirle)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
                                     }
                                 }
                             }
+                        }
 
-                            if (isLoading) {
-                                CircularProgressIndicator(color = PrimaryEmerald, modifier = Modifier.size(32.dp))
+                        2 -> {
+                            // =========================================================================
+                            // ADIM 2: 4 HANELİ HIZLI GİRİŞ PIN KODU
+                            // =========================================================================
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                                    // Header
+                                    Column {
+                                        Text(
+                                            text = "4 Haneli Hızlı Giriş PIN'i 🔢",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = "Uygulamayı her açtığınızda şifre girmek yerine bu 4 haneli PIN kodunuz veya parmak izinizle hızlıca giriş yapacaksınız.",
+                                            color = Color(0xFF64748B),
+                                            fontSize = 14.sp,
+                                            lineHeight = 20.sp
+                                        )
+                                    }
+
+                                    // Info Card
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = PrimaryEmeraldContainer.copy(alpha = 0.3f),
+                                        border = BorderStroke(1.dp, PrimaryEmerald.copy(alpha = 0.3f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = PrimaryEmerald,
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Pin,
+                                                        contentDescription = null,
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                text = "Bu PIN yalnızca uygulamaya hızlı giriş ve para transferi onaylarında kullanılır.",
+                                                fontSize = 13.sp,
+                                                color = Color(0xFF0F172A),
+                                                lineHeight = 18.sp
+                                            )
+                                        }
+                                    }
+
+                                    // 1. 4 Haneli PIN Kodu
+                                    OutlinedTextField(
+                                        value = pinCode,
+                                        onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) pinCode = it },
+                                        label = { Text("4 Haneli PIN Kodu", maxLines = 1) },
+                                        placeholder = { Text("••••", maxLines = 1) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryEmerald)
+                                        },
+                                        trailingIcon = {
+                                            IconButton(onClick = { isPinVisible = !isPinVisible }) {
+                                                Icon(
+                                                    imageVector = if (isPinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                    contentDescription = if (isPinVisible) "Gizle" else "Göster",
+                                                    tint = Color(0xFF94A3B8)
+                                                )
+                                            }
+                                        },
+                                        visualTransformation = if (isPinVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                        singleLine = true,
+                                        maxLines = 1,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.NumberPassword,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = PrimaryEmerald,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    // 2. 4 Haneli PIN Kodu Tekrarı
+                                    OutlinedTextField(
+                                        value = confirmPinCode,
+                                        onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) confirmPinCode = it },
+                                        label = { Text("PIN Kodunu Tekrar Girin", maxLines = 1) },
+                                        placeholder = { Text("••••", maxLines = 1) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryEmerald)
+                                        },
+                                        trailingIcon = {
+                                            IconButton(onClick = { isConfirmPinVisible = !isConfirmPinVisible }) {
+                                                Icon(
+                                                    imageVector = if (isConfirmPinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                    contentDescription = if (isConfirmPinVisible) "Gizle" else "Göster",
+                                                    tint = Color(0xFF94A3B8)
+                                                )
+                                            }
+                                        },
+                                        visualTransformation = if (isConfirmPinVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                        singleLine = true,
+                                        maxLines = 1,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.NumberPassword,
+                                            imeAction = ImeAction.Done
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onDone = { focusManager.clearFocus() }
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = PrimaryEmerald,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Text(
+                                        text = "Kaydolarak AradaPay Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursunuz.",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center,
+                                        lineHeight = 16.sp,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                // Kaydı Tamamla Button
+                                Button(
+                                    onClick = {
+                                        if (pinCode.length != 4) {
+                                            Toast.makeText(context, "Lütfen tam 4 haneli bir PIN kodu belirleyin.", Toast.LENGTH_SHORT).show()
+                                            return@Button
+                                        }
+                                        if (pinCode != confirmPinCode) {
+                                            Toast.makeText(context, "PIN kodları birbiriyle eşleşmiyor.", Toast.LENGTH_SHORT).show()
+                                            return@Button
+                                        }
+
+                                        isLoading = true
+                                        coroutineScope.launch {
+                                            val fullPhone = if (phone.isNotBlank()) "+90$phone" else "+905550001122"
+                                            val firstName = fullName.trim().split(" ").firstOrNull() ?: fullName.trim()
+                                            val tagCode = "@${firstName.lowercase()}#${(1000..9999).random()}"
+
+                                            val createdUser = User(
+                                                id = getFirebaseCurrentUserId() ?: "user_${System.currentTimeMillis()}",
+                                                email = email.trim(),
+                                                username = firstName,
+                                                fullName = fullName.trim(),
+                                                avatarUrl = avatarUrl,
+                                                phone = fullPhone,
+                                                iban = "TR640006200000005566778899",
+                                                tag = tagCode,
+                                                defaultCurrency = Currency.TRY,
+                                                pin = pinCode,
+                                                createdAt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                                            )
+
+                                            try {
+                                                FirebaseFirestore.getInstance()
+                                                    .collection("users")
+                                                    .document(createdUser.id)
+                                                    .set(createdUser)
+                                            } catch (_: Exception) {}
+
+                                            delay(300)
+                                            isLoading = false
+                                            Toast.makeText(context, "Hesabınız başarıyla oluşturuldu! Hoş geldiniz, $fullName.", Toast.LENGTH_LONG).show()
+                                            onRegisterSuccess(createdUser)
+                                        }
+                                    },
+                                    enabled = !isLoading,
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PrimaryEmerald,
+                                        contentColor = Color.White
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp)
+                                        .bounceClick { },
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(
+                                            color = Color.White,
+                                            modifier = Modifier.size(22.dp),
+                                            strokeWidth = 2.5.dp
+                                        )
+                                    } else {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Kaydı Tamamla & Başla",
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -705,3 +767,12 @@ fun RegisterFlowScreen(
         }
     }
 }
+
+private fun getFirebaseCurrentUserId(): String? {
+    return try {
+        FirebaseAuth.getInstance().currentUser?.uid
+    } catch (_: Exception) {
+        null
+    }
+}
+

@@ -478,55 +478,45 @@ export function App() {
             /* 3. PRIMARY TABS */
             <>
               {currentTab === 'dashboard' && (
-                <div className="space-y-6">
-                  {/* macOS 2-Column Responsive Layout */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                    {/* Left Column: Balance, Actions, DFS Smart Settlement */}
-                    <div className="md:col-span-7 space-y-6">
-                      {/* Financial Hero Card */}
-                      <FinancialHeroCard
-                        netBalance={balanceSummary.netBalance}
-                        totalReceivable={balanceSummary.totalReceivable}
-                        totalPayable={balanceSummary.totalPayable}
-                        isLocked={isLocked}
-                        onToggleLock={() => setIsLocked(!isLocked)}
-                      />
+                <div className="max-w-xl mx-auto space-y-5">
+                  {/* Financial Hero Card */}
+                  <FinancialHeroCard
+                    netBalance={balanceSummary.netBalance}
+                    totalReceivable={balanceSummary.totalReceivable}
+                    totalPayable={balanceSummary.totalPayable}
+                    isLocked={isLocked}
+                    onToggleLock={() => setIsLocked(!isLocked)}
+                  />
 
-                      {/* Action Buttons Row (Mobile only) */}
-                      <div className="md:hidden">
-                        <ActionButtonsRow
-                          onAddExpenseClick={() => {
-                            setPreselectedGroupForExpense(undefined);
-                            setShowAddExpense(true);
-                          }}
-                          onSettleUpClick={() => {
-                            setSettlePreselectedUser(null);
-                            setSettleInitialAmount(undefined);
-                            setShowSettleUp(true);
-                          }}
-                          onRequestMoneyClick={() => setShowRequestMoney(true)}
-                        />
-                      </div>
+                  {/* Action Buttons Row (Always visible 1:1 Android) */}
+                  <ActionButtonsRow
+                    onAddExpenseClick={() => {
+                      setPreselectedGroupForExpense(undefined);
+                      setShowAddExpense(true);
+                    }}
+                    onSettleUpClick={() => {
+                      setSettlePreselectedUser(null);
+                      setSettleInitialAmount(undefined);
+                      setShowSettleUp(true);
+                    }}
+                    onRequestMoneyClick={() => setShowRequestMoney(true)}
+                  />
 
-                      {/* Smart Settlement Banner (DFS Cycle Detection) */}
-                      <SmartSettlementBanner
-                        offers={crossOffers}
-                        currentUserId={activeUser.id}
-                        onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
-                      />
-                    </div>
+                  {/* Smart Settlement Banner (DFS Cycle Detection) */}
+                  <SmartSettlementBanner
+                    offers={crossOffers}
+                    currentUserId={activeUser.id}
+                    onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
+                  />
 
-                    {/* Right Column: Recent Transactions & Proofs */}
-                    <div className="md:col-span-5 space-y-6">
-                      <TransactionsList
-                        expenses={expenses}
-                        currentUserId={activeUser.id}
-                        isLocked={isLocked}
-                        onSeeAllClick={() => handleTabChange('activity')}
-                        onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
-                      />
-                    </div>
-                  </div>
+                  {/* Recent Transactions Stream */}
+                  <TransactionsList
+                    expenses={expenses}
+                    currentUserId={activeUser.id}
+                    isLocked={isLocked}
+                    onSeeAllClick={() => handleTabChange('activity')}
+                    onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
+                  />
                 </div>
               )}
 
