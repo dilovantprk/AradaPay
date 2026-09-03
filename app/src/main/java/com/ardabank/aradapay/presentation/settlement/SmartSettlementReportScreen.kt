@@ -88,53 +88,53 @@ fun SmartSettlementReportScreen(
         listOf(
             SavingsSettlementItem(
                 id = "sav_01",
-                title = "3'lü Kapalı Döngü Fitleşmesi",
+                title = "3'lü Kendiliğinden Ödeşme",
                 date = "21 Ağustos 2026",
                 participantsSummary = "Arda ➔ Zeynep ➔ Ahmet",
                 totalSettledAmount = 450.0,
                 savedFastFee = 45.0,
                 preventedTransferCount = 3,
-                method = "Kapalı Döngü Sıfırlama (0 Transfer)",
+                method = "Kendiliğinden Masayı Kapatma (0 Transfer)",
                 receipt = AradaPayReceipt(
                     receiptId = "rec_sav_01",
-                    referenceNo = "AP-FITLESME-2026-991204",
+                    referenceNo = "AP-ODESME-2026-991204",
                     type = ReceiptType.CROSS_SETTLEMENT,
-                    title = "3'lü Döngüsel Borç Fitleşmesi",
+                    title = "3'lü Kendiliğinden Masayı Kapatma",
                     totalAmount = 450.0,
                     date = "21.08.2026",
                     time = "18:40",
                     senderName = "Arda (ve Ortak Grup)",
                     receiverName = "Zeynep Kaya & Ahmet Yılmaz",
-                    category = "Çapraz Fitleşme",
+                    category = "Akıllı Masa Dengeleme",
                     participants = listOf(
                         ReceiptParticipant("Arda", "@arda#1001", 150.0, true),
                         ReceiptParticipant("Zeynep Kaya", "@zeynep#3412", 150.0, true),
                         ReceiptParticipant("Ahmet Yılmaz", "@ahmet#7821", 150.0, true)
                     ),
                     savingsAmount = 45.0,
-                    note = "Döngüsel borç zinciri transfer yapılmadan sıfırlanmıştır."
+                    note = "Masadaki ortak hesaplar tek kuruş aktarmadan kendiliğinden kapandı."
                 )
             ),
             SavingsSettlementItem(
                 id = "sav_02",
-                title = "Karşılıklı Bakiye Netleştirme",
+                title = "Karşılıklı Masa Dengeleme",
                 date = "18 Ağustos 2026",
                 participantsSummary = "Elif Şahin & Arda",
                 totalSettledAmount = 550.0,
                 savedFastFee = 30.0,
                 preventedTransferCount = 2,
-                method = "Net Bakiye Fitleşmesi",
+                method = "Net Masa Ödeşmesi",
                 receipt = AradaPayReceipt(
                     receiptId = "rec_sav_02",
-                    referenceNo = "AP-FITLESME-2026-884102",
+                    referenceNo = "AP-ODESME-2026-884102",
                     type = ReceiptType.CROSS_SETTLEMENT,
-                    title = "İkili Karşılıklı Bakiye Fitleşmesi",
+                    title = "İkili Karşılıklı Ödeşme",
                     totalAmount = 550.0,
                     date = "18.08.2026",
                     time = "14:15",
                     senderName = "Elif Şahin",
                     receiverName = "Arda",
-                    category = "İkili Fitleşme",
+                    category = "İkili Ödeşme",
                     participants = listOf(
                         ReceiptParticipant("Elif Şahin", "@elif#4420", 350.0, true),
                         ReceiptParticipant("Arda", "@arda#1001", 200.0, true)
@@ -219,7 +219,7 @@ fun SmartSettlementReportScreen(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Fitleşme Dekontu",
+                        text = "Ödeşme & Hesap Dekontu",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -258,73 +258,146 @@ fun SmartSettlementReportScreen(
                             }
 
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = PrimaryEmeraldContainer
+                                shape = RoundedCornerShape(20.dp),
+                                color = PrimaryEmeraldContainer,
+                                border = BorderStroke(1.dp, PrimaryEmerald.copy(alpha = 0.3f))
                             ) {
                                 Text(
-                                    text = "BAŞARILI",
-                                    color = PrimaryEmerald,
+                                    text = "Resmi Dijital Fiş",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                    color = PrimaryEmerald,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
                         }
 
-                        Column {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 text = receipt.title,
-                                style = MaterialTheme.typography.titleMedium,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Ref: ${receipt.referenceNo}",
+                                text = "Ref: ${receipt.referenceNo} • ${receipt.date} ${receipt.time}",
+                                fontSize = 12.sp,
                                 color = TextSecondary,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp
+                                fontFamily = FontFamily.Monospace
                             )
                         }
 
-                        Text(
-                            text = "${String.format(java.util.Locale.US, "%.2f", receipt.totalAmount)} ₺",
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimary,
-                            letterSpacing = (-0.5).sp
-                        )
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-                        HorizontalDivider(color = Color.Black.copy(alpha = 0.05f), thickness = 0.5.dp)
+                        // Katılımcılar ve Sıfırlanan Tutarlar
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "KATILIMCILAR & MASADAKİ PAYLAR",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary,
+                                letterSpacing = 0.8.sp
+                            )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Tarih & Saat", color = TextSecondary, fontSize = 13.sp)
-                            Text("${receipt.date} • ${receipt.time}", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            receipt.participants.forEach { participant ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = PrimaryEmeraldContainer,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = participant.name.take(1),
+                                                    color = PrimaryEmerald,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = participant.name,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = TextPrimary
+                                            )
+                                            Text(
+                                                text = participant.tag,
+                                                fontSize = 11.sp,
+                                                color = TextTertiary
+                                            )
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "${String.format(java.util.Locale.US, "%.2f", participant.shareAmount)} ₺",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = TextPrimary
+                                    )
+                                }
+                            }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Tasarruf Edilen FAST", color = TextSecondary, fontSize = 13.sp)
-                            Text("+${String.format(java.util.Locale.US, "%.2f", receipt.savingsAmount)} ₺", color = PrimaryEmerald, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-                        if (!receipt.note.isNullOrBlank()) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFF1F5F9),
-                                modifier = Modifier.fillMaxWidth()
+                        // Tasarruf & Not Bilgisi
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = PrimaryEmeraldContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Icon(
+                                    imageVector = Icons.Default.Savings,
+                                    contentDescription = null,
+                                    tint = PrimaryEmerald,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Tasarruf Edilen FAST Ücreti: ${String.format(java.util.Locale.US, "%.2f", receipt.savingsAmount ?: 0.0)} ₺",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = PrimaryEmerald
+                                    )
+                                    if (!receipt.note.isNullOrBlank()) {
+                                        Text(
+                                            text = receipt.note,
+                                            fontSize = 11.sp,
+                                            color = TextPrimary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Dekont Alt Butonu
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .applePressEffect(0.95f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = receipt.note ?: "",
-                                    color = TextSecondary,
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp,
-                                    modifier = Modifier.padding(12.dp)
+                                    text = "Kapat",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
@@ -347,82 +420,82 @@ fun SmartSettlementReportScreen(
                     .padding(bottom = 36.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-            // 1. TOP BAR
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FilledTonalIconButton(
-                    onClick = onBackClick,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = Color(0xFFF1F5F9)
-                    ),
-                    modifier = Modifier
-                        .size(40.dp)
-                        .applePressEffect(0.92f)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Geri",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Text(
-                    text = "Mahsuplaşma Tasarrufu",
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    style = MaterialTheme.typography.titleLarge
-                )
-
-                Spacer(modifier = Modifier.size(40.dp))
-            }
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-
-            // 2. HERO TASARRUF VE FAST KARTI
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+                // 1. TOP BAR
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "TOPLAM FAST TASARRUFU",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
-                    )
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = PrimaryEmeraldContainer
+                    FilledTonalIconButton(
+                        onClick = onBackClick,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Color(0xFFF1F5F9)
+                        ),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .applePressEffect(0.92f)
                     ) {
-                        Text(
-                            text = "14 Transfer Önlendi",
-                            color = PrimaryEmerald,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Geri",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    Text(
+                        text = "Akıllı Ödeşme Tasarrufu",
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    Spacer(modifier = Modifier.size(40.dp))
+                }
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                // 2. HERO TASARRUF VE FAST KARTI
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "TOPLAM MASA TASARRUFU",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = PrimaryEmeraldContainer
+                        ) {
+                            Text(
+                                text = "14 Transfer Önlendi",
+                                color = PrimaryEmerald,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     Text(
                         text = "+185,00 ₺",
                         color = PrimaryEmerald,

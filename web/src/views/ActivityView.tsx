@@ -34,6 +34,7 @@ interface ActivityViewProps {
   currentUser: User;
   users: User[];
   isLocked: boolean;
+  isEmbedded?: boolean;
   onExpenseClick: (expense: Expense) => void;
   onReceiptClick: (txId: string) => void;
   onSettleClick: (targetUser: User, amount?: number) => void;
@@ -65,6 +66,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
   currentUser,
   users,
   isLocked,
+  isEmbedded = false,
   onExpenseClick,
   onReceiptClick,
   onSettleClick
@@ -103,11 +105,11 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
       if (isPayerMe) {
         myAmount = exp.amount - (mySplit?.amountOwed || 0);
         isPos = true;
-        status = 'alacaklısın';
+        status = 'alacağın var';
       } else {
         myAmount = mySplit?.amountOwed || 0;
         isPos = false;
-        status = 'sen borçlusun';
+        status = 'borcun var';
       }
 
       list.push({
@@ -133,11 +135,11 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
         id: set.id,
         type: 'SETTLEMENT',
         date: set.createdAt,
-        title: isPayerMe ? `Ödeme Yapıldı: ${otherUser?.fullName || 'Arkadaş'}` : `Ödeme Alındı: ${otherUser?.fullName || 'Arkadaş'}`,
-        subtitle: 'FAST / Havale ile fitleşildi • Dekont hazır',
+        title: isPayerMe ? `Ödeşildi: ${otherUser?.fullName || 'Arkadaş'}` : `Ödeşildi: ${otherUser?.fullName || 'Arkadaş'}`,
+        subtitle: 'FAST ile hesap kapatıldı • Dekont hazır',
         amount: set.amount,
         isPositive: !isPayerMe,
-        statusText: isPayerMe ? 'ödendi' : 'tahsil edildi',
+        statusText: isPayerMe ? 'ödedin' : 'ödeştik',
         rawSettlement: set,
         userRef: otherUser
       });
@@ -152,11 +154,11 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
         id: nudge.id,
         type: 'NUDGE',
         date: nudge.createdAt,
-        title: isFromMe ? `İstek Gönderildi: ${otherUser?.fullName || 'Arkadaş'}` : `Para İsteği Geldi: ${otherUser?.fullName || 'Arkadaş'}`,
+        title: isFromMe ? `Sinyal Çakıldı: ${otherUser?.fullName || 'Arkadaş'}` : `Masadan Sinyal Geldi: ${otherUser?.fullName || 'Arkadaş'}`,
         subtitle: nudge.message,
         amount: 0,
         isPositive: isFromMe,
-        statusText: isFromMe ? 'hatırlatma' : 'ödeme bekleniyor',
+        statusText: isFromMe ? 'hatırlatma' : 'masada bekliyor',
         rawNudge: nudge,
         userRef: otherUser
       });
@@ -190,12 +192,24 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
   }, [activities, filter, searchQuery]);
 
   return (
-    <div className="space-y-5 text-left animate-fadeIn">
-      {/* Header */}
-      <div className="px-1">
-        <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Hareketler</h2>
-        <p className="text-[13px] text-[#64748B]">Tüm harcama, FAST fitleşme ve ödeme hatırlatma geçmişi</p>
-      </div>
+    <div className="space-y-4 text-left animate-fadeIn">
+      {/* Header: If embedded on Dashboard, show 1:1 Android section header */}
+      {isEmbedded ? (
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[12px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
+            HAREKETLER & İŞLEMLER
+          </span>
+          <span className="text-[12px] font-semibold text-[#94A3B8]">
+            {filteredActivities.length} İşlem
+          </span>
+        </div>
+      ) : (
+        /* Desktop Header (Hidden on mobile because TopBar displays it) */
+        <div className="hidden md:block px-1">
+          <h2 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Hareketler</h2>
+          <p className="text-[13px] text-[#64748B]">Tüm harcama, FAST fitleşme ve ödeme hatırlatma geçmişi</p>
+        </div>
+      )}
 
       {/* Search & Filter Bar */}
       <div className="space-y-3">
@@ -234,7 +248,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             }`}
           >
             <ArrowDownLeft className="w-3.5 h-3.5" />
-            <span>Alacaklar (+₺)</span>
+            <span>Masada Kalan Paylarım (+₺)</span>
           </button>
 
           <button
@@ -246,7 +260,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             }`}
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>Borçlar (-₺)</span>
+            <span>Payıma Düşenler (-₺)</span>
           </button>
 
           <button
@@ -258,7 +272,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             }`}
           >
             <CreditCard className="w-3.5 h-3.5 text-[#00875A]" />
-            <span>Fitleşmeler (FAST)</span>
+            <span>Tertemiz Olanlar</span>
           </button>
 
           <button
@@ -270,7 +284,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
             }`}
           >
             <Bell className="w-3.5 h-3.5 text-[#6366F1]" />
-            <span>İstek & Onay</span>
+            <span>Askıda Kalanlar (Dürtmeler)</span>
           </button>
         </div>
       </div>
@@ -279,8 +293,8 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
       {filteredActivities.length === 0 ? (
         <div className="bg-white rounded-[20px] border border-slate-200/80 p-10 text-center space-y-2 shadow-sm">
           <History className="w-8 h-8 text-[#94A3B8] mx-auto opacity-50" />
-          <p className="text-[14px] font-semibold text-[#0F172A]">Kayıtlı hareket bulunamadı</p>
-          <p className="text-[12px] text-[#64748B]">Seçilen filtre kriterlerine uygun işlem kaydı yok.</p>
+          <p className="text-[14px] font-semibold text-[#0F172A]">Masa bomboş. Adisyonda bekleyen kayıt yok.</p>
+          <p className="text-[12px] text-[#64748B]">Seçilen filtre kriterlerine uygun masada bekleyen hesap bulunmuyor.</p>
         </div>
       ) : (
         <div className="bg-white rounded-[20px] border border-slate-200/80 divide-y divide-slate-100 overflow-hidden shadow-sm">
@@ -345,7 +359,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
                       </>
                     ) : (
                       <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">
-                        Dürtme
+                        Bi' Dürt
                       </span>
                     )}
                   </div>

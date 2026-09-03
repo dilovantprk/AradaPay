@@ -49,9 +49,9 @@ export const MerkleTreeBlockchainEngine = {
     const txHash = await this.sha256(rawTxPayload);
 
     // Build 4-leaf Merkle Tree: [txHash, sibling1], [sibling2, sibling3]
-    const sibling1 = await this.sha256(`L2_ROLLUP_TX_A_${txId}_SALT_991`);
-    const sibling2 = await this.sha256(`L2_ROLLUP_TX_B_${txId}_SALT_102`);
-    const sibling3 = await this.sha256(`L2_ROLLUP_TX_C_${txId}_SALT_743`);
+    const sibling1 = await this.sha256(`SECURE_TX_A_${txId}_SALT_991`);
+    const sibling2 = await this.sha256(`SECURE_TX_B_${txId}_SALT_102`);
+    const sibling3 = await this.sha256(`SECURE_TX_C_${txId}_SALT_743`);
 
     const parent1 = await this.combineHashes(txHash, sibling1);
     const parent2 = await this.combineHashes(sibling2, sibling3);
@@ -75,8 +75,8 @@ export const MerkleTreeBlockchainEngine = {
       amount,
       currency,
       merkleProof,
-      network: 'AradaPay Zero-Gas L2 Ledger (Merkle-Anchor)',
-      gasFee: '0,00 ₺ (Maliyetsiz L2 Merkle Rollup)'
+      network: 'AradaPay Güvenli İşlem Defteri',
+      gasFee: '0,00 ₺ (Ücretsiz Transfer)'
     };
   },
 

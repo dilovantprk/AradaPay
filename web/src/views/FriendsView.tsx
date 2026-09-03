@@ -79,13 +79,30 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
     });
   }, [friends, searchQuery, balanceFilter, expenses, settlements]);
 
+  // Compute Overall Personal Balance (1:1 Android FriendsScreen)
+  const totalReceivables = useMemo(() => {
+    return friends.reduce((sum, f) => {
+      const bal = getBalanceWithFriend(f.id);
+      return bal > 0 ? sum + bal : sum;
+    }, 0);
+  }, [friends, expenses, settlements]);
+
+  const totalPayables = useMemo(() => {
+    return friends.reduce((sum, f) => {
+      const bal = getBalanceWithFriend(f.id);
+      return bal < 0 ? sum + Math.abs(bal) : sum;
+    }, 0);
+  }, [friends, expenses, settlements]);
+
+  const overallNet = totalReceivables - totalPayables;
+
   return (
-    <div className="space-y-5 text-left animate-fadeIn">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-1">
+    <div className="space-y-4 text-left animate-fadeIn">
+      {/* Desktop Header (Hidden on mobile because TopBar displays it) */}
+      <div className="hidden md:flex items-center justify-between gap-3 px-1">
         <div className="min-w-0">
-          <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Arkadaşlar</h2>
-          <p className="text-[13px] text-[#64748B]">Bireysel borç ve alacak takibi, FAST transferleri</p>
+          <h2 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Arkadaşlar</h2>
+          <p className="text-[13px] text-[#64748B]">Arkadaşlarınla masadaki ortak hesaplar, FAST transferleri</p>
         </div>
 
         <button
@@ -97,8 +114,33 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
         </button>
       </div>
 
+      {/* 1:1 Android Summary Strip (UNBOXED 1-LINE SUMMARY STRIP) */}
+      <div className="bg-white rounded-[16px] border border-slate-200/80 px-5 py-3 flex items-center justify-between shadow-2xs">
+        <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
+          MASADAKİ NET DURUMUN
+        </span>
+
+        <span
+          className={`text-[14px] font-bold font-tabular ${
+            overallNet > 0
+              ? 'text-[#00875A]'
+              : overallNet < 0
+              ? 'text-[#DC2626]'
+              : 'text-[#64748B]'
+          }`}
+        >
+          {isLocked
+            ? '•••• ₺'
+            : overallNet > 0
+            ? `+${overallNet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ Masadan Alacak`
+            : overallNet < 0
+            ? `${Math.abs(overallNet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ Payına Düşen`
+            : 'Ödeştik'}
+        </span>
+      </div>
+
       {/* Search & Filter Bar */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {/* Search */}
         <div className="relative">
           <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -122,7 +164,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
             }`}
           >
             <UsersIcon className="w-3.5 h-3.5" />
-            <span>Tümü ({friends.length})</span>
+            <span>Tüm Arkadaşlar ({friends.length})</span>
           </button>
           <button
             onClick={() => setBalanceFilter('positive')}
@@ -133,18 +175,18 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
             }`}
           >
             <ArrowDownLeft className="w-3.5 h-3.5" />
-            <span>Alacaklı Olduklarım (+₺)</span>
+            <span>Masayı Üstlendiklerim (+₺)</span>
           </button>
           <button
             onClick={() => setBalanceFilter('negative')}
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0 transition active:scale-95 ${
               balanceFilter === 'negative'
-                ? 'bg-[#D32F2F] text-white shadow-2xs'
-                : 'bg-white border border-slate-200 text-[#D32F2F] hover:bg-slate-50'
+                ? 'bg-[#DC2626] text-white shadow-2xs'
+                : 'bg-white border border-slate-200 text-[#DC2626] hover:bg-slate-50'
             }`}
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>Borçlu Olduklarım (-₺)</span>
+            <span>Payıma Düşenler (-₺)</span>
           </button>
           <button
             onClick={() => setBalanceFilter('zero')}
@@ -155,7 +197,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Fitleşilenler (0₺)</span>
+            <span>Tertemiz Olanlar (0₺)</span>
           </button>
         </div>
       </div>
@@ -163,7 +205,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
       {/* Friends List (Unified Grouped Stream - NO card-in-card!) */}
       {filteredFriends.length === 0 ? (
         <div className="bg-white rounded-[20px] border border-slate-200/80 p-10 text-center space-y-3 shadow-sm">
-          <p className="text-[14px] text-[#64748B]">Aranan kritere uygun arkadaş bulunamadı.</p>
+          <p className="text-[14px] text-[#64748B]">Masada arkadaş bulunamadı.</p>
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 rounded-[12px] bg-[#00875A] text-white text-[13px] font-bold inline-flex items-center gap-1.5"
@@ -203,10 +245,10 @@ export const FriendsView: React.FC<FriendsViewProps> = ({
                       }`}
                     >
                       {!hasBalance
-                        ? 'fitleşildi'
+                        ? 'ödeştik'
                         : isPositive
-                        ? 'sana borçlu'
-                        : 'sen borçlusun'}
+                        ? 'masadan payı var'
+                        : 'masaya payın var'}
                     </span>
                     <span
                       className={`text-[15px] font-black font-tabular block ${

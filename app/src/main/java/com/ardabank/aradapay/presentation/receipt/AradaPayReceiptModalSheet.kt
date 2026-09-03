@@ -368,13 +368,13 @@ fun AradaPayReceiptModalSheet(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "HMAC-SHA256 & Merkle Mührü",
+                                    text = "Dijital Güvenlik Onayı",
                                     color = Color(0xFF0F172A),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
                                 )
                                 Text(
-                                    text = "Kurcalamaya Karşı Değiştirilemez",
+                                    text = "Doğrulanmış İşlem Kaydı",
                                     color = Color(0xFF64748B),
                                     fontSize = 11.sp
                                 )
@@ -386,7 +386,7 @@ fun AradaPayReceiptModalSheet(
                             color = PrimaryEmeraldContainer
                         ) {
                             Text(
-                                text = "Kriptografik Olarak Geçerli",
+                                text = "Doğrulandı",
                                 color = PrimaryEmerald,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp,
@@ -406,7 +406,7 @@ fun AradaPayReceiptModalSheet(
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("SealCode", sealCode))
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                Toast.makeText(context, "Kriptografik Güvenlik Mührü Kopyalandı", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Güvenlik Kodu Kopyalandı", Toast.LENGTH_SHORT).show()
                             }
                     ) {
                         Row(

@@ -78,15 +78,15 @@ object ReceiptCryptographicVerifier {
                 sealCode = seal,
                 fullHash = expectedSignature,
                 verifiedAt = now,
-                message = "Dekont SHA-256 algoritmasıyla doğrulandı. İşlem verileri değiştirilmemiş ve AradaPay dijital mührüyle kaydedilmiştir."
+                message = "Dekont dijital olarak doğrulandı. İşlem verileri AradaPay güvencesiyle kaydedilmiştir."
             )
         } else {
             VerificationResult(
                 isValid = false,
-                sealCode = "GEÇERSİZ / SAHTE",
-                fullHash = "TAMPERED_OR_CORRUPT_PAYLOAD",
+                sealCode = "GEÇERSİZ",
+                fullHash = "INVALID_PAYLOAD",
                 verifiedAt = now,
-                message = "DİKKAT: Kriptografik imza uyuşmadı! Dekont bilgileri üzerinde oynanmış veya sahte olabilir."
+                message = "DİKKAT: Güvenlik imzası uyuşmadı! Dekont bilgileri hatalı veya geçersiz olabilir."
             )
         }
     }

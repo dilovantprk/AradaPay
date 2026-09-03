@@ -1,7 +1,7 @@
-# AradaPay (ArdaBank) 💳
+# AradaPay 💳
 
-> **Next-Generation Material 3 Android FinTech Platform**  
-> Resolving complex group expenses & multi-party debt cycles via graph-theoretical optimization and cryptographic Merkle Tree receipts.
+> **Modern Jetpack Compose & Web Social Expense Sharing Platform**  
+> Resolving group expenses and multi-party payment cycles with smart debt simplification algorithms and instant FAST settlement.
 
 [![Android](https://img.shields.io/badge/Platform-Android%2014+-3DDC84?logo=android&logoColor=white)](https://android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin%20100%25-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
@@ -11,15 +11,15 @@
 
 ---
 
-## 🌟 Key Features & Algorithmic Engine
+## 🌟 Key Features & Architecture
 
-### 1. Cross-Settlement Directed Graph DFS Optimization
-- Automatically analyzes circular debt relations $(A \to B, B \to C, C \to A)$ across multi-user networks.
-- Applies Depth-First Search (DFS) and net balance reduction to decrease transaction overhead by up to **65%**, converting complex webs into direct minimal settlement transfers.
+### 1. Smart Debt Simplification
+- Automatically analyzes circular expense relations across group members.
+- Applies greedy balance reduction to decrease transaction overhead, converting complex debt webs into minimum direct settlement steps.
 
-### 2. Cryptographic Merkle Tree Receipt Engine
-- Every transaction block and settlement event is cryptographically hashed into a **Merkle Tree**.
-- Exports official, verifiable PDF bank-grade receipts sealed with immutable Merkle Root Hashes.
+### 2. Digital Settlement Receipt Engine
+- Every settlement produces a verifiable digital receipt with a unique transaction reference and timestamp.
+- Exports clean PDF / digital receipts.
 
 ### 3. Privacy-First Biometric Vault & Balance Masking
 - **`MaskedFinancialText`**: One-touch dynamic privacy masking for public spaces (e.g. `•••• ₺`).

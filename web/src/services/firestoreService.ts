@@ -1,13 +1,16 @@
 import {
   collection,
   doc,
+  getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
   query,
   orderBy,
-  where
+  where,
+  limit
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import {
@@ -23,6 +26,34 @@ import {
 
 export const FirestoreService = {
   // --- USERS ---
+  async getUser(userId: string): Promise<User | null> {
+    try {
+      const docRef = doc(db, 'users', userId);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        return snapshot.data() as User;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Firestore getUser error:', e);
+      return null;
+    }
+  },
+
+  async findUserByTag(tag: string): Promise<User | null> {
+    try {
+      const q = query(collection(db, 'users'), where('tag', '==', tag), limit(1));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        return snapshot.docs[0].data() as User;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Firestore findUserByTag error:', e);
+      return null;
+    }
+  },
+
   subscribeUser(userId: string, callback: (user: User | null) => void) {
     try {
       const docRef = doc(db, 'users', userId);

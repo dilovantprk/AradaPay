@@ -430,15 +430,15 @@ fun SettleUpScreen(
             recipientName = selectedRecipient!!.name,
             recipientIban = selectedRecipient!!.iban,
             amount = amountValue,
-            note = note.ifBlank { "AradaPay Fitleşme - ${selectedRecipient!!.name}" },
+            note = note.ifBlank { "AradaPay Ödeşme - ${selectedRecipient!!.name}" },
             onDismiss = { showBankChooserSheet = false },
             onBankSelected = { bank ->
                 NotificationHelper.showSystemNotification(
                     context = context,
-                    title = "FAST Transferi Başlatıldı",
-                    message = "${selectedRecipient!!.name} kişisine ${String.format(java.util.Locale.US, "%.2f", amountValue)} ₺ tutarında ${bank.shortName} ile transfer başlatıldı."
+                    title = "🤝 Hesap Tertemiz Oldu",
+                    message = "🤝 ${selectedRecipient!!.name} ile aranızdaki hesap tertemiz oldu (${String.format(java.util.Locale.US, "%.2f", amountValue)} ₺)."
                 )
-                Toast.makeText(context, "${bank.shortName} uygulamasına yönlendiriliyor...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "${bank.shortName} uygulamasına yönlendiriliyor... Vicdanlar rahat!", Toast.LENGTH_SHORT).show()
                 onConfirmSettlement(amountValue, note)
             }
         )
@@ -995,11 +995,11 @@ fun SettleUpScreen(
                         if (isActionEnabled) {
                             Modifier.bounceClick {
                                 onConfirmSettlement(amountValue, note.ifBlank { "AradaPay ile hesap kapatıldı" })
-                                Toast.makeText(context, "${selectedRecipient!!.name} ile hesap fitleşildi", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "${selectedRecipient!!.name} ile aranızdaki hesap tertemiz oldu!", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             Modifier.clickable {
-                                Toast.makeText(context, "Lütfen fitleşilecek kişiyi seçiniz", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Lütfen ödeşilecek kişiyi seçiniz", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
@@ -1040,7 +1040,7 @@ fun SettleUpScreen(
                         } else {
                             Modifier.clickable {
                                 if (selectedRecipient == null) {
-                                    Toast.makeText(context, "Lütfen fitleşilecek kişiyi seçiniz", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Lütfen ödeşilecek kişiyi seçiniz", Toast.LENGTH_SHORT).show()
                                 } else {
                                     Toast.makeText(context, "Lütfen geçerli bir tutar girin", Toast.LENGTH_SHORT).show()
                                 }

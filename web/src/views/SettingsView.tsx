@@ -54,10 +54,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 text-left animate-fadeIn">
-      {/* Header */}
-      <div className="px-1">
-        <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Ayarlar & Güvenlik</h2>
+    <div className="space-y-4 text-left animate-fadeIn">
+      {/* Desktop Header (Hidden on mobile because TopBar displays it) */}
+      <div className="hidden md:block px-1">
+        <h2 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Ayarlar & Güvenlik</h2>
         <p className="text-[13px] text-[#64748B]">Hesap tercihleri, FAST tanımlamaları ve güvenlik kasası</p>
       </div>
 

@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContactPhone
@@ -144,22 +145,22 @@ data class PhoneBookContact(
 )
 
 enum class FriendFilterOption(val label: String) {
-    ALL("Tüm arkadaşlar"),
-    OUTSTANDING("Açık bakiyeli arkadaşlar"),
-    YOU_OWE("Borçlu olduğun arkadaşlar"),
-    OWED_TO_YOU("Alacaklı olduğun arkadaşlar")
+    ALL("Tüm Arkadaşlar"),
+    OUTSTANDING("Hesabı Açık Kalanlar"),
+    YOU_OWE("Payıma Düşenler (-₺)"),
+    OWED_TO_YOU("Masayı Üstlendiklerim (+₺)")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendsScreen(
-    friendsList: List<User> = emptyList(),
+    remoteFriends: List<User> = emptyList(),
     userTag: String = "#1453",
     onFriendClick: (friendId: String) -> Unit = {},
     onAddExpense: () -> Unit = {},
     onSendNudge: (userId: String) -> Unit = {},
     onSettleUp: (userId: String) -> Unit = {},
-    onAddFriend: (tagOrUsername: String) -> Unit = {}
+    onAddFriend: (User) -> Unit = {}
 ) {
     val context = LocalContext.current
     var isSearchActive by remember { mutableStateOf(false) }
@@ -171,8 +172,18 @@ fun FriendsScreen(
     var selectedFriendForQuickAction by remember { mutableStateOf<FriendProfile?>(null) }
     var selectedNonMemberForInvite by remember { mutableStateOf<PhoneBookContact?>(null) }
 
-    val friendsList = remember {
-        mutableStateListOf<FriendProfile>()
+    val friendsList = remember(remoteFriends) {
+        val mapped = remoteFriends.map { user ->
+            val initials = user.fullName.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString("").ifBlank { "AR" }
+            FriendProfile(
+                user = user,
+                avatarEmoji = initials,
+                balanceAmount = 0.0,
+                isCreditor = false,
+                isBalanced = true
+            )
+        }
+        mutableStateListOf(*mapped.toTypedArray())
     }
 
     // Overall Balance Calculation
@@ -212,6 +223,7 @@ fun FriendsScreen(
             onFriendAdded = { newProfile ->
                 if (friendsList.none { it.user.id == newProfile.user.id || it.user.tag.equals(newProfile.user.tag, ignoreCase = true) }) {
                     friendsList.add(0, newProfile)
+                    onAddFriend(newProfile.user)
                 }
             }
         )
@@ -407,9 +419,9 @@ fun FriendsScreen(
                 }
 
                 val netText = when {
-                    overallNet > 0 -> "+${String.format(java.util.Locale.US, "%.2f", overallNet)} ₺ Alacak"
-                    overallNet < 0 -> "${String.format(java.util.Locale.US, "%.2f", abs(overallNet))} ₺ Borç"
-                    else -> "Dengede"
+                    overallNet > 0 -> "+${String.format(java.util.Locale.US, "%.2f", overallNet)} ₺ Masada Payın Var"
+                    overallNet < 0 -> "${String.format(java.util.Locale.US, "%.2f", abs(overallNet))} ₺ Payına Düşen"
+                    else -> "Tertemiz (Dengede)"
                 }
 
                 Text(
@@ -445,7 +457,7 @@ fun FriendsScreen(
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Default.PersonAdd,
+                                        imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
                                         tint = PrimaryEmerald,
                                         modifier = Modifier.size(32.dp)
@@ -454,104 +466,104 @@ fun FriendsScreen(
                             }
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "Henüz Eklenmiş Arkadaş Yok",
+                                text = "Masa bomboş.",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = Color(0xFF0F172A)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Kişi eklemek veya davet etmek için sağ üstteki butona tıklayın.",
+                                text = if (searchQuery.isNotBlank() || selectedFilter != FriendFilterOption.ALL) "Arama veya filtre kriterine uygun arkadaş bulunamadı." else "Henüz kimse eklenmedi. Arkadaşlarını ekleyip başlayabilirsin!",
                                 color = Color(0xFF64748B),
                                 fontSize = 13.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }
                 } else {
-                    itemsIndexed(filteredFriends, key = { _, friend -> friend.user.id }) { index, friend ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .hapticCombinedClickable(
-                                onClick = { onFriendClick(friend.user.id) },
-                                onLongClick = { selectedFriendForQuickAction = friend }
-                            )
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Left: Round Avatar + Friend Name
+                    items(filteredFriends, key = { it.user.id }) { friend ->
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .hapticCombinedClickable(
+                                    onClick = { onFriendClick(friend.user.id) },
+                                    onLongClick = { selectedFriendForQuickAction = friend }
+                                )
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color(0xFFF1F5F9),
-                                modifier = Modifier.size(44.dp)
+                            // Left: Avatar & Name
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = PrimaryEmeraldContainer,
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = friend.avatarEmoji,
+                                            color = PrimaryEmerald,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Text(
+                                    text = friend.user.fullName,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+
+                            // Right: Status & Amount
+                            Column(horizontalAlignment = Alignment.End) {
+                                if (friend.isBalanced || friend.balanceAmount == 0.0) {
                                     Text(
-                                        text = friend.avatarEmoji,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0F172A)
+                                        text = "ödeştik",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Normal
+                                    )
+                                } else if (friend.isCreditor) {
+                                    Text(
+                                        text = "masadan payı var",
+                                        color = PrimaryEmerald,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Text(
+                                        text = "+${String.format(java.util.Locale.US, "%.2f", friend.balanceAmount)} ₺",
+                                        color = PrimaryEmerald,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                } else {
+                                    Text(
+                                        text = "masaya payın var",
+                                        color = AccentRose,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Text(
+                                        text = "${String.format(java.util.Locale.US, "%.2f", abs(friend.balanceAmount))} ₺",
+                                        color = AccentRose,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Text(
-                                text = friend.user.fullName,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp,
-                                color = Color(0xFF0F172A)
-                            )
                         }
-
-                        // Right: Status & Amount
-                        Column(horizontalAlignment = Alignment.End) {
-                            if (friend.isBalanced || friend.balanceAmount == 0.0) {
-                                Text(
-                                    text = "fitleşildi",
-                                    color = Color(0xFF94A3B8),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Normal
-                                )
-                            } else if (friend.isCreditor) {
-                                Text(
-                                    text = "sana borçlu",
-                                    color = PrimaryEmerald,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.height(1.dp))
-                                Text(
-                                    text = "+${String.format(java.util.Locale.US, "%.2f", friend.balanceAmount)} ₺",
-                                    color = PrimaryEmerald,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            } else {
-                                Text(
-                                    text = "sen borçlusun",
-                                    color = AccentRose,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.height(1.dp))
-                                Text(
-                                    text = "${String.format(java.util.Locale.US, "%.2f", abs(friend.balanceAmount))} ₺",
-                                    color = AccentRose,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
                     }
                 }
 

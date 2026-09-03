@@ -44,6 +44,7 @@ import {
   INITIAL_CROSS_OFFERS
 } from './services/mockData';
 import { FirestoreService } from './services/firestoreService';
+import { AuthService } from './services/authService';
 import { NetBalanceCalculator } from './algorithms/NetBalanceCalculator';
 import { CrossSettlementDfsEngine } from './algorithms/CrossSettlementDfsEngine';
 
@@ -51,6 +52,31 @@ export function App() {
   // Navigation / View states
   const [inWebApp, setInWebApp] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Synchronize with Firebase Auth state
+  useEffect(() => {
+    const unsubAuth = AuthService.onAuthStateChange(async (fbUser) => {
+      if (fbUser) {
+        const profile = await FirestoreService.getUser(fbUser.uid);
+        if (profile) {
+          setCurrentUser(profile);
+          setInWebApp(true);
+        } else {
+          // Subscribe if profile is being written
+          FirestoreService.subscribeUser(fbUser.uid, (liveUser) => {
+            if (liveUser) {
+              setCurrentUser(liveUser);
+              setInWebApp(true);
+            }
+          });
+        }
+      }
+    });
+
+    return () => {
+      unsubAuth();
+    };
+  }, []);
 
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
@@ -76,6 +102,7 @@ export function App() {
   const [settleInitialAmount, setSettleInitialAmount] = useState<number | undefined>(undefined);
   const [showRequestMoney, setShowRequestMoney] = useState(false);
   const [showAddFriend, setShowAddFriend] = useState(false);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
 
   const [selectedExpenseForDetail, setSelectedExpenseForDetail] = useState<Expense | null>(null);
   const [selectedCrossOffer, setSelectedCrossOffer] = useState<CrossSettlementOffer | null>(null);
@@ -281,7 +308,12 @@ export function App() {
     localStorage.clear();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await AuthService.signOut();
+    } catch (e) {
+      console.warn('SignOut error:', e);
+    }
     setCurrentUser(null);
     setInWebApp(false);
   };
@@ -329,101 +361,40 @@ export function App() {
       {/* B. MAIN VIEWPORT & WORKSPACE */}
       {/* ========================================================================= */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#F6F6F6]">
-        {/* Mobile iOS Top Bar (Visible only on mobile < 768px) */}
+        {/* Mobile Top Bar (Visible only on mobile < 768px) */}
         <div className="md:hidden">
           <SmartAppBanner />
           <TopBar
             user={activeUser}
+            currentTab={currentTab}
+            selectedGroup={selectedGroupId ? groups.find((g) => g.id === selectedGroupId) || null : null}
+            selectedFriend={selectedFriendId ? users.find((u) => u.id === selectedFriendId) || null : null}
+            isLocked={isLocked}
+            onToggleLock={() => setIsLocked(!isLocked)}
             onProfileClick={() => handleTabChange('settings')}
+            onNotificationClick={() => handleTabChange('activity')}
             hasNudges={nudges.length > 0}
+            onBack={() => {
+              if (selectedGroupId) {
+                setSelectedGroupId(null);
+              } else if (selectedFriendId) {
+                setSelectedFriendId(null);
+              } else if (currentTab === 'settings' || currentTab === 'activity') {
+                handleTabChange('dashboard');
+              }
+            }}
+            onOpenCreateGroup={() => setShowCreateGroupModal(true)}
+            onOpenAddFriend={() => setShowAddFriend(true)}
+            onAddExpenseInGroup={(group) => {
+              setPreselectedGroupForExpense(group);
+              setShowAddExpense(true);
+            }}
+            onOpenSettleWithFriend={(friend) => {
+              setSettlePreselectedUser(friend);
+              setShowSettleUp(true);
+            }}
           />
         </div>
-
-        {/* Desktop macOS Toolbar (Visible only on md: >= 768px) */}
-        <header className="hidden md:flex items-center justify-between px-8 py-3 bg-[#FFFFFF]/80 backdrop-blur-2xl border-b border-black/[0.08] sticky top-0 z-30 select-none">
-          {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 text-[13px]">
-            <span className="font-semibold text-[#8E8E93]">AradaPay</span>
-            <span className="text-[#C7C7CC]">/</span>
-            <span className="font-bold text-[#1C1C1E]">
-              {selectedGroupId
-                ? `Gruplar / ${groups.find((g) => g.id === selectedGroupId)?.name || 'Grup'}`
-                : selectedFriendId
-                ? `Arkadaşlar / ${users.find((u) => u.id === selectedFriendId)?.fullName || 'Arkadaş'}`
-                : currentTab === 'dashboard'
-                ? 'Ana Panel'
-                : currentTab === 'groups'
-                ? 'Gruplarım'
-                : currentTab === 'friends'
-                ? 'Arkadaşlar'
-                : currentTab === 'activity'
-                ? 'Hareketler'
-                : 'Ayarlar'}
-            </span>
-          </div>
-
-          {/* macOS Desktop Toolbar Actions */}
-          <div className="flex items-center gap-3">
-            {/* Quick Action Button */}
-            <button
-              onClick={() => {
-                setPreselectedGroupForExpense(undefined);
-                setShowAddExpense(true);
-              }}
-              className="px-3.5 py-1.5 rounded-[8px] bg-[#00875A] hover:bg-[#00744d] text-white text-[12px] font-bold flex items-center gap-1.5 transition shadow-sm shadow-emerald-900/10"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Harcama Ekle</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setSettlePreselectedUser(null);
-                setSettleInitialAmount(undefined);
-                setShowSettleUp(true);
-              }}
-              className="px-3.5 py-1.5 rounded-[8px] bg-white border border-black/[0.1] hover:bg-slate-50 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 transition shadow-2xs"
-            >
-              <CreditCard className="w-3.5 h-3.5 text-[#00875A]" />
-              <span>Öde & Fitleş</span>
-            </button>
-
-            {/* Privacy Eye Toggle */}
-            <button
-              onClick={() => setIsLocked(!isLocked)}
-              className="px-3 py-1.5 rounded-[8px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] text-[12px] font-bold flex items-center gap-1.5 transition"
-              title="Bakiye Maskesini Aç/Kapat"
-            >
-              {isLocked ? <EyeOff className="w-3.5 h-3.5 text-[#8E8E93]" /> : <Eye className="w-3.5 h-3.5 text-[#00875A]" />}
-              <span>{isLocked ? 'Gizli' : 'Görünür'}</span>
-            </button>
-
-            {/* Notification Badge */}
-            <button
-              onClick={() => handleTabChange('activity')}
-              className="relative p-2 rounded-[8px] bg-black/5 hover:bg-black/10 text-[#1C1C1E] transition"
-              title="Dürtmeler ve Bildirimler"
-            >
-              {nudges.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D32F2F] ring-2 ring-white animate-pulse" />
-              )}
-              <Bell className="w-3.5 h-3.5 text-[#1C1C1E]" />
-            </button>
-
-            {/* Profile Avatar Capsule */}
-            <div
-              onClick={() => handleTabChange('settings')}
-              className="flex items-center gap-2 px-2.5 py-1 rounded-[8px] bg-black/5 hover:bg-black/10 cursor-pointer transition select-none"
-            >
-              <div className="w-6 h-6 rounded-full bg-[#00875A] text-white font-extrabold text-[10px] flex items-center justify-center">
-                {activeUser.fullName.slice(0, 2).toUpperCase()}
-              </div>
-              <span className="text-[12px] font-bold text-[#1C1C1E]">
-                {activeUser.fullName.split(' ')[0]}
-              </span>
-            </div>
-          </div>
-        </header>
 
         {/* Main Content Area */}
         <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-6 pb-28 md:pb-12 space-y-6">
@@ -502,20 +473,29 @@ export function App() {
                     onRequestMoneyClick={() => setShowRequestMoney(true)}
                   />
 
-                  {/* Smart Settlement Banner (DFS Cycle Detection) */}
-                  <SmartSettlementBanner
-                    offers={crossOffers}
-                    currentUserId={activeUser.id}
-                    onOpenOffer={(offer) => setSelectedCrossOffer(offer)}
-                  />
-
-                  {/* Recent Transactions Stream */}
-                  <TransactionsList
+                  {/* Hareketler & İşlemler (1:1 Android Dashboard Embedded Activity Flow) */}
+                  <ActivityView
                     expenses={expenses}
-                    currentUserId={activeUser.id}
+                    settlements={settlements}
+                    nudges={nudges}
+                    currentUser={activeUser}
+                    users={users}
                     isLocked={isLocked}
-                    onSeeAllClick={() => handleTabChange('activity')}
+                    isEmbedded={true}
                     onExpenseClick={(exp) => setSelectedExpenseForDetail(exp)}
+                    onReceiptClick={(txId) => {
+                      setSelectedReceipt({
+                        txId,
+                        payerName: activeUser.fullName,
+                        receiverName: 'Alıcı',
+                        amount: 0
+                      });
+                    }}
+                    onSettleClick={(targetUser, amount) => {
+                      setSettlePreselectedUser(targetUser);
+                      setSettleInitialAmount(amount);
+                      setShowSettleUp(true);
+                    }}
                   />
                 </div>
               )}
@@ -536,6 +516,9 @@ export function App() {
                     setGroups((prev) => [newGroup, ...prev]);
                     FirestoreService.saveGroup(newGroup).catch(console.error);
                   }}
+                  isCreateOpen={showCreateGroupModal}
+                  onCloseCreate={() => setShowCreateGroupModal(false)}
+                  onOpenCreate={() => setShowCreateGroupModal(true)}
                 />
               )}
 

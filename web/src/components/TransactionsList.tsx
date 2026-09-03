@@ -54,7 +54,7 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <span className="text-[12px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
-          SON HAREKETLER & MASRAFLAR
+          MASADAKİ SON HAREKETLER
         </span>
         <button
           onClick={onSeeAllClick}
@@ -70,10 +70,10 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <CheckCircle2 className="w-10 h-10 text-[#00875A] mb-2 stroke-[2]" />
             <p className="text-[15px] font-bold text-[#0F172A]">
-              Bekleyen Ödeme Yok
+              Masa bomboş.
             </p>
             <p className="text-[13px] text-[#64748B] mt-0.5 max-w-xs">
-              Tüm grup masrafları dengede ve fitleşildi.
+              Ya herkes kendi hesabını ödedi ya da dışarı çıkma vaktiniz geldi.
             </p>
           </div>
         ) : (
@@ -116,7 +116,7 @@ export const TransactionsList: React.FC<TransactionsListProps> = ({
                         isPositive ? 'text-[#00875A]' : 'text-[#D32F2F]'
                       }`}
                     >
-                      {isPositive ? 'alacaklısın' : 'borçlusun'}
+                      {isPositive ? 'alacağın' : 'borcun'}
                     </span>
                     <span
                       className={`text-[15px] font-black font-tabular block ${

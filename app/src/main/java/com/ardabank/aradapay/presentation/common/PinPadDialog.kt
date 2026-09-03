@@ -89,7 +89,7 @@ fun PinPadDialog(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Bakiye ve borç tutarlarını görüntülemek için 4 haneli PIN kodunuzu giriniz.",
+                    text = "Masa durumunu ve payları görmek için 4 haneli PIN kodunu gir.",
                     color = Color(0xFF64748B),
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

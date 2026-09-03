@@ -10,7 +10,8 @@ import {
   ExternalLink,
   ChevronRight,
   Search,
-  CheckCircle
+  CreditCard,
+  Send
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User, Settlement } from '../types';
@@ -90,13 +91,14 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const otherUsers = useMemo(() => users.filter((u) => u.id !== currentUser.id), [users, currentUser.id]);
   const [selectedUserId, setSelectedUserId] = useState<string>(initialTargetUser?.id || otherUsers[0]?.id || '');
   const [amountText, setAmountText] = useState<string>(initialAmount ? initialAmount.toFixed(2) : '320.00');
+  const [note, setNote] = useState<string>('');
   const [selectedBankId, setSelectedBankId] = useState<string>('garanti');
   const [copiedName, setCopiedName] = useState<boolean>(false);
   const [copiedIban, setCopiedIban] = useState<boolean>(false);
   const [bankOpeningStatus, setBankOpeningStatus] = useState<string | null>(null);
 
-  // Sub-screen mode: 'MAIN' or 'SELECT_USER'
-  const [screenMode, setScreenMode] = useState<'MAIN' | 'SELECT_USER'>('MAIN');
+  // Sub-screen mode: 'STEP_DETAILS' (1. Adım) | 'STEP_BANK_CHOOSER' (2. Adım) | 'STEP_SELECT_USER'
+  const [screenMode, setScreenMode] = useState<'STEP_DETAILS' | 'STEP_BANK_CHOOSER' | 'STEP_SELECT_USER'>('STEP_DETAILS');
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
     if (initialAmount !== undefined && initialAmount > 0) {
       setAmountText(initialAmount.toFixed(2));
     }
-    setScreenMode('MAIN');
+    setScreenMode('STEP_DETAILS');
   }, [initialTargetUser, initialAmount, isOpen]);
 
   if (!isOpen) return null;
@@ -167,7 +169,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
       currency: 'TRY',
       createdAt: new Date().toISOString(),
       status: 'APPROVED',
-      note: 'FAST / Havale ile ödendi ve fitleşildi'
+      note: note.trim() || 'FAST / Havale ile ödendi, masadaki hesap tertemiz oldu'
     };
 
     try {
@@ -186,17 +188,30 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
     onShowReceipt(settlement);
   };
 
+  const getHeaderTitle = () => {
+    switch (screenMode) {
+      case 'STEP_SELECT_USER':
+        return 'Ödeşilecek Kişiyi Seç';
+      case 'STEP_BANK_CHOOSER':
+        return 'Banka Seç & Gönder';
+      default:
+        return 'Fitleş';
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-      <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
+      <div className="bg-white w-full h-[100dvh] sm:h-[640px] sm:max-w-lg rounded-none sm:rounded-[28px] shadow-2xl border-0 sm:border border-slate-200 overflow-hidden flex flex-col animate-appleSheet sm:animate-applePop">
         {/* ========================================================================= */}
         {/* TOP BAR */}
         {/* ========================================================================= */}
-        <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-3 bg-white border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+        <div className="px-5 pt-[max(env(safe-area-inset-top),16px)] pb-3 bg-white border-b border-slate-100 flex items-center justify-between flex-shrink-0 h-[64px]">
           <button
             onClick={() => {
-              if (screenMode === 'SELECT_USER') {
-                setScreenMode('MAIN');
+              if (screenMode === 'STEP_BANK_CHOOSER') {
+                setScreenMode('STEP_DETAILS');
+              } else if (screenMode === 'STEP_SELECT_USER') {
+                setScreenMode('STEP_DETAILS');
               } else {
                 onClose();
               }
@@ -208,16 +223,16 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
           </button>
 
           <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
-            {screenMode === 'SELECT_USER' ? 'Ödeme Yapılacak Kişiyi Seç' : 'Fitleş & FAST Ödeme'}
+            {getHeaderTitle()}
           </h3>
 
           <div className="w-10" />
         </div>
 
         {/* ========================================================================= */}
-        {/* SUB-SCREEN: SELECT USER PAGE (1:1 with AddExpenseModal) */}
+        {/* SUB-SCREEN: SELECT USER PAGE */}
         {/* ========================================================================= */}
-        {screenMode === 'SELECT_USER' && (
+        {screenMode === 'STEP_SELECT_USER' && (
           <div className="flex-1 overflow-y-auto p-5 space-y-4 text-left">
             {/* Search Input */}
             <div className="relative">
@@ -241,7 +256,7 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                     key={user.id}
                     onClick={() => {
                       setSelectedUserId(user.id);
-                      setScreenMode('MAIN');
+                      setScreenMode('STEP_DETAILS');
                     }}
                     className="p-3.5 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition active:bg-slate-100"
                   >
@@ -278,19 +293,19 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* MAIN SETTLE UP FORM */}
+        {/* 1. ADIM: DETAY VE TUTAR GİRİŞİ (1:1 Android SettleUpScreen.kt Step 1) */}
         {/* ========================================================================= */}
-        {screenMode === 'MAIN' && (
-          <>
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 text-left">
-              {/* 1. Ödeme Yapılacak Kişi (Custom Select Button) */}
+        {screenMode === 'STEP_DETAILS' && (
+          <div className="flex-1 overflow-y-auto flex flex-col justify-between text-left">
+            <div className="divide-y divide-slate-100">
+              {/* 1. Ödeme Yapılacak Kişi */}
               <div className="px-5 py-4 space-y-2 bg-white">
                 <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
                   ÖDEME YAPILACAK KİŞİ
                 </span>
 
                 <div
-                  onClick={() => setScreenMode('SELECT_USER')}
+                  onClick={() => setScreenMode('STEP_SELECT_USER')}
                   className="p-3 rounded-[14px] bg-[#F8FAFC] border border-slate-200 hover:border-slate-300 flex items-center justify-between cursor-pointer transition active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-3">
@@ -346,59 +361,119 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                 </div>
               </div>
 
-              {/* 3. FAST & IBAN Bilgileri (Alıcı Adı Kopyalanabilir) */}
-              <div className="px-5 py-4 space-y-3 bg-white">
+              {/* 3. Not & Açıklama */}
+              <div className="px-5 py-4 space-y-2 bg-white">
                 <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
-                  FAST & HAVALE BİLGİLERİ
+                  NOT / AÇIKLAMA
                 </span>
 
-                <div className="divide-y divide-slate-100 text-[13px]">
-                  {/* Alıcı Adı (Kopyalanabilir) */}
-                  <div className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-[#64748B] uppercase block">ALICI ADI</span>
-                      <span className="text-[13px] font-bold text-[#0F172A] block">{selectedUser.fullName}</span>
+                <input
+                  type="text"
+                  placeholder="örn: Akşam yemeği ve taksi payı ödemesi..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full h-12 px-4 rounded-[14px] bg-[#F8FAFC] border border-slate-200 text-[14px] font-medium text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:border-[#00875A] transition"
+                />
+              </div>
+
+              {/* 4. FAST & IBAN Bilgisi Özeti */}
+              <div className="px-5 py-4 space-y-2 bg-white">
+                <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
+                  ALICI FAST IBAN
+                </span>
+
+                <div className="p-3.5 rounded-[14px] bg-[#F8FAFC] border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-[#64748B] block font-semibold">{selectedUser.fullName}</span>
+                    <span className="font-mono text-[13px] font-bold text-[#0F172A] tracking-wider block">
+                      {iban}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyIban}
+                    className={`px-3 py-1.5 rounded-[8px] text-[11px] font-bold flex items-center gap-1 transition ${
+                      copiedIban
+                        ? 'bg-emerald-100 text-[#00875A]'
+                        : 'bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50'
+                    }`}
+                  >
+                    {copiedIban ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedIban ? 'Kopyalandı' : 'Kopyala'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Fixed Action Button -> 2. ADIMA GEÇ */}
+            <div className="p-4 bg-white border-t border-slate-100 pb-[max(env(safe-area-inset-bottom),16px)]">
+              <button
+                type="button"
+                onClick={() => setScreenMode('STEP_BANK_CHOOSER')}
+                disabled={numAmount <= 0}
+                className={`w-full h-12 rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-sm ${
+                  numAmount > 0
+                    ? 'bg-[#00875A] hover:bg-[#00744d] text-white shadow-emerald-900/20'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <span>Banka Seç & Ödemeyi Yap ({numAmount.toFixed(2)} ₺)</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 2. ADIM: BANKA UYGULAMASI SEÇİMİ (1:1 Android BankAppChooserScreen.kt) */}
+        {/* ========================================================================= */}
+        {screenMode === 'STEP_BANK_CHOOSER' && (
+          <div className="flex-1 overflow-y-auto flex flex-col justify-between p-5 text-left space-y-4 animate-fadeIn">
+            <div className="space-y-4">
+              {/* Transfer Summary Card */}
+              <div className="p-4 rounded-[20px] bg-[#F8FAFC] border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em]">
+                    TRANSFER ÖZETİ
+                  </span>
+                  <span className="text-[16px] font-extrabold text-[#00875A] font-tabular">
+                    {numAmount.toFixed(2)} ₺
+                  </span>
+                </div>
+
+                <div className="divide-y divide-slate-200/60 text-[13px]">
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-[#64748B]">Alıcı:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#0F172A]">{selectedUser.fullName}</span>
+                      <button
+                        type="button"
+                        onClick={handleCopyName}
+                        className="text-[11px] font-bold text-[#00875A] hover:underline"
+                      >
+                        {copiedName ? '✓ Kopyalandı' : 'Kopyala'}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyName}
-                      className={`px-3 py-1.5 rounded-[8px] text-[11px] font-bold flex items-center gap-1 transition ${
-                        copiedName
-                          ? 'bg-emerald-100 text-[#00875A]'
-                          : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-slate-200'
-                      }`}
-                    >
-                      {copiedName ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedName ? 'Kopyalandı' : 'Kopyala'}</span>
-                    </button>
                   </div>
 
-                  {/* IBAN (Kopyalanabilir) */}
-                  <div className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-[#64748B] uppercase block">FAST IBAN</span>
-                      <span className="font-mono font-bold text-[#0F172A] tracking-wider block">
-                        {iban}
-                      </span>
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-[#64748B]">IBAN:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-[#0F172A] text-[12px]">{iban}</span>
+                      <button
+                        type="button"
+                        onClick={handleCopyIban}
+                        className="text-[11px] font-bold text-[#00875A] hover:underline"
+                      >
+                        {copiedIban ? '✓ Kopyalandı' : 'Kopyala'}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyIban}
-                      className={`px-3 py-1.5 rounded-[8px] text-[11px] font-bold flex items-center gap-1 transition ${
-                        copiedIban
-                          ? 'bg-emerald-100 text-[#00875A]'
-                          : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-slate-200'
-                      }`}
-                    >
-                      {copiedIban ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedIban ? 'Kopyalandı' : 'Kopyala'}</span>
-                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* 4. Banka Uygulamasına Git */}
-              <div className="px-5 py-4 space-y-2 bg-white">
+              {/* Bank Chooser Section */}
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
                     BANKA UYGULAMASINA GİT
@@ -421,40 +496,36 @@ export const SettleUpModal: React.FC<SettleUpModalProps> = ({
                       key={b.id}
                       type="button"
                       onClick={() => handleOpenBankApp(b)}
-                      className={`p-2.5 rounded-[12px] border text-center transition flex flex-col items-center gap-1 active:scale-95 ${
+                      className={`p-3 rounded-[14px] border text-center transition flex flex-col items-center gap-1.5 active:scale-95 ${
                         selectedBankId === b.id
-                          ? 'border-[#00875A] bg-emerald-50 text-[#00875A] font-bold'
-                          : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] hover:border-slate-300'
+                          ? 'border-[#00875A] bg-emerald-50 text-[#00875A] font-bold shadow-xs'
+                          : 'border-slate-200 bg-white text-[#0F172A] hover:border-slate-300'
                       }`}
                       title={`${b.name} uygulamasını aç`}
                     >
                       <Building2 className="w-5 h-5 opacity-80" />
-                      <span className="text-[10px] font-semibold truncate w-full">{b.name}</span>
+                      <span className="text-[11px] font-semibold truncate w-full">{b.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Bottom Fixed Action Button */}
-            <div className="p-4 bg-white border-t border-slate-100 pb-[max(env(safe-area-inset-bottom),16px)]">
+            {/* Final Confirm Button */}
+            <div className="pt-4">
               <button
                 type="button"
                 onClick={handleConfirm}
-                disabled={numAmount <= 0}
-                className={`w-full h-12 rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-sm ${
-                  numAmount > 0
-                    ? 'bg-[#00875A] hover:bg-[#00744d] text-white shadow-emerald-900/20'
-                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                }`}
+                className="w-full h-12 rounded-[14px] bg-[#00875A] hover:bg-[#00744d] active:scale-[0.98] text-white font-bold text-[15px] flex items-center justify-center gap-2 transition shadow-sm"
               >
                 <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
-                <span>Ödemeyi Yaptım, Fitleş ({numAmount.toFixed(2)} ₺)</span>
+                <span>Fitleş ({numAmount.toFixed(2)} ₺)</span>
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
   );
 };
+

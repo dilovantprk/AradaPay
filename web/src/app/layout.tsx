@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AradaPay (ArdaBank) — Yeni Nesil Finans ve Mahsuplaşma',
-  description: 'Döngüsel borçları Graph-DFS algoritmasıyla çözen, Merkle Tree onaylı kriptografik dekont üreten ve temassız FAST/QR ödeme sunan FinTech platformu.',
+  title: 'AradaPay — Masadaki Ortak Hesabı Kolayca Bölüşün',
+  description: 'Arkadaş arasındaki ortak hesabı tabu olmaktan çıkaran, masadaki payları tek tıkla bölüştüren, döngüleri akıllı dengeleyen ve anında FAST ile ödeştiren sosyal finans platformu.',
   icons: {
     icon: '/favicon.svg'
   }

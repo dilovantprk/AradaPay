@@ -98,7 +98,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.domain.model.GroupMember
 import com.ardabank.aradapay.presentation.components.bounceClick
 import com.ardabank.aradapay.presentation.expense.ExpenseParticipant

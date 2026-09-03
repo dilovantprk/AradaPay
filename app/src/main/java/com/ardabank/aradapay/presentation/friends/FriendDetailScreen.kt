@@ -103,7 +103,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.domain.model.User
 import com.ardabank.aradapay.presentation.components.FinancialHeroAmountCard
 import com.ardabank.aradapay.presentation.components.QuickActionChip
@@ -879,10 +879,10 @@ fun FriendDetailScreen(
                             showReminderModal = false
                             NotificationHelper.showSystemNotification(
                                 context = context,
-                                title = "Hatırlatma İletildi",
-                                message = "${friend.fullName} kişisine ${String.format(java.util.Locale.US, "%.2f", abs(netBalance))} ₺ tutarındaki alacak hatırlatması gönderildi."
+                                title = "👀 Masaya Ufak Bir Sinyal",
+                                message = "👀 ${friend.fullName} masadaki hesabı sessizce işaret ediyor (${String.format(java.util.Locale.US, "%.2f", abs(netBalance))} ₺)."
                             )
-                            Toast.makeText(context, "${friend.fullName} kişisine AradaPay ödeme hatırlatması iletildi", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "${friend.fullName} kişisine ufak bir sinyal çakıldı", Toast.LENGTH_SHORT).show()
                         }
                 ) {
                     Row(
@@ -1254,17 +1254,17 @@ fun FriendDetailScreen(
                     }
                 } else if (expense.isIncoming) {
                     SlideToConfirmButton(
-                        text = "Ödeme Hatırlatması Gönder",
-                        completedText = "Hatırlatma İletildi",
+                        text = "Bi' Sinyal Çak (Dürt)",
+                        completedText = "Sinyal İletildi",
                         sliderColor = PrimaryEmerald,
                         thumbColor = Color(0xFF0F172A),
                         onConfirm = {
                             NotificationHelper.showSystemNotification(
                                 context = context,
-                                title = "Ödeme Hatırlatması Gönderildi",
-                                message = "${friend.fullName} kişisine '${expense.title}' için ${String.format(java.util.Locale.US, "%.2f", expense.remainingShare)} ₺ alacak hatırlatması iletildi."
+                                title = "👀 Masadaki Harcama Sinyali",
+                                message = "👀 ${friend.fullName} masadaki '${expense.title}' payını (${String.format(java.util.Locale.US, "%.2f", expense.remainingShare)} ₺) sessizce işaret ediyor."
                             )
-                            Toast.makeText(context, "${friend.fullName} kişisine hatırlatma iletildi", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "${friend.fullName} kişisine masadaki pay hatırlatıldı", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }

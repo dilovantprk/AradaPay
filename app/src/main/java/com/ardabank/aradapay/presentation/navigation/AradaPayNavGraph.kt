@@ -77,9 +77,7 @@ import com.ardabank.aradapay.presentation.auth.OnboardingHowItWorksScreen
 import com.ardabank.aradapay.presentation.auth.RegisterFlowScreen
 import com.ardabank.aradapay.presentation.auth.WelcomeScreen
 import com.ardabank.aradapay.presentation.components.bounceClick
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.outlined.Group
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.presentation.groups.GroupDetailScreen
 import com.ardabank.aradapay.presentation.groups.GroupsScreen
 import androidx.compose.material.icons.outlined.Description
@@ -88,6 +86,16 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PeopleAlt
 import androidx.compose.material.icons.outlined.Person
 
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ardabank.aradapay.presentation.auth.AuthViewModel
+import com.ardabank.aradapay.presentation.dashboard.DashboardViewModel
+import com.ardabank.aradapay.presentation.expense.ExpenseViewModel
+import com.ardabank.aradapay.presentation.friends.FriendsViewModel
+import com.ardabank.aradapay.presentation.groups.GroupViewModel
+import com.ardabank.aradapay.presentation.settle.SettleUpViewModel
+import kotlinx.coroutines.launch
+
 sealed class NavItem(
     val route: String,
     val title: String,
@@ -95,39 +103,54 @@ sealed class NavItem(
     val selectedIcon: ImageVector = icon
 ) {
     object Dashboard : NavItem("dashboard", "Ana Sayfa", Icons.Outlined.Home, Icons.Filled.Home)
-    object Groups : NavItem("groups", "Gruplar", Icons.Outlined.Group, Icons.Filled.Group)
+    object Groups : NavItem("groups", "Gruplar", Icons.Outlined.PeopleAlt, Icons.Filled.PeopleAlt)
     object Friends : NavItem("friends", "Kişiler", Icons.Outlined.Person, Icons.Filled.Person)
     object Activity : NavItem("activity", "Hareketler", Icons.AutoMirrored.Outlined.ReceiptLong, Icons.AutoMirrored.Filled.ReceiptLong)
     object Profile : NavItem("profile", "Profil", Icons.Outlined.Person, Icons.Filled.Person)
 }
 
 @Composable
-fun AradaPayNavGraph() {
+fun AradaPayNavGraph(
+    authViewModel: AuthViewModel = hiltViewModel(),
+    groupViewModel: GroupViewModel = hiltViewModel(),
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    friendsViewModel: FriendsViewModel = hiltViewModel(),
+    dashboardViewModel: DashboardViewModel = hiltViewModel(),
+    settleUpViewModel: SettleUpViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val groupRepository = remember { GroupRepository() }
+    val groupRepository = groupViewModel.groupRepository
 
-    var isDataLocked by remember { mutableStateOf(false) }
-    val firebaseUser = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser }
-    val defaultName = firebaseUser?.displayName ?: firebaseUser?.email?.split("@")?.first()?.replaceFirstChar { it.uppercase() } ?: "Kullanıcı"
-    var userName by remember { mutableStateOf(defaultName) }
-    var userIban by remember { mutableStateOf("") }
-    var userAvatarUrl by remember { mutableStateOf("") }
-    var userAvatarEmoji by remember {
-        mutableStateOf(
-            if (defaultName.length >= 2) defaultName.take(2).uppercase() else "AP"
-        )
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+    val storedUserName by authViewModel.userNameFlow.collectAsStateWithLifecycle()
+    val storedUserIban by authViewModel.userIbanFlow.collectAsStateWithLifecycle()
+    val storedAvatarUrl by authViewModel.avatarUrlFlow.collectAsStateWithLifecycle()
+    val storedAvatarEmoji by authViewModel.avatarEmojiFlow.collectAsStateWithLifecycle()
+    val isDataLocked by authViewModel.isDataLockedFlow.collectAsStateWithLifecycle()
+
+    val financialSummary by dashboardViewModel.financialSummary.collectAsStateWithLifecycle()
+    val nudgesList by dashboardViewModel.nudges.collectAsStateWithLifecycle()
+    val pendingList by dashboardViewModel.pendingExpenses.collectAsStateWithLifecycle()
+    val friendsList by friendsViewModel.friends.collectAsStateWithLifecycle()
+
+    var customUserName by remember { mutableStateOf("") }
+    val effectiveUserName = when {
+        customUserName.isNotBlank() -> customUserName
+        currentUser != null && currentUser!!.fullName.isNotBlank() -> currentUser!!.fullName
+        storedUserName.isNotBlank() && storedUserName != "Kullanıcı" -> storedUserName
+        else -> "Kullanıcı"
     }
 
-    val pendingList = remember {
-        mutableStateListOf<Expense>()
-    }
-
-    val nudgesList = remember {
-        mutableStateListOf<Nudge>()
-    }
+    val effectiveIban = if (currentUser?.iban?.isNotBlank() == true) currentUser!!.iban!! else storedUserIban
+    val effectiveAvatarUrl = if (currentUser?.avatarUrl?.isNotBlank() == true) currentUser!!.avatarUrl else storedAvatarUrl
+    val effectiveEmoji = if (effectiveUserName.length >= 2) {
+        val parts = effectiveUserName.trim().split(" ").filter { it.isNotBlank() }
+        if (parts.size >= 2) "${parts[0].first()}${parts[1].first()}".uppercase()
+        else effectiveUserName.take(2).uppercase()
+    } else storedAvatarEmoji
 
     val bottomNavItems = listOf(
         NavItem.Dashboard,
@@ -221,15 +244,16 @@ fun AradaPayNavGraph() {
         ) {
             composable("login") {
                 LoginScreen(
-                    currentUserName = userName,
+                    currentUserName = effectiveUserName,
+                    viewModel = authViewModel,
                     onLoginSuccess = { loggedInName ->
-                        userName = loggedInName
+                        customUserName = loggedInName
                         navController.navigate(NavItem.Dashboard.route) {
                             popUpTo("welcome") { inclusive = true }
                         }
                     },
                     onSwitchUser = { newName ->
-                        userName = newName
+                        customUserName = newName
                     },
                     onNavigateToRegister = {
                         navController.navigate("register_flow")
@@ -252,9 +276,10 @@ fun AradaPayNavGraph() {
 
             composable("register_flow") {
                 RegisterFlowScreen(
+                    viewModel = authViewModel,
                     onBackClick = { navController.popBackStack() },
                     onRegisterSuccess = { createdUser ->
-                        userName = createdUser.fullName
+                        customUserName = createdUser.fullName
                         navController.navigate("onboarding_guide") {
                             popUpTo("welcome") { inclusive = true }
                         }
@@ -264,7 +289,7 @@ fun AradaPayNavGraph() {
 
             composable("onboarding_guide") {
                 OnboardingHowItWorksScreen(
-                    userName = userName,
+                    userName = effectiveUserName,
                     onComplete = {
                         navController.navigate(NavItem.Dashboard.route) {
                             popUpTo("onboarding_guide") { inclusive = true }
@@ -278,16 +303,19 @@ fun AradaPayNavGraph() {
                 deepLinks = listOf(navDeepLink { uriPattern = "aradapay://dashboard" })
             ) {
                 DashboardScreen(
-                    userName = userName,
-                    avatarEmoji = userAvatarEmoji,
-                    avatarUrl = userAvatarUrl,
+                    userName = effectiveUserName,
+                    avatarEmoji = effectiveEmoji,
+                    avatarUrl = effectiveAvatarUrl,
                     isLocked = isDataLocked,
+                    netBalance = financialSummary.netBalance,
+                    totalReceivable = financialSummary.alacakTotal,
+                    totalPayable = financialSummary.borcTotal,
                     nudges = nudgesList,
                     pendingExpenses = pendingList,
                     groupRepository = groupRepository,
-                    onApproveExpense = { id -> pendingList.removeAll { it.id == id } },
-                    onRejectExpense = { id -> pendingList.removeAll { it.id == id } },
-                    onToggleLock = { isDataLocked = !isDataLocked },
+                    onApproveExpense = { id -> dashboardViewModel.approveExpense(id) },
+                    onRejectExpense = { id -> dashboardViewModel.rejectExpense(id) },
+                    onToggleLock = { authViewModel.toggleDataLock(!isDataLocked) },
                     onProfileClick = { navController.navigate("profile") },
                     onAddExpenseClick = { navController.navigate("add_expense") },
                     onSettleUpClick = { navController.navigate("settle_up") },
@@ -369,9 +397,11 @@ fun AradaPayNavGraph() {
                 deepLinks = listOf(navDeepLink { uriPattern = "aradapay://friends" })
             ) {
                 FriendsScreen(
+                    remoteFriends = friendsList,
                     onFriendClick = { friendId -> navController.navigate("friend_detail/$friendId") },
                     onAddExpense = { navController.navigate("add_expense") },
-                    onSettleUp = { navController.navigate("settle_up") }
+                    onSettleUp = { navController.navigate("settle_up") },
+                    onAddFriend = { user -> friendsViewModel.addFriend(user) }
                 )
             }
 
@@ -404,18 +434,20 @@ fun AradaPayNavGraph() {
             }
 
             composable("profile") {
+                val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
                 ProfileScreen(
-                    userName = userName,
-                    userIban = userIban,
-                    avatarEmoji = userAvatarEmoji,
-                    avatarUrl = userAvatarUrl,
+                    userName = effectiveUserName,
+                    userIban = effectiveIban,
+                    avatarEmoji = effectiveEmoji,
+                    avatarUrl = effectiveAvatarUrl,
                     onBackClick = { navController.popBackStack() },
                     onSettingsClick = { navController.navigate("settings") },
                     onEditProfileClick = { navController.navigate("edit_profile") },
                     onAnalyticsClick = { navController.navigate("analytics") },
                     onSavingsReportClick = { navController.navigate("savings_report") },
                     onSignOutClick = {
-                        userName = ""
+                        customUserName = ""
+                        authViewModel.signOut()
                         navController.navigate("welcome") {
                             popUpTo(0) { inclusive = true }
                         }
@@ -424,17 +456,23 @@ fun AradaPayNavGraph() {
             }
 
             composable("edit_profile") {
+                val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
                 EditProfileScreen(
-                    currentName = userName,
-                    currentIban = userIban,
-                    currentAvatarEmoji = userAvatarEmoji,
-                    currentAvatarUrl = userAvatarUrl,
+                    currentName = effectiveUserName,
+                    currentIban = effectiveIban,
+                    currentAvatarEmoji = effectiveEmoji,
+                    currentAvatarUrl = effectiveAvatarUrl,
                     onBackClick = { navController.popBackStack() },
                     onSaveProfile = { newName, newIban, newEmoji, newAvatarUrl ->
-                        userName = newName
-                        userIban = newIban
-                        userAvatarEmoji = newEmoji
-                        userAvatarUrl = newAvatarUrl
+                        customUserName = newName
+                        coroutineScope.launch {
+                            authViewModel.securityPreferencesManager.saveUserSession(
+                                name = newName,
+                                iban = newIban,
+                                avatarUrl = newAvatarUrl,
+                                avatarEmoji = newEmoji
+                            )
+                        }
                     }
                 )
             }
@@ -492,8 +530,19 @@ fun AradaPayNavGraph() {
                     initialGroupId = initialGroupId,
                     initialGroupName = initialGroupName,
                     groupRepository = groupRepository,
+                    friendsList = friendsList,
                     onCancel = { navController.popBackStack() },
-                    onSaveExpense = { _, _, _, _, _ -> navController.popBackStack() }
+                    onSaveExpense = { amount, description, category, splitMethod, selectedUserIds ->
+                        expenseViewModel.saveExpense(
+                            amount = amount,
+                            description = description,
+                            category = category,
+                            splitMethod = splitMethod,
+                            selectedUserIds = selectedUserIds,
+                            groupId = initialGroupId
+                        )
+                        navController.popBackStack()
+                    }
                 )
             }
 
@@ -532,7 +581,16 @@ fun AradaPayNavGraph() {
                     initialGroupId = initialGroupId,
                     initialGroupName = initialGroupName,
                     onCancel = { navController.popBackStack() },
-                    onConfirmSettlement = { _, _ -> navController.popBackStack() }
+                    onConfirmSettlement = { amount, note ->
+                        settleUpViewModel.confirmSettlement(
+                            receiverId = initialGroupId ?: "friend",
+                            amount = amount,
+                            note = note,
+                            isCash = false,
+                            groupId = initialGroupId
+                        )
+                        navController.popBackStack()
+                    }
                 )
             }
 

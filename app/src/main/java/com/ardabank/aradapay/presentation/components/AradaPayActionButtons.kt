@@ -27,13 +27,13 @@ import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
 
 /**
- * Standardized "Onayla" (Confirm/Approve) Action Button
+ * Standardized "Masaya Ekle / Onayla" (Confirm/Approve) Action Button
  */
 @Composable
 fun AppConfirmButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    text: String = "Onayla"
+    text: String = "Masaya Ekle"
 ) {
     Button(
         onClick = onClick,
@@ -64,13 +64,13 @@ fun AppConfirmButton(
 }
 
 /**
- * Standardized "Hatırlat" (Remind) Action Button
+ * Standardized "Bi' Dürt" (Nudge/Remind) Action Button
  */
 @Composable
 fun AppRemindButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    text: String = "Hatırlat"
+    text: String = "Bi' Dürt"
 ) {
     FilledTonalButton(
         onClick = onClick,
@@ -101,13 +101,13 @@ fun AppRemindButton(
 }
 
 /**
- * Standardized "Öde" (Pay/Settle Up) Action Button
+ * Standardized "Ödeş" (Pay/Settle Up) Action Button
  */
 @Composable
 fun AppPayButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    text: String = "Öde"
+    text: String = "Ödeş"
 ) {
     Button(
         onClick = onClick,
@@ -138,13 +138,13 @@ fun AppPayButton(
 }
 
 /**
- * Standardized "İtiraz Et / Reddet" (Decline/Dispute) Action Button
+ * Standardized "Bir Yanlışlık Var" (Decline/Dispute) Action Button
  */
 @Composable
 fun AppRejectButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    text: String = "İtiraz Et"
+    text: String = "Bir Yanlışlık Var"
 ) {
     FilledTonalButton(
         onClick = onClick,

@@ -15,15 +15,37 @@ class GroupRepositoryTest {
     @Before
     fun setUp() {
         groupRepository = GroupRepository()
+        // Seed test groups
+        groupRepository.createGroup(
+            name = "Kadıköy Evi",
+            emoji = "🏠",
+            category = "Ev",
+            members = listOf(
+                GroupMember("me", "Sen", "MD", "@me", 350.0),
+                GroupMember("1", "Ahmet Yılmaz", "AY", "@ahmet", 100.0),
+                GroupMember("2", "Zeynep Kaya", "ZK", "@zeynep", -200.0),
+                GroupMember("3", "Mert Demir", "MD", "@mert", -250.0)
+            )
+        )
+        groupRepository.createGroup(
+            name = "Ofis Öğle Yemekleri",
+            emoji = "🍔",
+            category = "Yemek",
+            members = listOf(
+                GroupMember("me", "Sen", "MD", "@me", 0.0),
+                GroupMember("1", "Ahmet Yılmaz", "AY", "@ahmet", 0.0),
+                GroupMember("8", "Deniz Arda", "DA", "@deniz", 0.0)
+            )
+        )
     }
 
     @Test
     fun `initial groups are loaded properly`() {
         val groups = groupRepository.groups.value
         assertTrue(groups.isNotEmpty())
-        assertEquals(4, groups.size)
+        assertEquals(2, groups.size)
 
-        val firstGroup = groupRepository.getGroupById("grp_1")
+        val firstGroup = groupRepository.groups.value.find { it.name == "Kadıköy Evi" }
         assertNotNull(firstGroup)
         assertEquals("Kadıköy Evi", firstGroup?.name)
     }
@@ -48,24 +70,24 @@ class GroupRepositoryTest {
 
     @Test
     fun `addMemberToGroup adds new member successfully`() {
-        val group = groupRepository.getGroupById("grp_1")!!
+        val group = groupRepository.groups.value.first()
         val newMember = GroupMember("99", "Yeni Üye", "YÜ", "@yeni", 0.0)
 
-        val success = groupRepository.addMemberToGroup("grp_1", newMember)
+        val success = groupRepository.addMemberToGroup(group.id, newMember)
         assertTrue(success)
 
-        val updatedGroup = groupRepository.getGroupById("grp_1")!!
+        val updatedGroup = groupRepository.getGroupById(group.id)!!
         assertTrue(updatedGroup.members.any { it.id == "99" })
     }
 
     @Test
     fun `addExpenseToGroup correctly recalculates group balances`() {
-        val group = groupRepository.getGroupById("grp_3")!! // 3 members: me, Ahmet, Deniz
+        val group = groupRepository.groups.value.find { it.name == "Ofis Öğle Yemekleri" }!!
         val initialUserBalance = group.userBalance
 
         // Add 300 TL expense paid by 'me', split equally among 3
         val expense = groupRepository.addExpenseToGroup(
-            groupId = "grp_3",
+            groupId = group.id,
             title = "Ortak Pizza",
             amount = 300.0,
             category = ExpenseCategory.DINING,
@@ -76,28 +98,28 @@ class GroupRepositoryTest {
         )
 
         assertNotNull(expense)
-        val updatedGroup = groupRepository.getGroupById("grp_3")!!
+        val updatedGroup = groupRepository.getGroupById(group.id)!!
         // Per person share = 100. Since user paid 300, user is owed 200 (+200)
         assertEquals(initialUserBalance + 200.0, updatedGroup.userBalance, 0.01)
 
-        val groupExpenses = groupRepository.getExpensesForGroup("grp_3")
+        val groupExpenses = groupRepository.getExpensesForGroup(group.id)
         assertTrue(groupExpenses.any { it.title == "Ortak Pizza" })
     }
 
     @Test
     fun `settleGroupBalance zeroes out or decreases debt properly`() {
-        val group = groupRepository.getGroupById("grp_1")!!
-        val originalBalance = group.userBalance
+        val group = groupRepository.groups.value.find { it.name == "Kadıköy Evi" }!!
+        val originalBalance = 350.0
 
         val settled = groupRepository.settleGroupBalance(
-            groupId = "grp_1",
+            groupId = group.id,
             amount = originalBalance,
             isCash = true,
             note = "Tam fitleşme"
         )
 
         assertTrue(settled)
-        val updatedGroup = groupRepository.getGroupById("grp_1")!!
+        val updatedGroup = groupRepository.getGroupById(group.id)!!
         assertEquals(0.0, updatedGroup.userBalance, 0.01)
     }
 
@@ -111,11 +133,24 @@ class GroupRepositoryTest {
 
     @Test
     fun `getSimplifyDebtsSuggestions optimizes group debts without cyclic transfers`() {
-        val suggestions = groupRepository.getSimplifyDebtsSuggestions("grp_1")
+        val group = groupRepository.groups.value.find { it.name == "Kadıköy Evi" }!!
+        // Add expense so members have positive/negative balances
+        groupRepository.addExpenseToGroup(
+            groupId = group.id,
+            title = "Ortak Harcama",
+            amount = 400.0,
+            category = ExpenseCategory.HOUSING,
+            payerId = "me",
+            payerName = "Sen",
+            participantIds = listOf("1", "2", "3"),
+            includeMyself = true
+        )
+
+        val suggestions = groupRepository.getSimplifyDebtsSuggestions(group.id)
         assertTrue(suggestions.isNotEmpty())
-        // In grp_1: me is owed +350, Ahmet is owed +100, Zeynep owes -200, Mert owes -250
-        // Net sum of suggestions should balance
         val totalTransferred = suggestions.sumOf { it.amount }
         assertTrue(totalTransferred > 0.0)
     }
 }
+
+

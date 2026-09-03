@@ -73,7 +73,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.domain.model.ExpenseCategory
 import com.ardabank.aradapay.domain.model.GroupMember
 import com.ardabank.aradapay.presentation.components.bounceClick
@@ -124,16 +124,16 @@ fun GroupDetailScreen(
         val myMember = group.members.find { it.id == "me" || it.id == "1" }
         if (myMember != null) {
             val sign = if (myMember.balanceInGroup >= 0) "+" else ""
-            val status = if (myMember.balanceInGroup >= 0) "Alacaklısın" else "Borçlusun"
-            sb.append("📊 Senin Durumun: $sign${String.format(java.util.Locale.US, "%.2f", myMember.balanceInGroup)} ₺ ($status)\n")
+            val status = if (myMember.balanceInGroup >= 0) "Masada Payın Var" else "Masaya Payın Var"
+            sb.append("📊 Masa Durumun: $sign${String.format(java.util.Locale.US, "%.2f", myMember.balanceInGroup)} ₺ ($status)\n")
         }
         if (mySteps.isNotEmpty()) {
-            sb.append("\n⚡ Senin FAST Transferlerin:\n")
+            sb.append("\n⚡ Senin Masadaki Payların:\n")
             mySteps.forEach { s ->
                 sb.append("👉 ${s.fromUserName} -> ${s.toUserName}: ${String.format(java.util.Locale.US, "%.2f", s.amount)} ₺\n")
             }
         }
-        sb.append("\nAradaPay ile fitleşildi ✨")
+        sb.append("\nAradaPay ile hesaplar tertemiz oldu ✨")
 
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             putExtra(Intent.EXTRA_TEXT, sb.toString())
@@ -698,7 +698,7 @@ fun GroupDetailScreen(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Borç Sadeleştirme",
+                        text = "Akıllı Masa Dengeleme",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A)
@@ -723,13 +723,13 @@ fun GroupDetailScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Akıllı Borç Sadeleştirme",
+                                text = "Akıllı Masa Dengeleme",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryEmerald
                             )
                             Text(
-                                text = "Gereksiz ara transferleri sıfırlayan doğrudan FAST transfer planı.",
+                                text = "Gereksiz ara transferleri sıfırlayan doğrudan ve akıllı ödeşme planı.",
                                 color = Color(0xFF0F172A),
                                 fontSize = 12.sp
                             )

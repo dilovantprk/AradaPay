@@ -331,7 +331,7 @@ fun AnalyticsScreen(
                 }
 
                 Text(
-                    text = "Finansal Analitik",
+                    text = "Masa Analizi & Rapor",
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleLarge
@@ -366,7 +366,7 @@ fun AnalyticsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "TOPLAM İŞLEM HACMİ",
+                        text = "MASADAKİ TOPLAM HACİM",
                         color = TextSecondary,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -378,7 +378,7 @@ fun AnalyticsScreen(
                         color = PrimaryEmeraldContainer
                     ) {
                         Text(
-                            text = "Net +2.600,00 ₺ Alacak",
+                            text = "Net +2.600,00 ₺ Masadan Alacak",
                             color = PrimaryEmerald,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,

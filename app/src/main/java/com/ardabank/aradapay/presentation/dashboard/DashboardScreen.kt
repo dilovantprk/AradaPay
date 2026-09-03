@@ -126,7 +126,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.domain.model.Expense
 import com.ardabank.aradapay.domain.model.Nudge
 import com.ardabank.aradapay.presentation.common.BankContactPickerScreen
@@ -417,7 +417,7 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "NET BAKİYE",
+                        text = "MASA DURUMU",
                         color = Color(0xFF64748B),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -452,7 +452,7 @@ fun DashboardScreen(
             HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
         }
 
-        // 3. CTA Row (+ Harcama Ekle & Öde & Fitleş)
+        // 3. CTA Row (+ Masaya Bırak & Ödeş & Kapat)
         item {
             Row(
                 modifier = Modifier
@@ -481,7 +481,7 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Harcama Ekle",
+                            text = "Masaya Bırak",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -510,7 +510,7 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Öde & Fitleş",
+                            text = "Ödeş & Kapat",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -536,7 +536,7 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "HAREKETLER & İŞLEMLER",
+                        text = "MASADAKİ HAREKETLER",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF64748B),
@@ -544,7 +544,7 @@ fun DashboardScreen(
                     )
 
                     Text(
-                        text = "${filteredList.size} İşlem",
+                        text = "${filteredList.size} Hareket",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF94A3B8)
@@ -609,16 +609,17 @@ fun DashboardScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "İşlem Bulunamadı",
+                        text = "Masa bomboş.",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = Color(0xFF0F172A)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Seçili filtreye uygun işlem veya bildirim bulunmuyor.",
+                        text = "Ya herkes kendi hesabını ödedi ya da dışarı çıkma vaktiniz geldi.",
                         fontSize = 12.sp,
-                        color = Color(0xFF64748B)
+                        color = Color(0xFF64748B),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }
@@ -856,7 +857,7 @@ fun DashboardScreen(
                         }
 
                         Text(
-                            text = "Para İste & Hatırlat",
+                            text = "Bi' Dürt & Masayı Hatırlat",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A)
@@ -875,7 +876,7 @@ fun DashboardScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Kimden:",
+                                text = "Kime:",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A),
                                 fontSize = 15.sp
@@ -957,7 +958,7 @@ fun DashboardScreen(
                                     Box(contentAlignment = Alignment.CenterStart) {
                                         if (requestSearchQuery.isEmpty()) {
                                             Text(
-                                                text = if (selectedFriend == null) "Para istenecek kişiyi seç..." else "Kişi ara...",
+                                                text = if (selectedFriend == null) "Kime ufak bir sinyal çakılacak?..." else "Kişi ara...",
                                                 fontSize = 14.sp,
                                                 color = Color(0xFF94A3B8)
                                             )
@@ -1081,7 +1082,7 @@ fun DashboardScreen(
                     if (!isRecipientDropdownOpen) {
                         HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
-                        // 3. TALEP EDİLECEK TUTAR (Hero Big Amount Input)
+                        // 3. HATIRLATILACAK PAY TUTARI (Hero Big Amount Input)
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1089,7 +1090,7 @@ fun DashboardScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "TALEP EDİLECEK TUTAR",
+                                text = "HATIRLATILACAK PAY TUTARI",
                                 color = Color(0xFF64748B),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
@@ -1230,7 +1231,7 @@ fun DashboardScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                                     if (requestNote.isEmpty()) {
-                                        Text("Örn: Kahve masrafı payın", color = Color(0xFF94A3B8), fontSize = 14.sp)
+                                        Text("Örn: Kahveler sendendi sanki?", color = Color(0xFF94A3B8), fontSize = 14.sp)
                                     }
                                     BasicTextField(
                                         value = requestNote,
@@ -1261,13 +1262,13 @@ fun DashboardScreen(
                                 if (amt > 0) {
                                     NotificationHelper.showSystemNotification(
                                         context = context,
-                                        title = "Ödeme Talebi İletildi",
-                                        message = "$friendName kullanıcısından ${String.format(java.util.Locale.US, "%.2f", amt)} ₺ talep edildi: $requestNote"
+                                        title = "👀 Masaya Ufak Bir Hatırlatma",
+                                        message = "$friendName masadaki payını (${String.format(java.util.Locale.US, "%.2f", amt)} ₺) hatırlattın: $requestNote"
                                     )
-                                    Toast.makeText(context, "$friendName kişisine ${String.format(java.util.Locale.US, "%.2f", amt)} ₺ ödeme talebi iletildi.", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "$friendName kişisine masadaki payı sessizce işaret edildi.", Toast.LENGTH_SHORT).show()
                                     showRequestMoneySheet = false
                                 } else {
-                                    Toast.makeText(context, "Lütfen talep tutarı giriniz", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Lütfen masadaki pay tutarını girin", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             enabled = isRequestAmountValid,
@@ -1290,7 +1291,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (isRequestAmountValid) "Ödeme Talebi Gönder (${String.format(java.util.Locale.US, "%.2f", amt)} ₺)" else "Ödeme Talebi Gönder",
+                                text = if (isRequestAmountValid) "Bi' Dürt (${String.format(java.util.Locale.US, "%.2f", amt)} ₺)" else "Bi' Dürt (Sinyal Çak)",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1300,13 +1301,13 @@ fun DashboardScreen(
                         FilledTonalButton(
                             onClick = {
                                 val friendName = selectedFriend?.name ?: "Arkadaş"
-                                val shareText = "Selam $friendName! AradaPay üzerinden ${if (amt > 0) "${String.format(java.util.Locale.US, "%.2f", amt)} ₺" else ""} ödeme talebi gönderdim: ${requestNote.ifBlank { "Ortak masraf payı" }}. FAST ile hemen ödemek için: https://aradapay.com/pay/arda1453?amount=$amt"
+                                val shareText = "Selam $friendName! Masada gözden kaçmış olabilir, ${if (amt > 0) "${String.format(java.util.Locale.US, "%.2f", amt)} ₺ " else ""}payın duruyor: ${requestNote.ifBlank { "Masadaki kahveler hala duruyor :)" }}. FAST ile kolayca ödeşmek istersen: https://aradapay.com/pay/arda1453?amount=$amt"
                                 val sendIntent = android.content.Intent().apply {
                                     action = android.content.Intent.ACTION_SEND
                                     putExtra(android.content.Intent.EXTRA_TEXT, shareText)
                                     type = "text/plain"
                                 }
-                                context.startActivity(android.content.Intent.createChooser(sendIntent, "Ödeme Talebini Paylaş"))
+                                context.startActivity(android.content.Intent.createChooser(sendIntent, "Sinyali Paylaş"))
                             },
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.filledTonalButtonColors(

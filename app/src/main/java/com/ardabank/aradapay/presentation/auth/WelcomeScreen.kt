@@ -82,7 +82,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Ortak hesapları ve harcamaları arkadaşlarınla kolayca bölüşün.",
+                text = "Masadaki ortak hesabı dert etmeyin; arkadaşlarınla harcamaları kolayca bölüşüp anında ödeşin.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color(0xFF64748B),
                 textAlign = TextAlign.Center,
@@ -118,7 +118,7 @@ fun WelcomeScreen(
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
             ) {
                 Text(
-                    text = "Hemen Başla (Kayıt Ol)",
+                    text = "Masaya Katıl (Kayıt Ol)",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -144,7 +144,7 @@ fun WelcomeScreen(
                     }
             ) {
                 Text(
-                    text = "Zaten Hesabım Var (Giriş Yap)",
+                    text = "Masaya Dön (Giriş Yap)",
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
                 )

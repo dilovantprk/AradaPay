@@ -52,7 +52,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       case '00111':
         return 'QNB Finansbank';
       default:
-        return 'BKM / FAST Uyumlu Banka';
+        return 'Banka Hesabı (FAST / IBAN)';
     }
   };
 

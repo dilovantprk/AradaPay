@@ -25,7 +25,7 @@ class MerkleTreeBlockchainEngineTest {
 
         assertTrue(anchor.txHash.startsWith("0x"))
         assertTrue(anchor.merkleRoot.startsWith("0x"))
-        assertEquals("0,00 ₺ (Maliyetsiz L2 Merkle Rollup)", anchor.gasFee)
+        assertEquals("0,00 ₺ (Ücretsiz Transfer)", anchor.gasFee)
         assertEquals(2, anchor.merkleProof.size)
     }
 

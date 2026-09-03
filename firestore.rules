@@ -14,22 +14,32 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isOwner(userId);
+
+      // Friends subcollection
+      match /friends/{friendId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
 
     // Expenses Rules
     match /expenses/{expenseId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.paid_by == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.paid_by == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        (request.resource.data.paidBy == request.auth.uid || request.resource.data.paid_by == request.auth.uid);
+      allow update, delete: if isAuthenticated() && 
+        (resource.data.paidBy == request.auth.uid || resource.data.paid_by == request.auth.uid);
     }
 
     // Settlements Rules
     match /settlements/{settlementId} {
       allow read: if isAuthenticated() && 
-        (resource.data.payer_id == request.auth.uid || resource.data.receiver_id == request.auth.uid);
-      allow create: if isAuthenticated() && request.resource.data.payer_id == request.auth.uid;
+        (resource.data.payerId == request.auth.uid || resource.data.payer_id == request.auth.uid || 
+         resource.data.receiverId == request.auth.uid || resource.data.receiver_id == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        (request.resource.data.payerId == request.auth.uid || request.resource.data.payer_id == request.auth.uid);
       allow update: if isAuthenticated() && 
-        (resource.data.payer_id == request.auth.uid || resource.data.receiver_id == request.auth.uid);
+        (resource.data.payerId == request.auth.uid || resource.data.payer_id == request.auth.uid || 
+         resource.data.receiverId == request.auth.uid || resource.data.receiver_id == request.auth.uid);
     }
 
     // Cross Settlement Offers Rules
@@ -41,9 +51,22 @@ service cloud.firestore {
     // Nudges Rules
     match /nudges/{nudgeId} {
       allow read: if isAuthenticated() && 
-        (resource.data.from_user_id == request.auth.uid || resource.data.to_user_id == request.auth.uid);
-      allow create: if isAuthenticated() && request.resource.data.from_user_id == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.to_user_id == request.auth.uid;
+        (resource.data.fromUserId == request.auth.uid || resource.data.from_user_id == request.auth.uid || 
+         resource.data.toUserId == request.auth.uid || resource.data.to_user_id == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        (request.resource.data.fromUserId == request.auth.uid || request.resource.data.from_user_id == request.auth.uid);
+      allow update: if isAuthenticated() && 
+        (resource.data.toUserId == request.auth.uid || resource.data.to_user_id == request.auth.uid);
+    }
+
+    // Groups Rules
+    match /groups/{groupId} {
+      allow read, write: if isAuthenticated();
+
+      // Group Expenses subcollection
+      match /expenses/{expenseId} {
+        allow read, write: if isAuthenticated();
+      }
     }
 
   }

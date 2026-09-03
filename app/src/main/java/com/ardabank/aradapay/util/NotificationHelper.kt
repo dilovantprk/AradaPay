@@ -18,7 +18,7 @@ object NotificationHelper {
 
     const val CHANNEL_ID = "aradapay_notifications_channel"
     const val CHANNEL_NAME = "AradaPay Bildirimleri"
-    const val CHANNEL_DESC = "Borç sıfırlama, harcama onayları ve ödeme hatırlatmaları"
+    const val CHANNEL_DESC = "Masadaki harcamalar, dostça dürtmeler ve ödeşme anları"
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -32,17 +32,17 @@ export const SmartSettlementBanner: React.FC<SmartSettlementBannerProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-[#00875A] uppercase tracking-wider">
-                DFS AKILLI MAHSUPLAŞMA
+                AKILLI MASA DENGELEME
               </span>
               <span className="text-[10px] font-bold bg-white text-[#00875A] border border-emerald-300 px-2 py-0.5 rounded-full shadow-2xs">
                 {approvedCount}/{totalCount} Onay
               </span>
             </div>
             <p className="text-[15px] font-bold text-[#1C1C1E] mt-1">
-              {pendingOffer.cycleAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ borç döngüsü bulundu!
+              {pendingOffer.cycleAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ kendiliğinden ödeşme fırsatı!
             </p>
             <p className="text-[12px] text-[#86868B] mt-0.5">
-              {pendingOffer.participants.map((p) => p.name.split(' ')[0]).join(' ➔ ')} (Sıfır banka transferi ile kapanabilir)
+              {pendingOffer.participants.map((p) => p.name.split(' ')[0]).join(' ➔ ')} (Sıfır transfer ile masayı kapat)
             </p>
           </div>
         </div>

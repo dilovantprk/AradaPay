@@ -62,6 +62,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -86,25 +87,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ardabank.aradapay.domain.model.Currency
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ardabank.aradapay.domain.model.User
 import com.ardabank.aradapay.presentation.common.UserAvatar
 import com.ardabank.aradapay.presentation.components.bounceClick
 import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
 import com.ardabank.aradapay.util.ImageStorageHelper
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun RegisterFlowScreen(
     initialFullName: String = "",
     initialEmail: String = "",
     isGoogleVerified: Boolean = false,
+    viewModel: AuthViewModel = hiltViewModel(),
     onBackClick: () -> Unit = {},
     onRegisterSuccess: (User) -> Unit = {}
 ) {
@@ -113,8 +110,9 @@ fun RegisterFlowScreen(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
 
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     var currentStep by remember { mutableIntStateOf(1) }
-    var isLoading by remember { mutableStateOf(false) }
 
     // Step 1: Kişisel Bilgiler & Hesap Şifresi
     var fullName by remember { mutableStateOf(initialFullName) }
@@ -131,6 +129,24 @@ fun RegisterFlowScreen(
     var confirmPinCode by remember { mutableStateOf("") }
     var isPinVisible by remember { mutableStateOf(false) }
     var isConfirmPinVisible by remember { mutableStateOf(false) }
+
+    // Handle Success & Error States
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            is AuthUiState.Success -> {
+                val user = (uiState as AuthUiState.Success).user
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                Toast.makeText(context, "Hesabınız başarıyla oluşturuldu! Hoş geldiniz, ${user.fullName}.", Toast.LENGTH_LONG).show()
+                onRegisterSuccess(user)
+            }
+            is AuthUiState.Error -> {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                Toast.makeText(context, (uiState as AuthUiState.Error).message, Toast.LENGTH_LONG).show()
+                viewModel.clearErrors()
+            }
+            else -> {}
+        }
+    }
 
     // Photo Picker Launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -149,7 +165,7 @@ fun RegisterFlowScreen(
     }
 
     // Step-by-step BackHandler
-    BackHandler(enabled = !isLoading) {
+    BackHandler(enabled = uiState !is AuthUiState.Loading) {
         if (currentStep > 1) {
             currentStep--
         } else {
@@ -693,40 +709,18 @@ fun RegisterFlowScreen(
                                             return@Button
                                         }
 
-                                        isLoading = true
-                                        coroutineScope.launch {
-                                            val fullPhone = if (phone.isNotBlank()) "+90$phone" else "+905550001122"
-                                            val firstName = fullName.trim().split(" ").firstOrNull() ?: fullName.trim()
-                                            val tagCode = "@${firstName.lowercase()}#${(1000..9999).random()}"
-
-                                            val createdUser = User(
-                                                id = getFirebaseCurrentUserId() ?: "user_${System.currentTimeMillis()}",
-                                                email = email.trim(),
-                                                username = firstName,
-                                                fullName = fullName.trim(),
-                                                avatarUrl = avatarUrl,
-                                                phone = fullPhone,
-                                                iban = "TR640006200000005566778899",
-                                                tag = tagCode,
-                                                defaultCurrency = Currency.TRY,
-                                                pin = pinCode,
-                                                createdAt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                                            )
-
-                                            try {
-                                                FirebaseFirestore.getInstance()
-                                                    .collection("users")
-                                                    .document(createdUser.id)
-                                                    .set(createdUser)
-                                            } catch (_: Exception) {}
-
-                                            delay(300)
-                                            isLoading = false
-                                            Toast.makeText(context, "Hesabınız başarıyla oluşturuldu! Hoş geldiniz, $fullName.", Toast.LENGTH_LONG).show()
-                                            onRegisterSuccess(createdUser)
-                                        }
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.register(
+                                            fullName = fullName,
+                                            email = email,
+                                            pass = accountPassword,
+                                            confirmPass = confirmAccountPassword,
+                                            phone = phone.ifBlank { null },
+                                            avatarUrl = avatarUrl,
+                                            pin = pinCode
+                                        )
                                     },
-                                    enabled = !isLoading,
+                                    enabled = uiState !is AuthUiState.Loading,
                                     shape = RoundedCornerShape(16.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = PrimaryEmerald,
@@ -738,7 +732,7 @@ fun RegisterFlowScreen(
                                         .bounceClick { },
                                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                                 ) {
-                                    if (isLoading) {
+                                    if (uiState is AuthUiState.Loading) {
                                         CircularProgressIndicator(
                                             color = Color.White,
                                             modifier = Modifier.size(22.dp),
@@ -768,11 +762,4 @@ fun RegisterFlowScreen(
     }
 }
 
-private fun getFirebaseCurrentUserId(): String? {
-    return try {
-        FirebaseAuth.getInstance().currentUser?.uid
-    } catch (_: Exception) {
-        null
-    }
-}
 

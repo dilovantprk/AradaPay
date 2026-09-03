@@ -90,6 +90,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ardabank.aradapay.presentation.components.bounceClick
 import com.ardabank.aradapay.presentation.theme.PrimaryEmerald
 import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
@@ -104,6 +106,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     currentUserName: String = "Mehmet Dilovan",
+    viewModel: AuthViewModel = hiltViewModel(),
     onLoginSuccess: (String) -> Unit = {},
     onSwitchUser: (String) -> Unit = {},
     onNavigateToRegister: () -> Unit = {},
@@ -115,14 +118,23 @@ fun LoginScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
 
-    val isKnownUser = currentUserName.isNotBlank() && currentUserName != "Kullanıcı"
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val pinAuthState by viewModel.pinAuthState.collectAsStateWithLifecycle()
+    val resetPasswordState by viewModel.resetPasswordState.collectAsStateWithLifecycle()
+    val storedUserName by viewModel.userNameFlow.collectAsStateWithLifecycle()
+
+    val effectiveUserName = if (currentUserName.isNotBlank() && currentUserName != "Kullanıcı") {
+        currentUserName
+    } else {
+        storedUserName
+    }
+
+    val isKnownUser = effectiveUserName.isNotBlank() && effectiveUserName != "Kullanıcı"
     var isQuickUnlockMode by remember { mutableStateOf(isKnownUser) }
 
-    var userName by remember { mutableStateOf(currentUserName) }
+    var userName by remember { mutableStateOf(effectiveUserName) }
     var pinCode by remember { mutableStateOf("") }
     val pinFocusRequester = remember { FocusRequester() }
-
-    var isLoading by remember { mutableStateOf(false) }
 
     var identifierInput by remember { mutableStateOf("") }
     var passwordInput by remember { mutableStateOf("") }
@@ -134,8 +146,63 @@ fun LoginScreen(
 
     val isBiometricAvailable = remember { BiometricAuthHelper.isBiometricAvailable(context) }
 
+    // Listen to Auth Navigation Events
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvents.collect { event ->
+            when (event) {
+                is AuthNavigationEvent.NavigateToDashboard -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    Toast.makeText(context, "Hoş geldiniz, ${event.userName}!", Toast.LENGTH_SHORT).show()
+                    onLoginSuccess(event.userName)
+                }
+                is AuthNavigationEvent.NavigateToOnboarding -> {
+                    onLoginSuccess(userName)
+                }
+                is AuthNavigationEvent.NavigateToWelcome -> {
+                    onNavigateToWelcome()
+                }
+            }
+        }
+    }
+
+    // Handle UI errors
+    LaunchedEffect(uiState) {
+        if (uiState is AuthUiState.Error) {
+            Toast.makeText(context, (uiState as AuthUiState.Error).message, Toast.LENGTH_LONG).show()
+            viewModel.clearErrors()
+        }
+    }
+
+    // Handle PIN Auth errors
+    LaunchedEffect(pinAuthState) {
+        if (pinAuthState is PinAuthState.Error) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            Toast.makeText(context, (pinAuthState as PinAuthState.Error).message, Toast.LENGTH_LONG).show()
+            pinCode = ""
+            viewModel.clearErrors()
+        }
+    }
+
+    // Handle Reset Password State
+    LaunchedEffect(resetPasswordState) {
+        when (resetPasswordState) {
+            is ResetPasswordUiState.Success -> {
+                Toast.makeText(context, (resetPasswordState as ResetPasswordUiState.Success).message, Toast.LENGTH_LONG).show()
+                showResetPasswordDialog = false
+                viewModel.clearErrors()
+            }
+            is ResetPasswordUiState.Error -> {
+                Toast.makeText(context, (resetPasswordState as ResetPasswordUiState.Error).message, Toast.LENGTH_LONG).show()
+                viewModel.clearErrors()
+            }
+            else -> {}
+        }
+    }
+
+    val webClientId = "908604335031-0pd3pls2r9f2i4j671bd3q5v7b0ma2mv.apps.googleusercontent.com"
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
             .requestEmail()
             .build()
     }
@@ -148,12 +215,17 @@ fun LoginScreen(
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                val googleName = account.displayName ?: account.givenName ?: "Google Kullanıcısı"
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                Toast.makeText(context, "Hoş geldiniz, $googleName", Toast.LENGTH_SHORT).show()
-                onLoginSuccess(googleName)
+                val idToken = account.idToken
+                if (!idToken.isNullOrBlank()) {
+                    viewModel.loginWithGoogle(idToken)
+                } else {
+                    val googleName = account.displayName ?: account.givenName ?: "Google Kullanıcısı"
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    Toast.makeText(context, "Hoş geldiniz, $googleName", Toast.LENGTH_SHORT).show()
+                    onLoginSuccess(googleName)
+                }
             } catch (e: Exception) {
-                Toast.makeText(context, "Google girişi başarısız oldu.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Google girişi başarısız oldu: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -288,13 +360,7 @@ fun LoginScreen(
                                     if (input.length == 4) {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         keyboardController?.hide()
-                                        isLoading = true
-                                        coroutineScope.launch {
-                                            delay(300)
-                                            isLoading = false
-                                            Toast.makeText(context, "Hoş geldiniz, $userName", Toast.LENGTH_SHORT).show()
-                                            onLoginSuccess(userName)
-                                        }
+                                        viewModel.verifyPin(input)
                                     }
                                 }
                             },
@@ -305,7 +371,7 @@ fun LoginScreen(
                             keyboardActions = KeyboardActions(
                                 onDone = {
                                     if (pinCode.length == 4) {
-                                        onLoginSuccess(userName)
+                                        viewModel.verifyPin(pinCode)
                                     }
                                 }
                             ),
@@ -336,7 +402,13 @@ fun LoginScreen(
                                         }
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        if (isFilled) {
+                                        if (pinAuthState is PinAuthState.Loading && isFilled) {
+                                            CircularProgressIndicator(
+                                                color = PrimaryEmerald,
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else if (isFilled) {
                                             Box(
                                                 modifier = Modifier
                                                     .size(14.dp)
@@ -366,6 +438,7 @@ fun LoginScreen(
                                                 onSuccess = {
                                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                     Toast.makeText(context, "Biyometrik doğrulandı! Hoş geldiniz, $userName", Toast.LENGTH_SHORT).show()
+                                                    viewModel.toggleDataLock(false)
                                                     onLoginSuccess(userName)
                                                 },
                                                 onError = { _ ->
@@ -613,23 +686,18 @@ fun LoginScreen(
 
                         Button(
                             onClick = {
-                                val finalName = if (identifierInput.isNotBlank()) {
-                                    val clean = identifierInput.split("@").firstOrNull()?.replaceFirstChar { it.uppercase() } ?: currentUserName
-                                    if (clean.length > 2) clean else currentUserName
-                                } else {
-                                    currentUserName
+                                if (identifierInput.isBlank()) {
+                                    Toast.makeText(context, "Lütfen e-posta adresinizi veya kullanıcı adınızı girin.", Toast.LENGTH_SHORT).show()
+                                    return@Button
                                 }
-
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    delay(600)
-                                    isLoading = false
-                                    Toast.makeText(context, "Giriş başarılı. Hoş geldiniz!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess(finalName)
+                                if (passwordInput.isBlank()) {
+                                    Toast.makeText(context, "Lütfen şifrenizi girin.", Toast.LENGTH_SHORT).show()
+                                    return@Button
                                 }
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.loginWithEmail(identifierInput, passwordInput)
                             },
-                            enabled = !isLoading,
+                            enabled = uiState !is AuthUiState.Loading,
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald),
                             modifier = Modifier
@@ -637,7 +705,7 @@ fun LoginScreen(
                                 .height(52.dp)
                                 .bounceClick { }
                         ) {
-                            if (isLoading) {
+                            if (uiState is AuthUiState.Loading) {
                                 CircularProgressIndicator(
                                     color = Color.White,
                                     modifier = Modifier.size(22.dp),
@@ -778,16 +846,24 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         if (resetEmailInput.isNotBlank()) {
-                            showResetPasswordDialog = false
-                            Toast.makeText(context, "$resetEmailInput adresine sıfırlama talimatı gönderildi.", Toast.LENGTH_LONG).show()
+                            viewModel.sendPasswordReset(resetEmailInput)
                         } else {
                             Toast.makeText(context, "Lütfen geçerli bir e-posta girin.", Toast.LENGTH_SHORT).show()
                         }
                     },
+                    enabled = resetPasswordState !is ResetPasswordUiState.Loading,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryEmerald)
                 ) {
-                    Text("Sıfırlama Bağlantısı Gönder", fontWeight = FontWeight.Bold)
+                    if (resetPasswordState is ResetPasswordUiState.Loading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Sıfırlama Bağlantısı Gönder", fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             dismissButton = {

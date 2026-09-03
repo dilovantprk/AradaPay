@@ -124,9 +124,9 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
 
   // Bank Detection
   const detectBank = (ibanStr?: string | null) => {
-    if (!ibanStr) return 'BKM / FAST';
+    if (!ibanStr) return 'Banka Hesabı';
     const clean = ibanStr.replace(/\s+/g, '');
-    if (clean.length < 9) return 'BKM / FAST';
+    if (clean.length < 9) return 'Banka Hesabı';
     const code = clean.substring(4, 9);
     switch (code) {
       case '00062':
@@ -142,7 +142,7 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
       case '00111':
         return 'QNB Finansbank';
       default:
-        return 'FAST Uyumlu Banka';
+        return 'Banka Hesabı';
     }
   };
 
@@ -155,9 +155,9 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 text-left animate-fadeIn">
-      {/* Top Navigation Bar */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 text-left animate-fadeIn">
+      {/* Desktop Top Navigation Bar (Hidden on mobile because TopBar handles back & actions) */}
+      <div className="hidden md:flex items-center justify-between">
         <button
           onClick={onBack}
           className="px-3.5 py-2 rounded-full bg-white border border-black/[0.08] hover:bg-slate-50 text-[#1C1C1E] text-[13px] font-bold flex items-center gap-1.5 active:scale-95 transition shadow-2xs"
@@ -202,7 +202,7 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
               className="flex-1 sm:flex-initial px-4 py-2.5 rounded-[12px] bg-[#00875A] text-white text-[13px] font-bold flex items-center justify-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-900/10"
             >
               <CreditCard className="w-4 h-4" />
-              <span>Fitleş / FAST Öde</span>
+              <span>Ödeş & Masayı Kapat</span>
             </button>
 
             <button
@@ -210,7 +210,7 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
               className="px-4 py-2.5 rounded-[12px] bg-[#F1F5F9] hover:bg-slate-200 text-[#0F172A] text-[13px] font-bold flex items-center justify-center gap-1.5 active:scale-95 transition"
             >
               <Send className="w-4 h-4 text-[#64748B]" />
-              <span>Dürt</span>
+              <span>Bi' Dürt (Sinyal Çak)</span>
             </button>
           </div>
         </div>
@@ -224,10 +224,10 @@ export const FriendDetailView: React.FC<FriendDetailViewProps> = ({
               }`}
             >
               {!hasBalance
-                ? 'FİTLEŞİLDİ (HESAPLAR TAMAMEN DENK)'
+                ? 'TERTEMİZ OLDUK (HESAPLAR TAMAMEN DENK)'
                 : isPositive
-                ? `${friend.fullName.toUpperCase()} SANA BORÇLU`
-                : `${friend.fullName.toUpperCase()}'A BORCUN VAR`}
+                ? `${friend.fullName.toUpperCase()}'IN MASADA PAYI VAR`
+                : `${friend.fullName.toUpperCase()}'IN MASASINA PAYIN VAR`}
             </span>
             <div
               className={`text-[36px] sm:text-[42px] font-extrabold font-tabular tracking-tight leading-tight ${

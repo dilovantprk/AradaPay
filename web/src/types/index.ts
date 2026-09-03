@@ -24,6 +24,7 @@ export interface User {
   iban?: string | null;
   tag?: string | null; // e.g. 'Kaan#5674'
   defaultCurrency?: Currency;
+  pin?: string;
   createdAt?: string;
 }
 

@@ -13,6 +13,9 @@ interface GroupsViewProps {
   onSelectGroup: (group: Group) => void;
   onAddExpenseClick: (group?: Group) => void;
   onSaveGroup: (group: Group) => void;
+  isCreateOpen?: boolean;
+  onCloseCreate?: () => void;
+  onOpenCreate?: () => void;
 }
 
 const GROUP_CATEGORIES = ['Tümü', 'Ev & Yaşam', 'Tatil & Seyahat', 'Yemek & Kafe', 'Etkinlik & Festival', 'Genel'];
@@ -25,11 +28,24 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
   isLocked,
   onSelectGroup,
   onAddExpenseClick,
-  onSaveGroup
+  onSaveGroup,
+  isCreateOpen,
+  onCloseCreate,
+  onOpenCreate
 }) => {
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
+
+  const showCreateModal = isCreateOpen !== undefined ? isCreateOpen : internalShowCreateModal;
+  const setShowCreateModal = (open: boolean) => {
+    if (isCreateOpen !== undefined) {
+      if (open) onOpenCreate?.();
+      else onCloseCreate?.();
+    } else {
+      setInternalShowCreateModal(open);
+    }
+  };
 
   // Form State
   const [newGroupName, setNewGroupName] = useState('');
@@ -79,13 +95,54 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
     setSelectedMemberIds([currentUser.id]);
   };
 
+  // Compute Overall Group Balance (1:1 Android GroupsScreen)
+  const totalGroupReceivables = useMemo(() => {
+    let sum = 0;
+    groups.forEach((g) => {
+      const gExp = expenses.filter((e) => e.groupId === g.id);
+      let myBal = 0;
+      gExp.forEach((e) => {
+        if (e.paidBy === currentUser.id) {
+          const mySp = e.splits.find((s) => s.userId === currentUser.id);
+          myBal += e.amount - (mySp?.amountOwed || 0);
+        } else {
+          const mySp = e.splits.find((s) => s.userId === currentUser.id);
+          if (mySp) myBal -= mySp.amountOwed;
+        }
+      });
+      if (myBal > 0) sum += myBal;
+    });
+    return sum;
+  }, [groups, expenses, currentUser.id]);
+
+  const totalGroupPayables = useMemo(() => {
+    let sum = 0;
+    groups.forEach((g) => {
+      const gExp = expenses.filter((e) => e.groupId === g.id);
+      let myBal = 0;
+      gExp.forEach((e) => {
+        if (e.paidBy === currentUser.id) {
+          const mySp = e.splits.find((s) => s.userId === currentUser.id);
+          myBal += e.amount - (mySp?.amountOwed || 0);
+        } else {
+          const mySp = e.splits.find((s) => s.userId === currentUser.id);
+          if (mySp) myBal -= mySp.amountOwed;
+        }
+      });
+      if (myBal < 0) sum += Math.abs(myBal);
+    });
+    return sum;
+  }, [groups, expenses, currentUser.id]);
+
+  const overallGroupNet = totalGroupReceivables - totalGroupPayables;
+
   return (
-    <div className="space-y-5 text-left animate-fadeIn">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-1">
+    <div className="space-y-4 text-left animate-fadeIn">
+      {/* Desktop Top Header (Hidden on mobile because TopBar handles it) */}
+      <div className="hidden md:flex items-center justify-between gap-3 px-1">
         <div className="min-w-0">
-          <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Gruplar</h2>
-          <p className="text-[13px] text-[#64748B]">Ortak ev, tatil, yemek ve arkadaş harcamaları</p>
+          <h2 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Gruplar</h2>
+          <p className="text-[13px] text-[#64748B]">Masadaki ortak harcamalar, tatil ve ev hesapları</p>
         </div>
 
         <button
@@ -93,12 +150,37 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
           className="h-9 px-3.5 rounded-full bg-[#00875A] text-white text-[12px] font-bold flex items-center gap-1.5 hover:bg-[#00744d] active:scale-95 transition shadow-2xs flex-shrink-0 whitespace-nowrap"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span>Grup Kur</span>
+          <span>Masa Kur</span>
         </button>
       </div>
 
+      {/* 1:1 Android Summary Strip (UNBOXED 1-LINE SUMMARY STRIP) */}
+      <div className="bg-white rounded-[16px] border border-slate-200/80 px-5 py-3 flex items-center justify-between shadow-2xs">
+        <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase">
+          MASALARDAKİ NET DURUMUN
+        </span>
+
+        <span
+          className={`text-[14px] font-bold font-tabular ${
+            overallGroupNet > 0
+              ? 'text-[#00875A]'
+              : overallGroupNet < 0
+              ? 'text-[#DC2626]'
+              : 'text-[#64748B]'
+          }`}
+        >
+          {isLocked
+            ? '•••• ₺'
+            : overallGroupNet > 0
+            ? `+${overallGroupNet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ Masadan Alacak`
+            : overallGroupNet < 0
+            ? `${Math.abs(overallGroupNet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ Payına Düşen`
+            : 'Ödeştik'}
+        </span>
+      </div>
+
       {/* Search & Category Filter Bar */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {/* Search */}
         <div className="relative">
           <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -153,13 +235,13 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
       {/* Groups List (Unified Grouped Stream - NO card-in-card!) */}
       {filteredGroups.length === 0 ? (
         <div className="bg-white rounded-[20px] border border-slate-200/80 p-10 text-center space-y-3 shadow-sm">
-          <p className="text-[14px] text-[#64748B]">Aranan kriterlere uygun grup bulunamadı.</p>
+          <p className="text-[14px] text-[#64748B]">Masalarda kayıtlı grup bulunamadı.</p>
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 rounded-[12px] bg-[#00875A] text-white text-[13px] font-bold inline-flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            <span>Yeni Grup Kur</span>
+            <span>Yeni Masa Kur</span>
           </button>
         </div>
       ) : (
@@ -195,7 +277,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                   <div className="min-w-0">
                     <h3 className="text-[14px] font-bold text-[#0F172A] truncate">{group.name}</h3>
                     <p className="text-[12px] text-[#64748B] mt-0.5 truncate">
-                      {group.category || 'Genel'} • {group.members.length} üye • {totalSpend.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ harcama
+                      {group.category || 'Genel'} • {group.members.length} üye • {totalSpend.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ toplam harcama
                     </p>
                   </div>
                 </div>
@@ -215,7 +297,7 @@ export const GroupsView: React.FC<GroupsViewProps> = ({
                           })} ₺`}
                     </span>
                     <span className="text-[10px] text-[#64748B] block">
-                      {Math.abs(myBal) < 0.01 ? 'Denk' : isPos ? 'Alacaklısın' : 'Borçlusun'}
+                      {Math.abs(myBal) < 0.01 ? 'ödeştik' : isPos ? 'masadan payın var' : 'masaya payın var'}
                     </span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-[#94A3B8]" />

@@ -11,6 +11,7 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +20,15 @@ class FirestoreService @Inject constructor(
     private val db: FirebaseFirestore
 ) {
     // --- USER MANAGEMENT ---
+    suspend fun getUser(userId: String): User? = runCatching {
+        val snapshot = db.collection("users").document(userId).get().await()
+        if (snapshot.exists()) snapshot.toObject(User::class.java) else null
+    }.getOrNull()
+
+    suspend fun saveUserSuspend(user: User): Result<Unit> = runCatching {
+        db.collection("users").document(user.id).set(user).await()
+    }
+
     fun getUserFlow(userId: String): Flow<User?> = callbackFlow {
         val docRef = db.collection("users").document(userId)
         val listener = docRef.addSnapshotListener { snapshot, _ ->
@@ -194,6 +204,34 @@ class FirestoreService @Inject constructor(
             .addOnFailureListener { onComplete(false) }
     }
 
+    fun getFriendsFlow(userId: String): Flow<List<User>> = callbackFlow {
+        val listener = db.collection("users").document(userId)
+            .collection("friends")
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    trySend(snapshot.toObjects(User::class.java))
+                } else {
+                    trySend(emptyList())
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun deleteFriend(currentUserId: String, friendId: String, onComplete: (Boolean) -> Unit) {
+        db.collection("users").document(currentUserId)
+            .collection("friends").document(friendId)
+            .delete()
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+    }
+
+    fun deleteExpense(expenseId: String, onComplete: (Boolean) -> Unit) {
+        db.collection("expenses").document(expenseId)
+            .delete()
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+    }
+
     // --- GROUPS ---
     fun getGroupsFlow(): Flow<List<com.ardabank.aradapay.domain.model.Group>> = callbackFlow {
         val listener = db.collection("groups")
@@ -208,9 +246,21 @@ class FirestoreService @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    suspend fun getGroup(groupId: String): com.ardabank.aradapay.domain.model.Group? = runCatching {
+        val snapshot = db.collection("groups").document(groupId).get().await()
+        if (snapshot.exists()) snapshot.toObject(com.ardabank.aradapay.domain.model.Group::class.java) else null
+    }.getOrNull()
+
     fun saveGroup(group: com.ardabank.aradapay.domain.model.Group, onComplete: (Boolean) -> Unit) {
         db.collection("groups").document(group.id)
             .set(group)
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+    }
+
+    fun deleteGroup(groupId: String, onComplete: (Boolean) -> Unit) {
+        db.collection("groups").document(groupId)
+            .delete()
             .addOnSuccessListener { onComplete(true) }
             .addOnFailureListener { onComplete(false) }
     }

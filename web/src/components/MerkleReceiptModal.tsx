@@ -78,7 +78,7 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
           </button>
 
           <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
-            Kriptografik Dekont
+            Dijital Ödeşme Dekontu
           </h3>
 
           <div className="w-10" />
@@ -96,7 +96,7 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
             </p>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#00875A] text-[11px] font-bold mt-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>FAST ile Başarıyla Fitleşildi</span>
+              <span>FAST ile Masadaki Hesap Tertemiz Oldu</span>
             </div>
           </div>
 
@@ -128,12 +128,12 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Cryptographic SHA-256 Merkle Proof (Light & Clean Theme) */}
+          {/* 3. Security Signature */}
           <div className="px-6 py-4 space-y-3 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Lock className="w-4 h-4 text-[#00875A]" />
-                <span className="text-[12px] font-bold text-[#0F172A]">SHA-256 Merkle İmzası</span>
+                <span className="text-[12px] font-bold text-[#0F172A]">Dijital Güvenlik İmzası</span>
               </div>
               <button
                 onClick={handleCopyHash}
@@ -159,12 +159,12 @@ export const MerkleReceiptModal: React.FC<MerkleReceiptModalProps> = ({
                 ) : verificationResult === true ? (
                   <span className="text-[#00875A] flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Merkle Ağacı Onaylı ✓
+                    İşlem Doğrulandı ✓
                   </span>
                 ) : (
                   <span className="flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-[#00875A]" />
-                    Matematiksel Kanıtı Doğrula
+                    İşlem Doğruluğunu Kontrol Et
                   </span>
                 )}
               </button>

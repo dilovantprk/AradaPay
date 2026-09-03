@@ -97,10 +97,10 @@ import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
 
 enum class ActivityFilterOption(val title: String) {
     ALL("Tümü"),
-    PENDING("Onay Bekleyenler"),
-    RECEIVABLES("Alacaklar (+₺)"),
-    PAYABLES("Borçlar (-₺)"),
-    SETTLEMENTS("Fitleşmeler")
+    PENDING("Askıda Kalanlar"),
+    RECEIVABLES("Masada Kalan Paylarım (+₺)"),
+    PAYABLES("Payıma Düşenler (-₺)"),
+    SETTLEMENTS("Tertemiz Olanlar")
 }
 
 enum class ActivityItemKind {
@@ -498,14 +498,14 @@ fun ActivityScreen(
                             }
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "İşlem Bulunamadı",
+                                text = "Masa bomboş.",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = Color(0xFF0F172A)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Seçili filtreye uygun işlem veya bildirim bulunmuyor.",
+                                text = "Adisyonda bekleyen kayıt yok. Masadaki tüm hesaplar tertemiz!",
                                 color = Color(0xFF64748B),
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center

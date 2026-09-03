@@ -13,9 +13,9 @@ data class BlockchainReceiptAnchor(
     val merkleRoot: String,
     val leafIndex: Int,
     val merkleProof: List<MerkleProofNode>,
-    val network: String = "AradaPay Zero-Gas L2 Ledger (Merkle-Anchor)",
-    val gasFee: String = "0,00 ₺ (Maliyetsiz L2 Merkle Rollup)",
-    val consensus: String = "PoA • BKM / TCMB Uyumluluk Mührü",
+    val network: String = "AradaPay Güvenli İşlem Defteri",
+    val gasFee: String = "0,00 ₺ (Ücretsiz Transfer)",
+    val consensus: String = "Dijital İşlem Referansı",
     val timestamp: String
 )
 

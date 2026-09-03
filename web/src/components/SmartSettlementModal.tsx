@@ -53,7 +53,7 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
           </button>
 
           <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
-            DFS Akıllı Mahsuplaşma
+            Akıllı Masa Dengeleme
           </h3>
 
           <div className="w-10" />
@@ -64,20 +64,20 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
           {/* 1. Hero Amount (Flat) */}
           <div className="px-6 py-6 text-center space-y-1 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
-              OTOMATİK SIFIRLANACAK DÖNGÜSEL TUTAR
+              KENDİLİĞİNDEN KAPANACAK MASA TUTARI
             </span>
             <p className="text-[44px] font-black text-[#00875A] tracking-tight font-tabular">
               {offer.cycleAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
             </p>
             <p className="text-[12px] text-[#64748B]">
-              Hiç kimse banka transferi yapmadan döngüsel borçlar karşılıklı sıfırlanır.
+              Hiç kimse para transferi yapmadan masadaki ortak hesaplar kendiliğinden sıfırlanır.
             </p>
           </div>
 
           {/* 2. Directed Cycle Steps Flow */}
           <div className="px-6 py-4 space-y-3 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
-              TESPİT EDİLEN BORÇ DÖNGÜSÜ (DFS ZİNCİRİ)
+              TESPİT EDİLEN DÖNGÜSEL ÖDEŞME PLANI
             </span>
 
             <div className="space-y-2">
@@ -167,7 +167,7 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
               className="w-full h-12 rounded-[14px] bg-[#00875A] text-white font-bold text-[15px] hover:bg-[#00744d] active:scale-[0.98] transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-900/20"
             >
               <CheckCircle2 className="w-5 h-5" />
-              <span>Mahsuplaşmayı Onayla ({offer.cycleAmount.toFixed(0)} ₺ Düşsün)</span>
+              <span>Ödeşmeyi Onayla ({offer.cycleAmount.toFixed(0)} ₺ Düşsün)</span>
             </button>
           ) : (
             <div className="h-12 rounded-[14px] bg-emerald-50 text-[#00875A] text-center font-bold text-[14px] flex items-center justify-center gap-2">
@@ -178,7 +178,7 @@ export const SmartSettlementModal: React.FC<SmartSettlementModalProps> = ({
 
           <p className="text-[11px] text-center text-[#64748B] flex items-center justify-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-[#00875A]" />
-            <span>Kriptografik Merkle Tree L2 defterine işlenir</span>
+            <span>Hesap geçmişine güvenle kaydedilir</span>
           </p>
         </div>
       </div>

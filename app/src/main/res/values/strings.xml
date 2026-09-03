@@ -1,14 +1,14 @@
 <resources>
     <string name="app_name">AradaPay</string>
-    <string name="app_subtitle">ArdaBank Sosyal Bölüşüm &amp; Borç Takibi</string>
+    <string name="app_subtitle">Masadaki Ortak Hesap &amp; Hızlı Ödeşme</string>
 
     <!-- App Launcher Shortcuts -->
-    <string name="shortcut_add_expense_short">Harcama Ekle</string>
-    <string name="shortcut_add_expense_long">Yeni Ortak Harcama Ekle</string>
-    <string name="shortcut_qr_short">QR ile Öde</string>
-    <string name="shortcut_qr_long">QR Tara &amp; FAST ile Öde</string>
-    <string name="shortcut_settle_short">Hesap Kapat</string>
-    <string name="shortcut_settle_long">Borç Öde &amp; Hesap Kapat</string>
-    <string name="shortcut_friends_short">Kişiler</string>
+    <string name="shortcut_add_expense_short">Masaya Bırak</string>
+    <string name="shortcut_add_expense_long">Masaya Yeni Harcama Bırak</string>
+    <string name="shortcut_qr_short">QR ile Ödeş</string>
+    <string name="shortcut_qr_long">QR Tara &amp; FAST ile Ödeş</string>
+    <string name="shortcut_settle_short">Ödeş</string>
+    <string name="shortcut_settle_long">Masayı Kapat &amp; Tertemiz Ol</string>
+    <string name="shortcut_friends_short">Arkadaşlar</string>
     <string name="shortcut_friends_long">Arkadaşlar &amp; Rehber</string>
 </resources>

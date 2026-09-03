@@ -201,7 +201,7 @@ export const FriendDetailModal: React.FC<FriendDetailModalProps> = ({
               className="p-3 rounded-[16px] bg-[#00875A] text-white flex flex-col items-center justify-center gap-1 text-[12px] font-bold hover:bg-[#00744d] active:scale-95 transition shadow-sm shadow-emerald-800/20"
             >
               <CreditCard className="w-4 h-4" />
-              <span>Fitleş / Öde</span>
+              <span>Fitleş</span>
             </button>
 
             <button

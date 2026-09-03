@@ -115,4 +115,24 @@ class SecurityPreferencesManager @Inject constructor(
             prefs[Keys.AVATAR_EMOJI] = emoji
         }
     }
+
+    suspend fun saveUserSession(name: String, iban: String = "", avatarUrl: String = "", avatarEmoji: String = "") {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.USER_NAME] = name
+            if (iban.isNotBlank()) prefs[Keys.USER_IBAN] = iban
+            if (avatarUrl.isNotBlank()) prefs[Keys.AVATAR_URL] = avatarUrl
+            if (avatarEmoji.isNotBlank()) prefs[Keys.AVATAR_EMOJI] = avatarEmoji
+        }
+    }
+
+    suspend fun clearSession() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(Keys.USER_NAME)
+            prefs.remove(Keys.USER_IBAN)
+            prefs.remove(Keys.AVATAR_URL)
+            prefs.remove(Keys.AVATAR_EMOJI)
+            prefs[Keys.IS_DATA_LOCKED] = false
+        }
+    }
 }
+

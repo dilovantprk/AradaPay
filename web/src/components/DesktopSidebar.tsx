@@ -81,7 +81,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               AradaPay
             </span>
             <span className="text-[10px] text-[#8E8E93] font-medium block -mt-0.5">
-              Sosyal Borç & Fitleşme
+              Ortak Harcama Takibi
             </span>
           </div>
         </div>
@@ -164,7 +164,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             className="w-full h-10 rounded-[10px] bg-white border border-black/[0.08] hover:bg-slate-50 text-[#1C1C1E] font-bold text-[13px] flex items-center justify-center gap-2 active:scale-[0.98] transition shadow-2xs"
           >
             <CreditCard className="w-4 h-4 text-[#00875A]" />
-            <span>Öde & Fitleş</span>
+            <span>Fitleş</span>
           </button>
         </div>
       </div>

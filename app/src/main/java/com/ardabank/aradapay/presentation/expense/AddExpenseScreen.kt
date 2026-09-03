@@ -127,7 +127,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.model.User
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.domain.model.ExpenseCategory
 import com.ardabank.aradapay.domain.model.Group
 import com.ardabank.aradapay.domain.model.SplitMethod
@@ -178,6 +179,7 @@ fun AddExpenseScreen(
     initialGroupId: String? = null,
     initialGroupName: String? = null,
     groupRepository: GroupRepository? = null,
+    friendsList: List<User> = emptyList(),
     onSaveExpense: (amount: Double, description: String, category: ExpenseCategory, splitMethod: SplitMethod, selectedUserIds: List<String>) -> Unit = { _, _, _, _, _ -> },
     onCancel: () -> Unit = {}
 ) {
@@ -197,20 +199,33 @@ fun AddExpenseScreen(
         }
     }
 
-    val allFriends = remember {
-        mutableStateListOf(
-            ExpenseParticipant("1", "Ahmet Yılmaz", "Ahmet#7821", "AY"),
-            ExpenseParticipant("2", "Zeynep Kaya", "Zeynep#3412", "ZK"),
-            ExpenseParticipant("3", "Mert Demir", "Mert#9015", "MD"),
-            ExpenseParticipant("4", "Elif Şahin", "Elif#4420", "EŞ"),
-            ExpenseParticipant("5", "Burak Öztürk", "Burak#6108", "BÖ"),
-            ExpenseParticipant("6", "Selin Aydın", "Selin#2839", "SA"),
-            ExpenseParticipant("7", "Caner Erkin", "Caner#1903", "CE"),
-            ExpenseParticipant("8", "Deniz Çelik", "Deniz#5522", "DÇ"),
-            ExpenseParticipant("9", "Adem Bal", "Adem#8440", "AD"),
-            ExpenseParticipant("10", "Adil Kupan", "Adil#9120", "AK"),
-            ExpenseParticipant("11", "Aslı Çelik", "Asli#3310", "AÇ")
-        )
+    val allFriends = remember(friendsList) {
+        if (friendsList.isNotEmpty()) {
+            val mapped = friendsList.map { user ->
+                val initials = user.fullName.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString("").ifBlank { "AR" }
+                ExpenseParticipant(
+                    id = user.id,
+                    name = user.fullName,
+                    tag = user.tag ?: "@${user.username}",
+                    avatar = initials
+                )
+            }
+            mutableStateListOf(*mapped.toTypedArray())
+        } else {
+            mutableStateListOf(
+                ExpenseParticipant("1", "Ahmet Yılmaz", "Ahmet#7821", "AY"),
+                ExpenseParticipant("2", "Zeynep Kaya", "Zeynep#3412", "ZK"),
+                ExpenseParticipant("3", "Mert Demir", "Mert#9015", "MD"),
+                ExpenseParticipant("4", "Elif Şahin", "Elif#4420", "EŞ"),
+                ExpenseParticipant("5", "Burak Öztürk", "Burak#6108", "BÖ"),
+                ExpenseParticipant("6", "Selin Aydın", "Selin#2839", "SA"),
+                ExpenseParticipant("7", "Caner Erkin", "Caner#1903", "CE"),
+                ExpenseParticipant("8", "Deniz Çelik", "Deniz#5522", "DÇ"),
+                ExpenseParticipant("9", "Adem Bal", "Adem#8440", "AD"),
+                ExpenseParticipant("10", "Adil Kupan", "Adil#9120", "AK"),
+                ExpenseParticipant("11", "Aslı Çelik", "Asli#3310", "AÇ")
+            )
+        }
     }
 
     val loadedGroups = groupRepository?.groups?.collectAsState()?.value ?: emptyList()
@@ -613,7 +628,7 @@ fun AddExpenseScreen(
                             Box(contentAlignment = Alignment.CenterStart) {
                                 if (description.isEmpty()) {
                                     Text(
-                                        text = "Örn: ${selectedDetailedCategory.name}, Taksi, Akşam Yemeği...",
+                                        text = "Dün gece masaya ne geldi? (örn: ${selectedDetailedCategory.name}, Pizza...)",
                                         fontSize = 15.sp,
                                         color = Color(0xFF94A3B8)
                                     )
@@ -1467,7 +1482,7 @@ fun AddExpenseScreen(
                             Box(contentAlignment = Alignment.CenterStart) {
                                 if (description.isEmpty()) {
                                     Text(
-                                        text = "Örn: ${selectedDetailedCategory.name}, Taksi, Akşam Yemeği...",
+                                        text = "Dün gece masaya ne geldi? (örn: Pizza, Kahveler...)",
                                         fontSize = 15.sp,
                                         color = Color(0xFF94A3B8)
                                     )
@@ -1525,7 +1540,7 @@ fun AddExpenseScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Ödeyen $currentPayerName • $splitModeLabel bölüşülecek",
+                            text = "Masayı üstlenen: $currentPayerName • $splitModeLabel bölüşülecek",
                             color = Color(0xFF0F172A),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
@@ -1539,15 +1554,15 @@ fun AddExpenseScreen(
                                 if (splitTabMode == 0) {
                                     val otherCount = selectedFriendIds.filter { !excludedInEqualSplit.contains(it) }.size
                                     val totalReceivable = dynamicEqualShare * otherCount
-                                    "Sen ödedin, +${String.format(java.util.Locale.US, "%.2f", totalReceivable)} ₺ alacağın var"
+                                    "Masayı sen üstlendin, +${String.format(java.util.Locale.US, "%.2f", totalReceivable)} ₺ masada payın var"
                                 } else {
-                                    "Sen ödedin, ortaklar borçlandı"
+                                    "Masayı sen üstlendin, paylar bölüşüldü"
                                 }
                             } else {
                                 val myShare = if (splitTabMode == 0) {
                                     if (excludedInEqualSplit.contains("me")) 0.0 else dynamicEqualShare
                                 } else 0.0
-                                if (myShare > 0) "$currentPayerShortName ödedi, -${String.format(java.util.Locale.US, "%.2f", myShare)} ₺ borcun var" else "$currentPayerShortName ödedi"
+                                if (myShare > 0) "$currentPayerShortName masayı üstlendi, -${String.format(java.util.Locale.US, "%.2f", myShare)} ₺ payına düştü" else "$currentPayerShortName masayı üstlendi"
                             }
 
                             Spacer(modifier = Modifier.height(2.dp))
@@ -2334,7 +2349,7 @@ fun AddExpenseScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (amountValue > 0) "Harcamayı Kaydet (${String.format(java.util.Locale.US, "%.2f", amountValue)} ₺)" else "Harcamayı Kaydet",
+                            text = if (amountValue > 0) "Masaya Bırak (${String.format(java.util.Locale.US, "%.2f", amountValue)} ₺)" else "Masaya Bırak",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = if (isExpenseFormValid) Color.White else Color(0xFF94A3B8)

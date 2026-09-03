@@ -101,44 +101,44 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     <div className="space-y-6 text-left animate-fadeIn">
       {/* Header */}
       <div className="px-1">
-        <h2 className="text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">Finansal Analiz & Raporlar</h2>
-        <p className="text-[13px] text-[#8E8E93]">Harcama alışkanlıkları, DFS döngü tasarrufu ve bakiye dökümleri</p>
+        <h2 className="text-[28px] font-extrabold text-[#1C1C1E] tracking-tight">Masa Analizi & Raporlar</h2>
+        <p className="text-[13px] text-[#8E8E93]">Masadaki harcama alışkanlıkları, akıllı dengeleme tasarrufu ve adisyon dökümleri</p>
       </div>
 
       {/* Hero Stats (Apple HIG Style) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="apple-card p-5 space-y-1">
           <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-wider block">
-            TOPLAM ÖDENEN
+            MASAYA BIRAKILAN
           </span>
           <p className="text-[26px] font-black text-[#1C1C1E] font-tabular">
             {isLocked ? '•••• ₺' : `${totalSpent.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`}
           </p>
-          <span className="text-[11px] text-[#8E8E93]">{expenses.length} adet harcama kaydı</span>
+          <span className="text-[11px] text-[#8E8E93]">{expenses.length} adet masaya bırakılan kayıt</span>
         </div>
 
         <div className="apple-card p-5 space-y-1">
           <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-wider block">
-            FİTLEŞİLEN TUTAR
+            ÖDEŞİLEN TUTAR
           </span>
           <p className="text-[26px] font-black text-[#00875A] font-tabular">
             {isLocked ? '•••• ₺' : `${totalSettled.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`}
           </p>
-          <span className="text-[11px] text-[#00875A] font-semibold">FAST / Havale İle Kapatıldı</span>
+          <span className="text-[11px] text-[#00875A] font-semibold">FAST İle Masadaki Hesap Kapatıldı</span>
         </div>
 
         <div className="apple-card p-5 space-y-1">
           <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-wider block">
-            TASARRUF EDİLEN FAST
+            AKILLI DENGELEME TASARRUFU
           </span>
           <p className="text-[26px] font-black text-[#00875A] font-tabular">
             ~{(crossOffers.length * 45).toFixed(2)} ₺
           </p>
-          <span className="text-[11px] text-[#8E8E93]">DFS Graf Motoru İle Sıfırlandı</span>
+          <span className="text-[11px] text-[#8E8E93]">Kendiliğinden Ödeşme İle Sıfırlandı</span>
         </div>
       </div>
 
-      {/* DFS Smart Savings Card */}
+      {/* Smart Savings Card */}
       <div className="p-6 rounded-[24px] bg-gradient-to-br from-emerald-50 via-[#F0FDF4] to-emerald-100/50 border border-emerald-200/80 shadow-apple-sm space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -147,10 +147,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </div>
             <div>
               <span className="text-[12px] font-bold text-[#00875A] uppercase tracking-wider block">
-                DFS Akıllı Mahsuplaşma Tasarrufu
+                Akıllı Masa Dengeleme Tasarrufu
               </span>
               <p className="text-[18px] font-black text-[#1C1C1E]">
-                %65 Daha Az Banka Transferi
+                %65 Daha Az Para Transferi
               </p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </div>
 
         <p className="text-[13px] text-[#8E8E93] leading-relaxed">
-          AradaPay DFS ve Greedy Borç Sadeleştirici motoru, döngüsel borçları otomatik mahsuplayarak işlem ücreti ve EFT trafiğini minimuma indirir.
+          AradaPay akıllı dengeleme algoritması, masadaki karşılıklı harcamaları otomatik eşitleyerek gereksiz para transferi adımlarını minimuma indirir.
         </p>
       </div>
 

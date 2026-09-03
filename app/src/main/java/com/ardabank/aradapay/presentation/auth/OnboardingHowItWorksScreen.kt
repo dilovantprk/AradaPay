@@ -160,7 +160,7 @@ fun OnboardingHowItWorksScreen(
                     // Action: Skip tour or Done (Done advances to Slide 4)
                     if (pagerState.currentPage < 2) {
                         Text(
-                            text = "Turu Atla (Skip tour)",
+                            text = "Turu Atla",
                             color = PrimaryEmerald,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
@@ -189,7 +189,7 @@ fun OnboardingHowItWorksScreen(
                                     coroutineScope.launch { pagerState.animateScrollToPage(3) }
                                 }
                         ) {
-                            Text("Tamamla (Done)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("Başlayalım!", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -199,7 +199,7 @@ fun OnboardingHowItWorksScreen(
 }
 
 // =============================================================================
-// SLIDE 1: BALANCES OVERVIEW (SPLITWISE 1:1 PARITY)
+// SLIDE 1: BALANCES OVERVIEW (MASA DURUMU)
 // =============================================================================
 @Composable
 private fun OnboardingSlideOne(displayName: String) {
@@ -222,7 +222,7 @@ private fun OnboardingSlideOne(displayName: String) {
     ) {
         // Headline
         Text(
-            text = "Welcome to AradaPay,\n$displayName!",
+            text = "Masaya Hoş Geldin,\n$displayName!",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             color = Color(0xFF1E293B),
@@ -232,7 +232,7 @@ private fun OnboardingSlideOne(displayName: String) {
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "AradaPay keeps track of balances between friends.",
+            text = "AradaPay, arkadaş ortamında masadaki ortak hesabı tabu olmaktan çıkarır; kimin ne ödediğini kafa karıştırmadan takip eder.",
             style = MaterialTheme.typography.bodyLarge,
             color = Color(0xFF64748B),
             lineHeight = 22.sp
@@ -261,7 +261,7 @@ private fun OnboardingSlideOne(displayName: String) {
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Overall, you are owed ",
+                            text = "Masada kalan toplam payın: ",
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
                             fontSize = 14.sp
@@ -299,11 +299,11 @@ private fun OnboardingSlideOne(displayName: String) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Beach trip", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
-                        Text("David owes you 100,00 ₺", color = Color(0xFF64748B), fontSize = 12.sp)
+                        Text("Bodrum Tatili", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
+                        Text("Can'ın masada 100,00 ₺ payı duruyor", color = Color(0xFF64748B), fontSize = 12.sp)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("you are owed", fontSize = 11.sp, color = PrimaryEmerald)
+                        Text("masadan payın", fontSize = 11.sp, color = PrimaryEmerald)
                         Text("100,00 ₺", fontWeight = FontWeight.Bold, color = PrimaryEmerald, fontSize = 14.sp)
                     }
                 }
@@ -324,11 +324,11 @@ private fun OnboardingSlideOne(displayName: String) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("House stuff", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
-                        Text("You owe Brooklyn S. 105,36 ₺", color = Color(0xFFE11D48), fontSize = 12.sp)
+                        Text("Ev Masrafları", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
+                        Text("Selin'in üstlendiği marketten payına 35,36 ₺ düştü", color = Color(0xFFE11D48), fontSize = 12.sp)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("you owe", fontSize = 11.sp, color = Color(0xFFE11D48))
+                        Text("masaya payın", fontSize = 11.sp, color = Color(0xFFE11D48))
                         Text("35,36 ₺", fontWeight = FontWeight.Bold, color = Color(0xFFE11D48), fontSize = 14.sp)
                     }
                 }
@@ -343,7 +343,7 @@ private fun OnboardingSlideOne(displayName: String) {
 }
 
 // =============================================================================
-// SLIDE 2: ADD EXPENSES (SPLITWISE 1:1 PARITY)
+// SLIDE 2: ADD EXPENSES (MASAYA BIRAK)
 // =============================================================================
 @Composable
 private fun OnboardingSlideTwo() {
@@ -365,7 +365,7 @@ private fun OnboardingSlideTwo() {
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text = "Add expenses",
+            text = "Masaya Bırak",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             color = Color(0xFF1E293B)
@@ -374,7 +374,7 @@ private fun OnboardingSlideTwo() {
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "You can split expenses with groups or with individuals.",
+            text = "Dün gece masaya ne geldiyse tek tıkla ekle; ister arkadaşlarınla eşit bölüş, ister hisselere ayır.",
             style = MaterialTheme.typography.bodyLarge,
             color = Color(0xFF64748B),
             lineHeight = 22.sp
@@ -410,7 +410,7 @@ private fun OnboardingSlideTwo() {
                         }
                     }
                     Column {
-                        Text("Groceries", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 16.sp)
+                        Text("Market & Kahveler", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 16.sp)
                         HorizontalDivider(
                             color = Color(0xFFE2E8F0),
                             thickness = 1.dp,
@@ -462,7 +462,7 @@ private fun OnboardingSlideTwo() {
 }
 
 // =============================================================================
-// SLIDE 3: SETTLE UP (SPLITWISE 1:1 PARITY)
+// SLIDE 3: SETTLE UP (ÖDEŞ & TERTEMİZ OL)
 // =============================================================================
 @Composable
 private fun OnboardingSlideThree() {
@@ -484,7 +484,7 @@ private fun OnboardingSlideThree() {
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text = "Settle up",
+            text = "Tertemiz Ol & Ödeş",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             color = Color(0xFF1E293B)
@@ -493,7 +493,7 @@ private fun OnboardingSlideThree() {
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "Pay your friends back any time with instant FAST transfer.",
+            text = "Arkadaşınla arandaki hesabı FAST ile saniyeler içinde kapat, vicdanlar rahat etsin.",
             style = MaterialTheme.typography.bodyLarge,
             color = Color(0xFF64748B),
             lineHeight = 22.sp
@@ -542,7 +542,7 @@ private fun OnboardingSlideThree() {
                         }
                     }
 
-                    Text("You paid Brooklyn S.", fontSize = 12.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
+                    Text("Selin ile ödeştin (Masayı kapattın)", fontSize = 12.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
 
                     // Amount Row with underline
                     Row(
@@ -710,7 +710,7 @@ private fun OnboardingSlideFour(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Let's get started",
+                text = "Masayı Kuralım!",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF1E293B)
@@ -719,7 +719,7 @@ private fun OnboardingSlideFour(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "What would you like to do first?",
+                text = "İlk olarak nasıl bir masa açmak istersin?",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color(0xFF64748B),
                 lineHeight = 24.sp
@@ -745,7 +745,7 @@ private fun OnboardingSlideFour(
                     .bounceClick { onCreateTripGroup() }
             ) {
                 Text(
-                    text = "✈️  Add a group trip",
+                    text = "✈️  Tatil & Seyahat Masası Kur",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -764,7 +764,7 @@ private fun OnboardingSlideFour(
                     .bounceClick { onCreateHouseGroup() }
             ) {
                 Text(
-                    text = "🏠  Add your household",
+                    text = "🏠  Ev & Yaşam Masası Kur",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -773,7 +773,7 @@ private fun OnboardingSlideFour(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Skip setup for now",
+                text = "Şimdilik Masaya Geç",
                 color = PrimaryEmerald,
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,

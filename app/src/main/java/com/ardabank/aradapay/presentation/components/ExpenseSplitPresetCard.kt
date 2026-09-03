@@ -92,19 +92,19 @@ fun ExpenseSplitPresetSelector(
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
-        // 1. Sen ödedin, eşit bölüşüldü
+        // 1. Masayı sen üstlendin, eşit bölüşüldü
         PresetRowItem(
             preset = QuickSplitPreset.YOU_PAID_SPLIT_EQUALLY,
-            title = if (isMulti) "Sen ödedin, eşit bölüşüldü ($totalPeople kişi)." else "Sen ödedin, eşit bölüşüldü.",
+            title = if (isMulti) "Masayı sen üstlendin, eşit bölüşüldü ($totalPeople kişi)." else "Masayı sen üstlendin, eşit bölüşüldü.",
             subtitle = if (isMulti) {
                 if (hasAmount) {
-                    "Kişi başı ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺ • $friendsSummary sana borçlu (Toplam ${String.format(java.util.Locale.US, "%.2f", totalReceivable)} ₺ alacak)"
+                    "Kişi başı ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺ • $friendsSummary masadan payını kapatacak (Toplam ${String.format(java.util.Locale.US, "%.2f", totalReceivable)} ₺ pay)"
                 } else {
-                    "Kişi başı eşit bölüşülür • $friendsSummary sana borçlanır"
+                    "Kişi başı eşit bölüşülür • $friendsSummary payını masaya bırakır"
                 }
             } else {
                 if (hasAmount) {
-                    "$firstFriend sana ${String.format(java.util.Locale.US, "%.2f", totalAmount / 2.0)} ₺ borçlu"
+                    "$firstFriend masadan payına düşeni (${String.format(java.util.Locale.US, "%.2f", totalAmount / 2.0)} ₺) verecek"
                 } else {
                     "$firstFriend ile yarı yarıya eşit bölüşülür"
                 }
@@ -114,21 +114,21 @@ fun ExpenseSplitPresetSelector(
             onClick = { onPresetSelected(QuickSplitPreset.YOU_PAID_SPLIT_EQUALLY) }
         )
 
-        // 2. Tüm tutar senin alacağın
+        // 2. Tüm masayı sen üstlendin
         PresetRowItem(
             preset = QuickSplitPreset.YOU_ARE_OWED_FULL,
-            title = if (isMulti) "Sen ödedin, tüm tutar onların payı ($count kişi)." else "Tüm tutar senin alacağın.",
+            title = if (isMulti) "Masayı sen üstlendin, tüm tutar onların payı ($count kişi)." else "Tüm masayı sen üstlendin.",
             subtitle = if (isMulti) {
                 if (hasAmount) {
-                    "Kişi başı ${String.format(java.util.Locale.US, "%.2f", equalShareWithoutMe)} ₺ • Tüm tutar (${String.format(java.util.Locale.US, "%.2f", totalAmount)} ₺) senin alacağın"
+                    "Kişi başı ${String.format(java.util.Locale.US, "%.2f", equalShareWithoutMe)} ₺ • Tüm masa (${String.format(java.util.Locale.US, "%.2f", totalAmount)} ₺) onların payı"
                 } else {
-                    "Sen hariç $count kişi arasında bölüşülür • Tüm tutar senin alacağın"
+                    "Sen hariç $count kişi arasında bölüşülür • Masayı sen üstlendin"
                 }
             } else {
                 if (hasAmount) {
-                    "$firstFriend sana ${String.format(java.util.Locale.US, "%.2f", totalAmount)} ₺ borçlu"
+                    "$firstFriend masadan payına düşen: ${String.format(java.util.Locale.US, "%.2f", totalAmount)} ₺"
                 } else {
-                    "Tüm tutar senin alacağın olur"
+                    "Tüm masayı sen üstlendin, pay arkadaşa ait"
                 }
             },
             isReceivable = true,
@@ -136,21 +136,21 @@ fun ExpenseSplitPresetSelector(
             onClick = { onPresetSelected(QuickSplitPreset.YOU_ARE_OWED_FULL) }
         )
 
-        // 3. Arkadaş ödedi, eşit bölüşüldü
+        // 3. Masayı arkadaş üstlendi, eşit bölüşüldü
         PresetRowItem(
             preset = QuickSplitPreset.FRIEND_PAID_SPLIT_EQUALLY,
-            title = if (isMulti) "$firstFriend ödedi, eşit bölüşüldü ($totalPeople kişi)." else "$firstFriend ödedi, eşit bölüşüldü.",
+            title = if (isMulti) "$firstFriend masayı üstlendi, eşit bölüşüldü ($totalPeople kişi)." else "$firstFriend masayı üstlendi, eşit bölüşüldü.",
             subtitle = if (isMulti) {
                 if (hasAmount) {
-                    "Kişi başı ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺ • $firstFriend kişisine ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺ borcun var"
+                    "Kişi başı ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺ • $firstFriend için senin payına düşen: ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺"
                 } else {
-                    "Kişi başı eşit bölüşülür • $firstFriend kişisine borçlanırsın"
+                    "Kişi başı eşit bölüşülür • Masayı $firstFriend üstlendi"
                 }
             } else {
                 if (hasAmount) {
-                    "$firstFriend kişisine ${String.format(java.util.Locale.US, "%.2f", totalAmount / 2.0)} ₺ borcun var"
+                    "$firstFriend masayı üstlendi, senin payın: ${String.format(java.util.Locale.US, "%.2f", totalAmount / 2.0)} ₺"
                 } else {
-                    "$firstFriend kişisine yarı tutar kadar borçlanırsın"
+                    "$firstFriend masayı üstlendi, yarı payın ayrıldı"
                 }
             },
             isReceivable = false,
@@ -158,21 +158,21 @@ fun ExpenseSplitPresetSelector(
             onClick = { onPresetSelected(QuickSplitPreset.FRIEND_PAID_SPLIT_EQUALLY) }
         )
 
-        // 4. Tüm tutar arkadaşa ait
+        // 4. Tüm masayı arkadaş üstlendi
         PresetRowItem(
             preset = QuickSplitPreset.FRIEND_IS_OWED_FULL,
-            title = if (isMulti) "Tüm tutarı $firstFriend ödedi." else "Tüm tutar $firstFriend'e ait.",
+            title = if (isMulti) "Tüm masayı $firstFriend üstlendi." else "Tüm masayı $firstFriend üstlendi.",
             subtitle = if (isMulti) {
                 if (hasAmount) {
-                    "$firstFriend kişisine ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺ borcun var"
+                    "$firstFriend masayı üstlendi, senin payın: ${String.format(java.util.Locale.US, "%.2f", equalShareWithMe)} ₺"
                 } else {
-                    "$firstFriend kişisine kendi payın kadar borçlanırsın"
+                    "$firstFriend masayı üstlendi, kendi payın ayrıldı"
                 }
             } else {
                 if (hasAmount) {
-                    "$firstFriend kişisine ${String.format(java.util.Locale.US, "%.2f", totalAmount)} ₺ borcun var"
+                    "$firstFriend masayı üstlendi, senin payın: ${String.format(java.util.Locale.US, "%.2f", totalAmount)} ₺"
                 } else {
-                    "$firstFriend kişisine tüm tutar kadar borçlanırsın"
+                    "Tüm masayı $firstFriend üstlendi, payın ayrıldı"
                 }
             },
             isReceivable = false,

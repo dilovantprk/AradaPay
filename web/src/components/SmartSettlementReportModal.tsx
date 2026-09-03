@@ -55,7 +55,7 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
           </button>
 
           <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
-            Akıllı Mahsuplaşma Raporu
+            Akıllı Masa Dengeleme Raporu
           </h3>
 
           <div className="w-10" />
@@ -66,13 +66,13 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
           {/* 1. Savings Hero Banner */}
           <div className="px-6 py-6 text-center space-y-2 bg-white">
             <span className="text-[11px] font-bold text-[#00875A] uppercase tracking-wider block">
-              SIFIR TRANSFERLE BORÇ İTFASI
+              SIFIR TRANSFER İLE MASAYI KAPATMA
             </span>
             <div className="text-[40px] font-extrabold text-[#0F172A] font-tabular tracking-tight">
               {offer.cycleAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
             </div>
             <p className="text-[13px] text-[#64748B]">
-              {offer.participants.length} kişi arasındaki döngüsel borç tamamen sıfırlandı.
+              {offer.participants.length} arkadaş arasındaki masadaki paylar tamamen sıfırlandı.
             </p>
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#00875A] text-[11px] font-bold mt-1">
@@ -84,7 +84,7 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
           {/* 2. Mahsuplaşma Katılımcıları */}
           <div className="px-6 py-4 space-y-3 bg-white">
             <span className="text-[11px] font-bold text-[#64748B] tracking-[0.05em] uppercase block">
-              MAHSUPLAŞMAYA DAHİL KİŞİLER
+              ÖDEŞMEYE DAHİL OLANLAR
             </span>
 
             <div className="divide-y divide-slate-50">
@@ -116,13 +116,13 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
             </div>
           </div>
 
-          {/* 3. Cryptographic L2 Proof Certificate */}
+          {/* 3. Proof Certificate */}
           <div className="px-6 py-4 space-y-2 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#00875A]" />
                 <span className="text-[12px] font-bold text-[#0F172A]">
-                  Graph DFS & Merkle L2 İspatı
+                  Ödeşme & Dengeleme Özeti
                 </span>
               </div>
 
@@ -136,7 +136,7 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
             </div>
 
             <p className="text-[11px] text-[#64748B]">
-              Bu mahsuplaşma, DFS Directed Cycle Reduction algoritması ile çözülmüş ve AradaPay L2 defterine işlenmiştir.
+              Bu işlem akıllı masa dengeleme algoritmasıyla hesaplanmış ve masadaki bakiyeler eşitlenmiştir.
             </p>
 
             <div className="p-3 rounded-[12px] bg-[#F8FAFC] text-[#475569] font-mono text-[11px] break-all select-all border border-slate-200">
@@ -155,7 +155,7 @@ export const SmartSettlementReportModal: React.FC<SmartSettlementReportModalProp
             className="flex-1 h-12 rounded-[14px] bg-[#00875A] hover:bg-[#00744d] text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition shadow-sm shadow-emerald-900/20"
           >
             <Receipt className="w-4 h-4" />
-            <span>Kriptografik Dekontu Görüntüle</span>
+            <span>Dijital Dekontu Görüntüle</span>
           </button>
 
           <button

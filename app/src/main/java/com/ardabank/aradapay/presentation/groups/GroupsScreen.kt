@@ -58,6 +58,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PersonAdd
@@ -127,7 +128,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.domain.model.Group
 import com.ardabank.aradapay.domain.model.GroupMember
 import com.ardabank.aradapay.presentation.common.BankContactPickerSheet
@@ -141,10 +142,10 @@ import com.ardabank.aradapay.presentation.theme.PrimaryEmeraldContainer
 import kotlin.math.abs
 
 enum class GroupFilterOption(val title: String) {
-    ALL("Tüm gruplar"),
-    OUTSTANDING("Açık bakiyeli gruplar"),
-    YOU_OWE("Borçlu olduğun gruplar"),
-    OWED_TO_YOU("Alacaklı olduğun gruplar")
+    ALL("Tüm Gruplar"),
+    OUTSTANDING("Hesabı Açık Kalanlar"),
+    YOU_OWE("Payıma Düşen Masalar (-₺)"),
+    OWED_TO_YOU("Masayı Üstlendiklerim (+₺)")
 }
 
 data class GroupTypeItem(
@@ -391,9 +392,9 @@ fun GroupsScreen(
                 }
 
                 val netText = when {
-                    overallGroupNet > 0 -> "+${String.format(java.util.Locale.US, "%.2f", overallGroupNet)} ₺ Alacak"
-                    overallGroupNet < 0 -> "${String.format(java.util.Locale.US, "%.2f", abs(overallGroupNet))} ₺ Borç"
-                    else -> "Dengede"
+                    overallGroupNet > 0 -> "+${String.format(java.util.Locale.US, "%.2f", overallGroupNet)} ₺ Masada Payın Var"
+                    overallGroupNet < 0 -> "${String.format(java.util.Locale.US, "%.2f", abs(overallGroupNet))} ₺ Payına Düşen"
+                    else -> "Tertemiz (Dengede)"
                 }
 
                 Text(
@@ -437,7 +438,7 @@ fun GroupsScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
-                                text = if (searchQuery.isNotBlank() || selectedFilter != GroupFilterOption.ALL) "Grup Bulunamadı" else "Henüz Eklenmiş Grup Yok",
+                                text = "Masa bomboş.",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
@@ -446,7 +447,7 @@ fun GroupsScreen(
                             Spacer(modifier = Modifier.height(6.dp))
 
                             Text(
-                                text = if (searchQuery.isNotBlank() || selectedFilter != GroupFilterOption.ALL) "Arama veya filtre kriterlerinize uygun grup bulunamadı." else "Grup oluşturmak veya katılmak için sağ üstteki butona tıklayın.",
+                                text = if (searchQuery.isNotBlank() || selectedFilter != GroupFilterOption.ALL) "Arama veya filtre kriterine uygun grup masası bulunamadı." else "Henüz bir grup masası açılmamış. Yeni bir masa kurup arkadaşlarınla bölüşmeye başla!",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color(0xFF64748B),
                                 textAlign = TextAlign.Center
@@ -454,7 +455,7 @@ fun GroupsScreen(
                         }
                     }
                 } else {
-                    itemsIndexed(filteredGroups, key = { _, group -> group.id }) { index, group ->
+                    items(filteredGroups, key = { it.id }) { group ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -463,33 +464,29 @@ fun GroupsScreen(
                                     onLongClick = { selectedGroupForQuickAction = group }
                                 )
                                 .padding(horizontal = 20.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                val categoryIcon = when (group.category) {
-                                    "Ev & Yaşam" -> Icons.Outlined.Home
-                                    "Seyahat" -> Icons.Outlined.Flight
-                                    "Yemek" -> Icons.Outlined.Restaurant
-                                    "Yolculuk" -> Icons.Outlined.DirectionsCar
-                                    "Etkinlik" -> Icons.Outlined.Celebration
-                                    else -> Icons.Outlined.Folder
-                                }
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
                                     color = Color(0xFFF1F5F9),
-                                    modifier = Modifier.size(44.dp)
+                                    modifier = Modifier.size(46.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = categoryIcon,
-                                            contentDescription = group.category,
-                                            tint = Color(0xFF0F172A),
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                        if (group.emoji != null && group.emoji.isNotBlank()) {
+                                            Text(text = group.emoji, fontSize = 22.sp)
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.Groups,
+                                                contentDescription = null,
+                                                tint = Color(0xFF475569),
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
                                     }
                                 }
 
@@ -504,24 +501,24 @@ fun GroupsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "${group.members.size} üye • ${group.category}",
-                                        color = Color(0xFF64748B),
-                                        fontSize = 12.sp
+                                        text = "${group.members.size} Üye • ${group.category}",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF64748B)
                                     )
                                 }
                             }
 
                             Column(horizontalAlignment = Alignment.End) {
-                                if (group.userBalance == 0.0) {
+                                if (abs(group.userBalance) < 0.01) {
                                     Text(
-                                        text = "fitleşildi",
+                                        text = "ödeştik",
                                         color = Color(0xFF94A3B8),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Normal
                                     )
                                 } else if (group.userBalance > 0) {
                                     Text(
-                                        text = "sana borçlu",
+                                        text = "masadan payı var",
                                         color = PrimaryEmerald,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
@@ -535,7 +532,7 @@ fun GroupsScreen(
                                     )
                                 } else {
                                     Text(
-                                        text = "sen borçlusun",
+                                        text = "masaya payın var",
                                         color = AccentRose,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
@@ -549,14 +546,6 @@ fun GroupsScreen(
                                     )
                                 }
                             }
-                        }
-
-                        if (index < filteredGroups.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(start = 78.dp),
-                                color = Color(0xFFF1F5F9),
-                                thickness = 0.8.dp
-                            )
                         }
                     }
                 }

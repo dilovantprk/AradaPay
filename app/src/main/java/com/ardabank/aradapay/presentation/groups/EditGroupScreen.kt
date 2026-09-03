@@ -97,7 +97,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ardabank.aradapay.data.repository.GroupRepository
+import com.ardabank.aradapay.domain.repository.GroupRepository
 import com.ardabank.aradapay.domain.model.GroupMember
 import com.ardabank.aradapay.presentation.common.BankContactPickerScreen
 import com.ardabank.aradapay.presentation.components.bounceClick
@@ -592,11 +592,11 @@ fun EditGroupScreen(
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = if (member.balanceInGroup > 0) {
-                                    "+${String.format(java.util.Locale.US, "%.2f", member.balanceInGroup)} ₺ alacaklı"
+                                    "+${String.format(java.util.Locale.US, "%.2f", member.balanceInGroup)} ₺ masada payı var"
                                 } else if (member.balanceInGroup < 0) {
-                                    "-${String.format(java.util.Locale.US, "%.2f", abs(member.balanceInGroup))} ₺ borçlu"
+                                    "-${String.format(java.util.Locale.US, "%.2f", abs(member.balanceInGroup))} ₺ masaya payı var"
                                 } else {
-                                    "0,00 ₺ fitleşildi"
+                                    "0,00 ₺ ödeştik"
                                 },
                                 fontSize = 13.sp,
                                 color = if (member.balanceInGroup > 0) PrimaryEmerald else if (member.balanceInGroup < 0) AccentRose else Color(0xFF64748B)
@@ -670,14 +670,14 @@ fun EditGroupScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Text(
-                                text = "Borçları Sadeleştir",
+                                text = "Akıllı Masayı Dengele",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 color = Color(0xFF0F172A)
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Grup içi transfer sayısını minimize eder",
+                                text = "Grup içi transfer sayısını en aza indirip hesabı kolaylaştırır",
                                 fontSize = 13.sp,
                                 color = Color(0xFF64748B)
                             )
